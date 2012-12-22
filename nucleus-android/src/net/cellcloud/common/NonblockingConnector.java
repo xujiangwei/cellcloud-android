@@ -37,6 +37,9 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import net.cellcloud.util.Util;
+import android.content.Context;
+
 
 /** 非阻塞式网络连接器。
  * 
@@ -45,6 +48,8 @@ import java.util.Vector;
 public class NonblockingConnector extends MessageService implements MessageConnector {
 
 	protected static final int BLOCK = 8192;
+
+	private Context androidContext;
 
 	private InetSocketAddress address;
 	private long connectTimeout;
@@ -64,7 +69,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private boolean closed = false;
 
-	public NonblockingConnector() {
+	public NonblockingConnector(Context androidContext) {
+		this.androidContext = androidContext;
 		this.connectTimeout = 10000;
 		this.readBuffer = ByteBuffer.allocate(BLOCK);
 		this.writeBuffer = ByteBuffer.allocate(BLOCK);
@@ -82,6 +88,14 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		if (this.channel != null && this.channel.isConnected()) {
 			Logger.w(NonblockingConnector.class, "Connector has connected to " + address.getAddress().getHostAddress());
 			return true;
+		}
+
+		// 判断是否有网络连接
+		if (!Util.isWifiConnected(this.androidContext)) {
+			if (!Util.isMobileConnected(this.androidContext)) {
+				this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
+				return false;
+			}
 		}
 
 		if (this.running && null != this.channel) {
@@ -288,8 +302,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	public void read(Message message, Session session) {
 		// Nothing
 	}
-
-	
 
 	private void fireSessionCreated() {
 		if (null != this.handler) {

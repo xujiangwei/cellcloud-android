@@ -43,6 +43,7 @@ import net.cellcloud.common.Logger;
 import net.cellcloud.exception.CelletSandboxException;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.TalkService;
+import android.app.Application;
 
 /** Cell Cloud 软件栈内核类。
  * 
@@ -55,6 +56,8 @@ public final class Nucleus {
 	private NucleusTag tag = null;
 	private NucleusConfig config = null;
 	private NucleusContext context = null;
+
+	private Application application = null;
 
 	// 集群网络控制
 	private ClusterController clusterController = null;
@@ -69,12 +72,14 @@ public final class Nucleus {
 
 	/** 构造函数。
 	 */
-	public Nucleus(NucleusConfig config)
+	public Nucleus(NucleusConfig config, Application application)
 			throws SingletonException {
 		if (null == Nucleus.instance) {
 			Nucleus.instance = this;
 			// 设置配置
 			this.config = config;
+			// 设置 Android 上下文
+			this.application = application;
 
 			// 生成标签
 			if (null != config.tag) {
@@ -82,7 +87,8 @@ public final class Nucleus {
 			}
 			else {
 				this.tag = new NucleusTag();
-				Logger.w(Nucleus.class, "Nucleus Warning: No nucleus tag setting, use random tag: " + this.tag.asString());
+				if (this.config.role != NucleusConfig.Role.CONSUMER)
+					Logger.w(Nucleus.class, "Nucleus Warning: No nucleus tag setting, use random tag: " + this.tag.asString());
 			}
 
 			this.context = new NucleusContext();
@@ -95,6 +101,12 @@ public final class Nucleus {
 	/** 返回单例。 */
 	public synchronized static Nucleus getInstance() {
 		return Nucleus.instance;
+	}
+
+	/** 返回 Android 全局上下文。
+	 */
+	public Application getApplication() {
+		return this.application;
 	}
 
 	/** 返回内核标签。 */

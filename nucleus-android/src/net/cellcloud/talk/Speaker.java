@@ -96,7 +96,7 @@ public class Speaker {
 	 */
 	public void call(InetSocketAddress address) {
 		if (null == this.connector) {
-			this.connector = new NonblockingConnector();
+			this.connector = new NonblockingConnector(Nucleus.getInstance().getApplication());
 
 			byte[] headMark = {0x20, 0x10, 0x11, 0x10};
 			byte[] tailMark = {0x19, 0x78, 0x10, 0x04};

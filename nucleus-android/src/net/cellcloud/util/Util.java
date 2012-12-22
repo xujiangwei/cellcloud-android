@@ -35,6 +35,9 @@ import java.util.Random;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 
 /** 实用函数库。
  * 
@@ -173,5 +176,44 @@ public final class Util {
 		default:
 			return new int[]{255, 255, 255, 255};
 		}
+	}
+
+	/** 是否有网络连接。
+	 */
+	public static boolean isNetworkConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+		if (null != networkInfo) {
+			return networkInfo.isAvailable();
+		}
+
+		return false;
+	}
+
+	/** 是否有 WIFI 网络连接。
+	 */
+	public static boolean isWifiConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		if (null != networkInfo) {
+			return networkInfo.isAvailable();
+		}
+
+		return false;
+	}
+
+	/** 是否有 Mobile 网络连接。
+	 */
+	public static boolean isMobileConnected(Context context) {
+		ConnectivityManager connectivityManager = (ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+		if (null != networkInfo) {
+			return networkInfo.isAvailable();
+		}
+
+		return false;
 	}
 }
