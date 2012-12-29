@@ -28,8 +28,9 @@ package net.cellcloud.common;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Locale;
+
+import android.util.Log;
 
 /** 日志管理器。
  * 
@@ -48,7 +49,7 @@ public final class LoggerManager {
 		this.handles = new ArrayList<LogHandle>();
 		this.level = LogLevel.DEBUG;
 
-		this.handles.add(createSystemOutHandle());
+		this.handles.add(createAndroidHandle());
 	}
 
 	public synchronized static LoggerManager getInstance() {
@@ -118,72 +119,29 @@ public final class LoggerManager {
 		}
 	}
 
-	/** 创建 System.out 日志。
+	/** 创建 Android 日志。
 	 */
-	public LogHandle createSystemOutHandle() {
+	public LogHandle createAndroidHandle() {
 		return new LogHandle() {
-
-			private byte[] mutex = new byte[0];
-			private StringBuilder buf = new StringBuilder();
 
 			@Override
 			public void logDebug(String tag, String log) {
-				synchronized (mutex) {
-					buf.append(timeFormat.format(new Date()));
-					buf.append(" [DEBUG] ");
-					buf.append(tag);
-					buf.append(" ");
-					buf.append(log);
-
-					System.out.println(buf.toString());
-
-					buf.delete(0, buf.length());
-				}
+				Log.d(tag, log);
 			}
 
 			@Override
 			public void logInfo(String tag, String log) {
-				synchronized (mutex) {
-					buf.append(timeFormat.format(new Date()));
-					buf.append(" [INFO]  ");
-					buf.append(tag);
-					buf.append(" ");
-					buf.append(log);
-
-					System.out.println(buf.toString());
-
-					buf.delete(0, buf.length());
-				}
+				Log.i(tag, log);
 			}
 
 			@Override
 			public void logWarning(String tag, String log) {
-				synchronized (mutex) {
-					buf.append(timeFormat.format(new Date()));
-					buf.append(" [WARN]  ");
-					buf.append(tag);
-					buf.append(" ");
-					buf.append(log);
-
-					System.out.println(buf.toString());
-
-					buf.delete(0, buf.length());
-				}
+				Log.w(tag, log);
 			}
 
 			@Override
 			public void logError(String tag, String log) {
-				synchronized (mutex) {
-					buf.append(timeFormat.format(new Date()));
-					buf.append(" [ERROR] ");
-					buf.append(tag);
-					buf.append(" ");
-					buf.append(log);
-
-					System.out.println(buf.toString());
-
-					buf.delete(0, buf.length());
-				}
+				Log.e(tag, log);
 			}
 		};
 	}

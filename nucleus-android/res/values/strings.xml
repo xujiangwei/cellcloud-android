@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">nucleus-android</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="app_name">Nucleus Android</string>
     <string name="menu_settings">Settings</string>
 
 </resources>

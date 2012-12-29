@@ -90,6 +90,9 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			return true;
 		}
 
+		// For Android 2.2
+		System.setProperty("java.net.preferIPv6Addresses", "false");
+
 		// 判断是否有网络连接
 		if (!Util.isWifiConnected(this.androidContext)) {
 			if (!Util.isMobileConnected(this.androidContext)) {

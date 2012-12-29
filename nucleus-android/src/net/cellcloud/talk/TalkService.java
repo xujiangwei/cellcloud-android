@@ -143,7 +143,9 @@ public final class TalkService implements Service {
 		}
 
 		// 最大连接数
-		this.acceptor.setMaxConnectNum(1024);
+		this.acceptor.setMaxConnectNum(32);
+		// 工作线程数
+		this.acceptor.setWorkerNum(2);
 
 		// 定义包标识
 		byte[] head = {0x20, 0x10, 0x11, 0x10};
