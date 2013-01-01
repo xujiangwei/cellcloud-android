@@ -411,8 +411,8 @@ public final class TalkService implements Service {
 
 		Speaker speaker = this.speakers.get(identifier);
 		if (null != speaker) {
-			speaker.speak(primitive);
-			return true;
+			// Speak
+			return speaker.speak(primitive);
 		}
 
 		return false;
