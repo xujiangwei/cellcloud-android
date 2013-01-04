@@ -82,7 +82,7 @@ public final class TalkServiceDaemon extends Thread {
 			++heartbeatCount;
 			if (heartbeatCount >= 60) {
 
-				// 60 秒一次心跳
+				// 300 秒一次心跳
 
 				if (null != service.speakers) {
 					Iterator<Speaker> iter = service.speakers.values().iterator();
@@ -125,7 +125,7 @@ public final class TalkServiceDaemon extends Thread {
 
 			// 1 分钟检查一次
 			++checkSuspendedCount;
-			if (checkSuspendedCount >= 60) {
+			if (checkSuspendedCount >= 12) {
 				// 检查并删除挂起的会话
 				service.checkAndDeleteSuspendedTalk();
 				checkSuspendedCount = 0;
