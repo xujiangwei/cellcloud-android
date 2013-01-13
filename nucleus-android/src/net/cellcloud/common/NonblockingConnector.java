@@ -177,6 +177,9 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			}
 
 			return false;
+		} catch (Exception e) {
+			// Nothing
+			return false;
 		}
 
 		// 创建 Session
@@ -432,8 +435,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				fireSessionClosed();
 
 				try {
-					this.channel.close();
-					this.selector.close();
+					if (null != this.channel)
+						this.channel.close();
+					if (null != this.selector)
+						this.selector.close();
 				} catch (IOException ce) {
 					Logger.logException(ce, LogLevel.DEBUG);
 				}

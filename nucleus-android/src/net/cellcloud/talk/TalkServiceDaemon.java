@@ -80,9 +80,8 @@ public final class TalkServiceDaemon extends Thread {
 			this.tickTime = System.currentTimeMillis();
 
 			++heartbeatCount;
-			if (heartbeatCount >= 60) {
-
-				// 300 秒一次心跳
+			if (heartbeatCount >= 150) {
+				// 5 分钟一次心跳
 
 				if (null != service.speakers) {
 					Iterator<Speaker> iter = service.speakers.values().iterator();
@@ -125,7 +124,7 @@ public final class TalkServiceDaemon extends Thread {
 
 			// 1 分钟检查一次
 			++checkSuspendedCount;
-			if (checkSuspendedCount >= 12) {
+			if (checkSuspendedCount >= 30) {
 				// 检查并删除挂起的会话
 				service.checkAndDeleteSuspendedTalk();
 				checkSuspendedCount = 0;
@@ -141,14 +140,14 @@ public final class TalkServiceDaemon extends Thread {
 				}
 			}
 
-			// 休眠 5 秒
+			// 休眠 2 秒
 			try {
 				long dt = System.currentTimeMillis() - this.tickTime;
-				if (dt <= 5000) {
-					dt = 5000 - dt;
+				if (dt <= 2000) {
+					dt = 2000 - dt;
 				}
 				else {
-					dt = dt % 5000;
+					dt = dt % 2000;
 				}
 
 				Thread.sleep(dt);

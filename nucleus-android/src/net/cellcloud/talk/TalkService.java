@@ -451,7 +451,7 @@ public final class TalkService implements Service {
 
 		return false;
 	}
-	/** Cellet 服务器是否已经被挂起。
+	/** Cellet 服务是否已经被挂起。
 	 * 
 	 * @note Client
 	 */

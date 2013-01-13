@@ -46,7 +46,7 @@ public final class ActionDialectFactory extends DialectFactory {
 
 	public ActionDialectFactory() {
 		this.metaData = new DialectMetaData(ActionDialect.DIALECT_NAME, "Action Dialect");
-		this.maxThreadCount = 16;
+		this.maxThreadCount = 4;
 		this.threadCount = 0;
 		this.dialects = new Vector<ActionDialect>();
 		this.delegates = new Vector<ActionDelegate>();
