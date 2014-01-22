@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,8 @@ THE SOFTWARE.
 
 package net.cellcloud.common;
 
-/** 消息服务处理监听器。
+/**
+ * 消息服务处理监听器。
  * 
  * @author Jiangwei Xu
  */

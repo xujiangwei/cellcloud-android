@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ import net.cellcloud.common.Logger;
 import net.cellcloud.common.Message;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
-import net.cellcloud.util.Util;
+import net.cellcloud.util.Utils;
 
 /** Consult Command
  * 
@@ -48,7 +48,7 @@ public final class ServerConsultCommand extends ServerCommand {
 		// 包格式：源标签|能力描述序列化数据
 
 		// 标签
-		String tag = Util.bytes2String(this.packet.getSubsegment(0));
+		String tag = Utils.bytes2String(this.packet.getSubsegment(0));
 
 		// 能力描述
 		TalkCapacity capacity = TalkCapacity.deserialize(this.packet.getSubsegment(1));

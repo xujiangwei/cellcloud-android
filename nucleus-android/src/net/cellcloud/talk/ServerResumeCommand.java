@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ package net.cellcloud.talk;
 
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
-import net.cellcloud.util.Util;
+import net.cellcloud.util.Utils;
 
 /** Resume Command
  * 
@@ -45,8 +45,8 @@ public final class ServerResumeCommand extends ServerCommand {
 	public void execute() {
 		// 包格式：内核标签|需要回复的原语起始时间戳
 
-		String tag = Util.bytes2String(this.packet.getSubsegment(0));
-		long startTime = Long.parseLong(Util.bytes2String(this.packet.getSubsegment(1)));
+		String tag = Utils.bytes2String(this.packet.getSubsegment(0));
+		long startTime = Long.parseLong(Utils.bytes2String(this.packet.getSubsegment(1)));
 
 		this.service.processResume(this.session, tag, startTime);
 	}

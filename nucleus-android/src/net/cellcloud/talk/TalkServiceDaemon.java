@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,6 @@ THE SOFTWARE.
 package net.cellcloud.talk;
 
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
@@ -46,23 +44,14 @@ public final class TalkServiceDaemon extends Thread {
 	protected boolean running = false;
 	private long tickTime = 0;
 
-	private Queue<Runnable> tasks;
-
 	public TalkServiceDaemon() {
 		super("TalkServiceDaemon");
-		this.tasks = new LinkedList<Runnable>();
 	}
 
 	/** 返回周期时间点。
 	 */
 	protected long getTickTime() {
 		return this.tickTime;
-	}
-
-	protected void joinTask(Runnable task) {
-		synchronized (this.tasks) {
-			this.tasks.offer(task);
-		}
 	}
 
 	@Override
@@ -79,14 +68,13 @@ public final class TalkServiceDaemon extends Thread {
 			// 当前时间
 			this.tickTime = System.currentTimeMillis();
 
+			// 心跳计数
 			++heartbeatCount;
-			if (heartbeatCount >= 150) {
-				// 5 分钟一次心跳
+			if (heartbeatCount >= 120) {
+				// 120 秒一次心跳
 
 				if (null != service.speakers) {
-					Iterator<Speaker> iter = service.speakers.values().iterator();
-					while (iter.hasNext()) {
-						Speaker speaker = iter.next();
+					for (Speaker speaker : service.speakers.values()) {
 						speaker.heartbeat();
 					}
 				}
@@ -95,23 +83,23 @@ public final class TalkServiceDaemon extends Thread {
 			}
 
 			// 检查丢失连接的 Speaker
-			if (service.lostSpeakers != null && !service.lostSpeakers.isEmpty()) {
-				Iterator<Speaker> iter = service.lostSpeakers.iterator();
+			if (null != service.speakers) {
+				Iterator<Speaker> iter = service.speakers.values().iterator();
 				while (iter.hasNext()) {
 					Speaker speaker = iter.next();
 
-					if (this.tickTime - speaker.timestamp >= 10000) {
-						StringBuilder buf = new StringBuilder();
-						buf.append("Retry call cellet ");
-						buf.append(speaker.getIdentifier());
-						buf.append(" at ");
-						buf.append(speaker.getAddress().getAddress().getHostAddress());
-						buf.append(":");
-						buf.append(speaker.getAddress().getPort());
-						Logger.d(TalkServiceDaemon.class, buf.toString());
-						buf = null;
-
-						iter.remove();
+					if (speaker.lost && this.tickTime - speaker.timestamp >= 5000) {
+						if (Logger.isDebugLevel()) {
+							StringBuilder buf = new StringBuilder();
+							buf.append("Retry call cellet ");
+							buf.append(speaker.getIdentifier());
+							buf.append(" at ");
+							buf.append(speaker.getAddress().getAddress().getHostAddress());
+							buf.append(":");
+							buf.append(speaker.getAddress().getPort());
+							Logger.d(TalkServiceDaemon.class, buf.toString());
+							buf = null;
+						}
 
 						// 重连
 						speaker.call(speaker.getAddress());
@@ -124,27 +112,17 @@ public final class TalkServiceDaemon extends Thread {
 
 			// 1 分钟检查一次
 			++checkSuspendedCount;
-			if (checkSuspendedCount >= 30) {
+			if (checkSuspendedCount >= 60) {
 				// 检查并删除挂起的会话
 				service.checkAndDeleteSuspendedTalk();
 				checkSuspendedCount = 0;
 			}
 
-			// 执行简单任务
-			synchronized (this.tasks) {
-				if (!this.tasks.isEmpty()) {
-					for (int i = 0, size = this.tasks.size(); i < size; ++i) {
-						Runnable task = this.tasks.poll();
-						task.run();
-					}
-				}
-			}
-
-			// 休眠 2 秒
+			// 休眠 1 秒
 			try {
 				long dt = System.currentTimeMillis() - this.tickTime;
-				if (dt <= 2000) {
-					dt = 2000 - dt;
+				if (dt <= 1000) {
+					dt = 1000 - dt;
 				}
 				else {
 					dt = dt % 2000;
@@ -152,7 +130,7 @@ public final class TalkServiceDaemon extends Thread {
 
 				Thread.sleep(dt);
 			} catch (InterruptedException e) {
-				Logger.logException(e, LogLevel.ERROR);
+				Logger.log(TalkServiceDaemon.class, e, LogLevel.ERROR);
 			}
 
 		} while (this.spinning);

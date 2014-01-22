@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 package net.cellcloud.core;
 
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.List;
 
 /** 内核参数配置描述。
@@ -81,11 +81,54 @@ public final class NucleusConfig {
 	/// 设备
 	public byte device = Device.PHONE;
 
-	/// 集群地址表
-	public List<InetAddress> clusterAddressList = null;
-	/// 是否自定扫描地址
-	public boolean clusterAutoScan = false;
+	/// Talk Service 配置
+	public TalkConfig talk;
+
+	/// 集群配置
+	public ClusterConfig cluster;
 
 	public NucleusConfig() {
+		this.talk = new TalkConfig();
+		this.cluster = new ClusterConfig();
+	}
+
+	/**
+	 * 会话服务器配置项。
+	 */
+	public final class TalkConfig {
+		/// 是否启用 Talk 服务
+		public boolean enable = true;
+
+		/// Talk 服务端口
+		public int port = 7000;
+
+		/// Block 设置
+		public int block = 8192;
+
+		private TalkConfig() {
+		}
+	}
+
+	/**
+	 * 集群配置项。
+	 */
+	public final class ClusterConfig {
+		/// 集群绑定主机名
+		public String host = "127.0.0.1";
+
+		/// 集群服务首选端口
+		public int preferredPort = 11099;
+
+		/// 虚拟节点数量
+		public int numVNode = 3;
+
+		/// 集群地址表
+		public List<InetSocketAddress> addressList = null;
+
+		/// 是否自动扫描地址
+		public boolean autoScan = false;
+
+		private ClusterConfig() {
+		}
 	}
 }

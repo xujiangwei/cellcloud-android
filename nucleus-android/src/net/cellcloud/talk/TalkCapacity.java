@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,11 @@ public final class TalkCapacity {
 	public boolean autoSuspend = false;
 	/// 自动挂起时，连接挂起的有效时长，单位：毫秒
 	public long suspendDuration = 0;
+	
+	/// 重复尝试连接的次数
+	public int retryAttempts = 0;
+	/// 两次连接中间隔时间，单位毫秒
+	public long retryDelay = 1000;
 
 	public TalkCapacity(boolean autoSuspend, long suspendDuration) {
 		this.autoSuspend = autoSuspend;
@@ -61,7 +66,7 @@ public final class TalkCapacity {
 		try {
 			str = new String(bytes, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			return null;
+			str = new String(bytes);
 		}
 
 		String[] array = str.split("\\|");

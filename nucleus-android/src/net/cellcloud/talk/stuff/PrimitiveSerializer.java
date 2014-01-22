@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,12 +32,17 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.List;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /** 原语序列化器。
  * 
@@ -68,14 +73,20 @@ public final class PrimitiveSerializer {
 	private static final String LITERALBASE_UINT = "uint";
 	private static final String LITERALBASE_LONG = "long";
 	private static final String LITERALBASE_ULONG = "ulong";
+	private static final String LITERALBASE_FLOAT = "float";
 	private static final String LITERALBASE_BOOL = "bool";
+	private static final String LITERALBASE_JSON = "json";
+	private static final String LITERALBASE_XML = "xml";
 
 	private static final byte[] LITERALBASE_STRING_BYTES = LITERALBASE_STRING.getBytes();
 	private static final byte[] LITERALBASE_INT_BYTES = LITERALBASE_INT.getBytes();
 	private static final byte[] LITERALBASE_UINT_BYTES = LITERALBASE_UINT.getBytes();
 	private static final byte[] LITERALBASE_LONG_BYTES = LITERALBASE_LONG.getBytes();
 	private static final byte[] LITERALBASE_ULONG_BYTES = LITERALBASE_ULONG.getBytes();
+	private static final byte[] LITERALBASE_FLOAT_BYTES = LITERALBASE_FLOAT.getBytes();
 	private static final byte[] LITERALBASE_BOOL_BYTES = LITERALBASE_BOOL.getBytes();
+	private static final byte[] LITERALBASE_JSON_BYTES = LITERALBASE_JSON.getBytes();
+	private static final byte[] LITERALBASE_XML_BYTES = LITERALBASE_XML.getBytes();
 
 	private static final String STUFFTYPE_SUBJECT = "sub";
 	private static final String STUFFTYPE_PREDICATE = "pre";
@@ -91,7 +102,16 @@ public final class PrimitiveSerializer {
 	private static final byte[] STUFFTYPE_ATTRIBUTIVE_BYTES = STUFFTYPE_ATTRIBUTIVE.getBytes();
 	private static final byte[] STUFFTYPE_COMPLEMENT_BYTES = STUFFTYPE_COMPLEMENT.getBytes();
 
-	private static final int BLOCK = 2048;
+	private static final String JSONKEY_VERSION = "version";
+	private static final String JSONKEY_STUFFS = "stuffs";
+	private static final String JSONKEY_STUFFTYPE = "type";
+	private static final String JSONKEY_STUFFVALUE = "value";
+	private static final String JSONKEY_LITERALBASE = "literal";
+	private static final String JSONKEY_DIALECT = "dialect";
+	private static final String JSONKEY_NAME = "name";
+	private static final String JSONKEY_TRACKER = "tracker";
+
+	private static final int BLOCK = 65536;
 
 	private PrimitiveSerializer() {
 	}
@@ -117,15 +137,16 @@ public final class PrimitiveSerializer {
 			int bufLength = 0;
 
 			// 语素
-			if (null != primitive.subjects()) {
-				Iterator<SubjectStuff> iter = primitive.subjects().iterator();
+			List<SubjectStuff> subjects = primitive.subjects();
+			if (null != subjects) {
+				Iterator<SubjectStuff> iter = subjects.iterator();
 				while (iter.hasNext()) {
 					SubjectStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_SUBJECT_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -137,15 +158,16 @@ public final class PrimitiveSerializer {
 					stream.write((int)TOKEN_CLOSE_BRACE);
 				}
 			}
-			if (null != primitive.predicates()) {
-				Iterator<PredicateStuff> iter = primitive.predicates().iterator();
+			List<PredicateStuff> predicates = primitive.predicates();
+			if (null != predicates) {
+				Iterator<PredicateStuff> iter = predicates.iterator();
 				while (iter.hasNext()) {
 					PredicateStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_PREDICATE_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -157,15 +179,16 @@ public final class PrimitiveSerializer {
 					stream.write((int)TOKEN_CLOSE_BRACE);
 				}
 			}
-			if (null != primitive.objectives()) {
-				Iterator<ObjectiveStuff> iter = primitive.objectives().iterator();
+			List<ObjectiveStuff> objectives = primitive.objectives();
+			if (null != objectives) {
+				Iterator<ObjectiveStuff> iter = objectives.iterator();
 				while (iter.hasNext()) {
 					ObjectiveStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_OBJECTIVE_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -177,15 +200,16 @@ public final class PrimitiveSerializer {
 					stream.write((int)TOKEN_CLOSE_BRACE);
 				}
 			}
-			if (null != primitive.adverbials()) {
-				Iterator<AdverbialStuff> iter = primitive.adverbials().iterator();
+			List<AdverbialStuff> adverbials = primitive.adverbials();
+			if (null != adverbials) {
+				Iterator<AdverbialStuff> iter = adverbials.iterator();
 				while (iter.hasNext()) {
 					AdverbialStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_ADVERBIAL_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -197,15 +221,16 @@ public final class PrimitiveSerializer {
 					stream.write((int)TOKEN_CLOSE_BRACE);
 				}
 			}
-			if (null != primitive.attributives()) {
-				Iterator<AttributiveStuff> iter = primitive.attributives().iterator();
+			List<AttributiveStuff> attributives = primitive.attributives();
+			if (null != attributives) {
+				Iterator<AttributiveStuff> iter = attributives.iterator();
 				while (iter.hasNext()) {
 					AttributiveStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_ATTRIBUTIVE_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -217,15 +242,16 @@ public final class PrimitiveSerializer {
 					stream.write((int)TOKEN_CLOSE_BRACE);
 				}
 			}
-			if (null != primitive.complements()) {
-				Iterator<ComplementStuff> iter = primitive.complements().iterator();
+			List<ComplementStuff> complements = primitive.complements();
+			if (null != complements) {
+				Iterator<ComplementStuff> iter = complements.iterator();
 				while (iter.hasNext()) {
 					ComplementStuff stuff = iter.next();
 					stream.write((int)TOKEN_OPEN_BRACE);
 					stream.write(STUFFTYPE_COMPLEMENT_BYTES);
 					stream.write((int)TOKEN_OPERATE_ASSIGN);
 
-					bufLength = reviseValue(buf, stuff.value.getBytes("UTF8"));
+					bufLength = reviseValue(buf, stuff.value.getBytes("UTF-8"));
 					buf.flip();
 					byte[] d = new byte[bufLength];
 					buf.get(d, 0, bufLength);
@@ -239,17 +265,18 @@ public final class PrimitiveSerializer {
 			}
 
 			// 方言
-			if (null != primitive.getDialect()) {
+			Dialect dialect = primitive.getDialect();
+			if (null != dialect) {
 				stream.write(TOKEN_OPEN_BRACKET);
-				stream.write(primitive.getDialect().getName().getBytes("UTF8"));
+				stream.write(dialect.getName().getBytes("UTF-8"));
 				stream.write(TOKEN_AT);
-				stream.write(primitive.getDialect().getTracker().getBytes("UTF8"));
+				stream.write(dialect.getTracker().getBytes("UTF-8"));
 				stream.write(TOKEN_CLOSE_BRACKET);
 			}
 
 			stream.flush();
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(PrimitiveSerializer.class, e, LogLevel.ERROR);
 		}
 	}
 
@@ -290,8 +317,7 @@ public final class PrimitiveSerializer {
 							buf.put((byte)next);
 							++length;
 						}
-						else
-						{
+						else {
 							buf.put((byte)read);
 							buf.put((byte)next);
 							length += 2;
@@ -340,7 +366,7 @@ public final class PrimitiveSerializer {
 						buf.get(literal, 0, length);
 						buf.clear();
 
-						// 添加语素
+						// 注入语素
 						injectStuff(primitive, type, value, literal);
 
 						phase = PARSE_PHASE_DIALECT;
@@ -404,7 +430,7 @@ public final class PrimitiveSerializer {
 			buf.clear();
 
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(PrimitiveSerializer.class, e, LogLevel.ERROR);
 		}
 	}
 
@@ -452,7 +478,7 @@ public final class PrimitiveSerializer {
 				primitive.commit(complement);
 			}
 		} catch (UnsupportedEncodingException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(PrimitiveSerializer.class, e, LogLevel.ERROR);
 		}
 	}
 
@@ -491,8 +517,17 @@ public final class PrimitiveSerializer {
 		else if (literal == LiteralBase.LONG) {
 			return LITERALBASE_LONG_BYTES;
 		}
+		else if (literal == LiteralBase.FLOAT) {
+			return LITERALBASE_FLOAT_BYTES;
+		}
 		else if (literal == LiteralBase.BOOL) {
 			return LITERALBASE_BOOL_BYTES;
+		}
+		else if (literal == LiteralBase.JSON) {
+			return LITERALBASE_JSON_BYTES;
+		}
+		else if (literal == LiteralBase.XML) {
+			return LITERALBASE_XML_BYTES;
 		}
 		else {
 			return null;
@@ -505,6 +540,12 @@ public final class PrimitiveSerializer {
 		if (literal[0] == LITERALBASE_STRING_BYTES[0] && literal[1] == LITERALBASE_STRING_BYTES[1]) {
 			return LiteralBase.STRING;
 		}
+		else if (literal[0] == LITERALBASE_JSON_BYTES[0] && literal[1] == LITERALBASE_JSON_BYTES[1]) {
+			return LiteralBase.JSON;
+		}
+		else if (literal[0] == LITERALBASE_XML_BYTES[0] && literal[1] == LITERALBASE_XML_BYTES[1]) {
+			return LiteralBase.XML;
+		}
 		else if ((literal[0] == LITERALBASE_INT_BYTES[0] && literal[1] == LITERALBASE_INT_BYTES[1])
 				|| (literal[0] == LITERALBASE_UINT_BYTES[0] && literal[1] == LITERALBASE_UINT_BYTES[1])) {
 			return LiteralBase.INT;
@@ -515,6 +556,9 @@ public final class PrimitiveSerializer {
 		}
 		else if (literal[0] == LITERALBASE_BOOL_BYTES[0] && literal[1] == LITERALBASE_BOOL_BYTES[1]) {
 			return LiteralBase.BOOL;
+		}
+		else if (literal[0] == LITERALBASE_FLOAT_BYTES[0] && literal[1] == LITERALBASE_FLOAT_BYTES[1]) {
+			return LiteralBase.FLOAT;
 		}
 		else {
 			return null;
@@ -544,5 +588,233 @@ public final class PrimitiveSerializer {
 
 		// 分析数据
 		dialect.build(primitive);
+	}
+
+	/**
+	 * 将原语序列化为 JSON 格式。
+	 * @param output
+	 * @param primitive
+	 */
+	public static void write(JSONObject output, Primitive primitive) throws JSONException {
+		// 版本
+		output.put(JSONKEY_VERSION, "1.0");
+
+		JSONArray stuffs = new JSONArray();
+		List<SubjectStuff> subjects = primitive.subjects();
+		if (null != subjects) {
+			for (SubjectStuff stuff : subjects) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_SUBJECT);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+		List<PredicateStuff> predicates = primitive.predicates();
+		if (null != predicates) {
+			for (PredicateStuff stuff : predicates) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_PREDICATE);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+		List<ObjectiveStuff> objectives = primitive.objectives();
+		if (null != objectives) {
+			for (ObjectiveStuff stuff : objectives) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_OBJECTIVE);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+		List<AdverbialStuff> adverbials = primitive.adverbials();
+		if (null != adverbials) {
+			for (AdverbialStuff stuff : adverbials) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_ADVERBIAL);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+		List<AttributiveStuff> attributives = primitive.attributives();
+		if (null != attributives) {
+			for (AttributiveStuff stuff : attributives) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_ATTRIBUTIVE);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+		List<ComplementStuff> complements = primitive.complements();
+		if (null != complements) {
+			for (ComplementStuff stuff : complements) {
+				JSONObject stuffJSON = new JSONObject();
+				// 解析类型
+				stuffJSON.put(JSONKEY_STUFFTYPE, STUFFTYPE_COMPLEMENT);
+				// 解析数值
+				writeValue(stuffJSON, stuff);
+				// 写入数组
+				stuffs.put(stuffJSON);
+			}
+		}
+
+		// 所有语素
+		output.put(JSONKEY_STUFFS, stuffs);
+
+		// 方言
+		Dialect dialect = primitive.getDialect();
+		if (null != dialect) {
+			JSONObject dialectJSON = new JSONObject();
+			dialectJSON.put(JSONKEY_NAME, dialect.getName());
+			dialectJSON.put(JSONKEY_TRACKER, dialect.getTracker());
+			// 添加方言数据
+			output.put(JSONKEY_DIALECT, dialectJSON);
+		}
+	}
+
+	/**
+	 * 从 JSON 数据里反序列化原语。
+	 * @param primitive
+	 * @param json
+	 */
+	public static void read(Primitive output, JSONObject json) throws JSONException {
+		// 解析语素
+		JSONArray stuffs = json.getJSONArray(JSONKEY_STUFFS);
+		for (int i = 0, size = stuffs.length(); i < size; ++i) {
+			JSONObject stuffJSON = stuffs.getJSONObject(i);
+			String type = stuffJSON.getString(JSONKEY_STUFFTYPE);
+			if (type.equals(STUFFTYPE_SUBJECT)) {
+				SubjectStuff subject = new SubjectStuff();
+				readValue(subject, stuffJSON);
+				output.commit(subject);
+			}
+			else if (type.equals(STUFFTYPE_PREDICATE)) {
+				PredicateStuff predicate = new PredicateStuff();
+				readValue(predicate, stuffJSON);
+				output.commit(predicate);
+			}
+			else if (type.equals(STUFFTYPE_OBJECTIVE)) {
+				ObjectiveStuff objective = new ObjectiveStuff();
+				readValue(objective, stuffJSON);
+				output.commit(objective);
+			}
+			else if (type.equals(STUFFTYPE_ATTRIBUTIVE)) {
+				AttributiveStuff attributive = new AttributiveStuff();
+				readValue(attributive, stuffJSON);
+				output.commit(attributive);
+			}
+			else if (type.equals(STUFFTYPE_ADVERBIAL)) {
+				AdverbialStuff adverbial = new AdverbialStuff();
+				readValue(adverbial, stuffJSON);
+				output.commit(adverbial);
+			}
+			else if (type.equals(STUFFTYPE_COMPLEMENT)) {
+				ComplementStuff complement = new ComplementStuff();
+				readValue(complement, stuffJSON);
+				output.commit(complement);
+			}
+		}
+
+		// 解析方言
+		if (json.has(JSONKEY_DIALECT)) {
+			JSONObject dialectJSON = json.getJSONObject(JSONKEY_DIALECT);
+			String dialectName = dialectJSON.getString(JSONKEY_NAME);
+			String tracker = dialectJSON.getString(JSONKEY_TRACKER);
+
+			// 创建方言
+			Dialect dialect = DialectEnumerator.getInstance().createDialect(dialectName, tracker);
+			if (null != dialect) {
+				// 关联
+				output.capture(dialect);
+
+				// 构建数据
+				dialect.build(output);
+			}
+			else {
+				Logger.w(PrimitiveSerializer.class, "Can't create '" +  dialectName + "' dialect.");
+			}
+		}
+	}
+
+	/**
+	 * 写入语素对应的数值。
+	 * @param output
+	 * @param stuff
+	 * @throws JSONException
+	 */
+	private static void writeValue(JSONObject output, Stuff stuff) throws JSONException {
+		if (stuff.literalBase == LiteralBase.STRING) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsString());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_STRING);
+		}
+		else if (stuff.literalBase == LiteralBase.INT) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsInt());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_INT);
+		}
+		else if (stuff.literalBase == LiteralBase.LONG) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsLong());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_LONG);
+		}
+		else if (stuff.literalBase == LiteralBase.JSON) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsJSON());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_JSON);
+		}
+		else if (stuff.literalBase == LiteralBase.BOOL) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsBool());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_BOOL);
+		}
+		else if (stuff.literalBase == LiteralBase.FLOAT) {
+			output.put(JSONKEY_STUFFVALUE, stuff.getValueAsFloat());
+			output.put(JSONKEY_LITERALBASE, LITERALBASE_FLOAT);
+		}
+	}
+
+	/**
+	 * 读取语素对应的值。
+	 * @param output
+	 * @param json
+	 * @throws JSONException
+	 */
+	private static void readValue(Stuff output, JSONObject json) throws JSONException {
+		String literal = json.getString(JSONKEY_LITERALBASE);
+		if (literal.equals(LITERALBASE_STRING)) {
+			output.setValue(json.getString(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.STRING);
+		}
+		else if (literal.equals(LITERALBASE_INT)) {
+			output.setValue(json.getInt(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.INT);
+		}
+		else if (literal.equals(LITERALBASE_LONG)) {
+			output.setValue(json.getLong(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.LONG);
+		}
+		else if (literal.equals(LITERALBASE_JSON)) {
+			output.setValue(json.getJSONObject(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.JSON);
+		}
+		else if (literal.equals(LITERALBASE_BOOL)) {
+			output.setValue(json.getBoolean(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.BOOL);
+		}
+		else if (literal.equals(LITERALBASE_FLOAT)) {
+			output.setValue(json.getDouble(JSONKEY_STUFFVALUE));
+			output.setLiteralBase(LiteralBase.FLOAT);
+		}
 	}
 }

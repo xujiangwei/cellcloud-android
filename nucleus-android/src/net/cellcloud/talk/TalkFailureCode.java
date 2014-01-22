@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,9 @@ public final class TalkFailureCode {
 
 	/** 未找到指定的 Cellet 。 */
 	public static final int NOTFOUND_CELLET = 100;
+
+	/** Call 一般性失败。 */
+	public static final int CALL_FAILED = 200;
 
 	/** Call 连接超时。 */
 	public static final int CALL_TIMEOUT = 201;

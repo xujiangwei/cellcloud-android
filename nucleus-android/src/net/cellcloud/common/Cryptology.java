@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 package net.cellcloud.common;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -46,7 +47,7 @@ public final class Cryptology {
 
 	/** 返回加解密库对象的实例。
 	 */
-	public synchronized static Cryptology getInstance() {
+	public static Cryptology getInstance() {
 		return instance;
 	}
 
@@ -122,10 +123,8 @@ public final class Cryptology {
 		try {
 			bytes = string.getBytes("UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			Logger.logException(e, LogLevel.WARNING);
-			return -1;
+			bytes = string.getBytes();
 		}
-
 		for (byte b : bytes) {
 			h = 31*h + b;
 		}
@@ -150,7 +149,7 @@ public final class Cryptology {
 			md.update(input);
 			bytes = md.digest();
 		} catch (NoSuchAlgorithmException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(Cryptology.class, e, LogLevel.ERROR);
 		}
 		return bytes;
 	}
@@ -166,5 +165,23 @@ public final class Cryptology {
 			str[index++] = HEX_DIGITS[b & 0xF];
 		}
 		return new String(str);
+	}
+
+	/** Base64 编码数据。
+	 */
+	public String encodeBase64(byte[] source) {
+		return Base64.encodeBytes(source);
+	}
+	/** Base64 解码数据。
+	 */
+	public byte[] decodeBase64(String source) {
+		byte[] result = null;
+		try {
+			result = Base64.decode(source);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return result;
 	}
 }

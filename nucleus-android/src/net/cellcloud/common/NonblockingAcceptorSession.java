@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,19 +38,25 @@ import java.util.Vector;
  */
 public class NonblockingAcceptorSession extends Session {
 
-	private ByteBuffer readBuffer = ByteBuffer.allocate(NonblockingAcceptor.BLOCK);
-	private ByteBuffer writeBuffer = ByteBuffer.allocate(NonblockingAcceptor.BLOCK);
+	private ByteBuffer readBuffer;
+	private ByteBuffer writeBuffer;
+
 	// 待发送消息列表
 	protected Vector<Message> messages = new Vector<Message>();
 
 	protected SelectionKey selectionKey = null;
 	protected Socket socket = null;
 
+	// 所属的工作线程
+	protected NonblockingAcceptorWorker worker = null;
+
 	/** 构造函数。
 	 */
 	public NonblockingAcceptorSession(MessageService service,
-			InetSocketAddress address) {
+			InetSocketAddress address, int block) {
 		super(service, address);
+		this.readBuffer = ByteBuffer.allocate(block);
+		this.writeBuffer = ByteBuffer.allocate(block);
 	}
 
 	/** 返回读缓存。 */

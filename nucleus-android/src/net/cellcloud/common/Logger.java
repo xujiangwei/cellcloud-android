@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,47 +38,56 @@ public final class Logger {
 	/** 打印 DEBUG 级别日志。
 	 */
 	public static void d(Class<?> clazz, String log) {
-		LoggerManager.getInstance().log(LogLevel.DEBUG, clazz.getName(), log);
+		LogManager.getInstance().log(LogLevel.DEBUG, clazz.getName(), log);
 	}
 
 	/** 打印 INFO 级别日志。
 	 */
 	public static void i(Class<?> clazz, String log) {
-		LoggerManager.getInstance().log(LogLevel.INFO, clazz.getName(), log);
+		LogManager.getInstance().log(LogLevel.INFO, clazz.getName(), log);
 	}
 
 	/** 打印 WARNING 级别日志。
 	 */
 	public static void w(Class<?> clazz, String log) {
-		LoggerManager.getInstance().log(LogLevel.WARNING, clazz.getName(), log);
+		LogManager.getInstance().log(LogLevel.WARNING, clazz.getName(), log);
 	}
 
 	/** 打印 ERROR 级别日志。
 	 */
 	public static void e(Class<?> clazz, String log) {
-		LoggerManager.getInstance().log(LogLevel.ERROR, clazz.getName(), log);
+		LogManager.getInstance().log(LogLevel.ERROR, clazz.getName(), log);
 	}
 
 	/** 日志管理器是否设置为 DEBUG 等级。
 	 */
 	public static boolean isDebugLevel() {
-		return (LoggerManager.getInstance().getLevel() == LogLevel.DEBUG);
+		return (LogManager.getInstance().getLevel() == LogLevel.DEBUG);
 	}
 
 	/** 记录异常。
 	 */
-	public static void logException(Exception e, byte level) {
-		if (LoggerManager.getInstance().getLevel() > level) {
+	public static void log(Class<?> clazz, Exception exception, byte level) {
+		if (LogManager.getInstance().getLevel() > level) {
 			return;
 		}
 
+		StringWriter sw = null;
+		PrintWriter pw = null;
 		try {
-			StringWriter sw = new StringWriter();
-			PrintWriter pw = new PrintWriter(sw);
-			e.printStackTrace(pw);
-			LoggerManager.getInstance().log(level, "Exception catched:", sw.toString());
+			sw = new StringWriter();
+			pw = new PrintWriter(sw);
+			exception.printStackTrace(pw);
+			LogManager.getInstance().log(level, clazz.getName() + " Catched exception: ", sw.toString());
 		} catch (Exception ie) {
 			// Nothing
+		} finally {
+			try {
+				pw.close();
+				sw.close();
+			} catch (Exception oe) {
+				// Nothing
+			}
 		}
 	}
 }

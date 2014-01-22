@@ -31,12 +31,19 @@ import net.cellcloud.common.Logger;
 import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
+import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.TalkListener;
+import net.cellcloud.talk.TalkService;
+import net.cellcloud.talk.TalkServiceFailure;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements TalkListener {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +51,8 @@ public class MainActivity extends Activity {
 		Log.d("Lifecycle", "onCreate");
 
 		setContentView(R.layout.activity_main);
+
+		configView();
 
 		this.startup();
 	}
@@ -97,7 +106,7 @@ public class MainActivity extends Activity {
 			try {
 				nucleus = new Nucleus(config, this.getApplication());
 			} catch (SingletonException e) {
-				Logger.logException(e, LogLevel.ERROR);
+				Logger.log(MainActivity.class, e, LogLevel.ERROR);
 			}
 		}
 
@@ -107,5 +116,58 @@ public class MainActivity extends Activity {
 	private void shutdown() {
 		Nucleus nucleus = Nucleus.getInstance();
 		nucleus.shutdown();
+	}
+
+	private void configView() {
+		Button btnReady = (Button) this.getWindow().getDecorView().findViewById(R.id.button_ready);
+		btnReady.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				ready();
+			}
+		});
+	}
+
+	private void ready() {
+		TalkService talkService = Nucleus.getInstance().getTalkService();
+		talkService.addListener(this);
+	}
+
+	@Override
+	public void dialogue(String identifier, Primitive primitive) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void contacted(String identifier, String tag) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void quitted(String identifier, String tag) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void suspended(String identifier, String tag, long timestamp,
+			int mode) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void resumed(String identifier, String tag, long timestamp,
+			Primitive primitive) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void failed(String identifier, String tag, TalkServiceFailure failure) {
+		// TODO Auto-generated method stub
+		
 	}
 }

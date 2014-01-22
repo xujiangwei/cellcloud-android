@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,8 +48,15 @@ public class Message {
 		try {
 			this.data = data.getBytes("UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			// Nothing
+			this.data = data.getBytes();
 		}
+	}
+
+	/** 构造函数。
+	 * @throws UnsupportedEncodingException 
+	 */
+	public Message(String data, String charsetName) throws UnsupportedEncodingException {
+		this.data = data.getBytes(charsetName);
 	}
 
 	/** 返回消息数据。
@@ -67,24 +74,13 @@ public class Message {
 	/** 返回 UTF-8 字符集编码的字符串形式的消息数据。
 	 */
 	public String getAsString() {
-		String ret = null;
-		try {
-			ret = new String(this.data, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			// Nothing
-		}
-		return ret;
+		return new String(this.data);
 	}
 
 	/** 返回指定字符集的消息数据的字符串形式。
+	 * @throws UnsupportedEncodingException 
 	 */
-	public String getAsString(String charsetName) {
-		String ret = null;
-		try {
-			ret = new String(this.data, charsetName);
-		} catch (UnsupportedEncodingException e) {
-			// Nothing
-		}
-		return ret;
+	public String getAsString(String charsetName) throws UnsupportedEncodingException {
+		return new String(this.data, charsetName);
 	}
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ import net.cellcloud.common.MessageErrorCode;
 import net.cellcloud.common.MessageHandler;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
-import net.cellcloud.util.Util;
+import net.cellcloud.util.Utils;
 
 /** Speaker 连接处理器。
  * 
@@ -88,7 +88,7 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 		// 解包
 		Packet packet = Packet.unpack(message.get());
 		if (null != packet) {
-			// 解释数据包
+			// 解析数据包
 			interpret(session, packet);
 		}
 	}
@@ -106,7 +106,10 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 	 */
 	@Override
 	public void errorOccurred(int errorCode, Session session) {
-		Logger.d(SpeakerConnectorHandler.class, "errorOccurred : " + errorCode);
+		if (Logger.isDebugLevel()) {
+			Logger.d(SpeakerConnectorHandler.class, "errorOccurred : " + errorCode);
+		}
+
 		if (errorCode == MessageErrorCode.CONNECT_TIMEOUT
 			|| errorCode == MessageErrorCode.CONNECT_FAILED) {
 
@@ -115,7 +118,9 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			failure.setSourceDescription("Attempt to connect to host timed out");
 			this.speaker.fireFailed(failure);
 
-			TalkService.getInstance().markLostSpeaker(this.speaker);
+			if (null != this.speaker.capacity && this.speaker.capacity.retryAttempts > 0) {
+				this.speaker.lost = true;
+			}
 		}
 	}
 
@@ -126,30 +131,30 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 
 		if (TalkDefinition.TPT_DIALOGUE[2] == tag[2]
 			&& TalkDefinition.TPT_DIALOGUE[3] == tag[3]) {
-			this.speaker.processDialogue(packet, session);
+			this.speaker.doDialogue(packet, session);
 		}
 		else if (TalkDefinition.TPT_RESUME[2] == tag[2]
 			&& TalkDefinition.TPT_RESUME[3] == tag[3]) {
-			this.speaker.processResume(packet, session);
+			this.speaker.doResume(packet, session);
 		}
 		else if (TalkDefinition.TPT_SUSPEND[2] == tag[2]
 				&& TalkDefinition.TPT_SUSPEND[3] == tag[3]) {
-			this.speaker.processSuspend(packet, session);
+			this.speaker.doSuspend(packet, session);
 		}
 		else if (TalkDefinition.TPT_CONSULT[2] == tag[2]
 			&& TalkDefinition.TPT_CONSULT[3] == tag[3]) {
-			this.speaker.processConsult(packet, session);
+			this.speaker.doConsult(packet, session);
 		}
 		else if (TalkDefinition.TPT_REQUEST[2] == tag[2]
 			&& TalkDefinition.TPT_REQUEST[3] == tag[3]) {
-			this.speaker.processRequestReply(packet, session);
+			this.speaker.doReply(packet, session);
 		}
 		else if (TalkDefinition.TPT_CHECK[2] == tag[2]
 			&& TalkDefinition.TPT_CHECK[3] == tag[3]) {
 
 			// 记录标签
 			byte[] rtag = packet.getSubsegment(1);
-			this.speaker.recordTag(Util.bytes2String(rtag));
+			this.speaker.recordTag(Utils.bytes2String(rtag));
 
 			// 请求 Cellet
 			this.speaker.requestCellet(session);

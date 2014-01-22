@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,20 +34,20 @@ import java.util.UUID;
  */
 public final class NucleusTag {
 
-	private UUID soul;
+	private UUID uuid;
 	private String strFormat;
 
 	/** 构造函数。生成随机标签。
 	 */
 	public NucleusTag() {
-		this.soul = UUID.randomUUID();
-		this.strFormat = this.soul.toString();
+		this.uuid = UUID.randomUUID();
+		this.strFormat = this.uuid.toString();
 	}
 
 	/** 构造函数。根据标签字符串生成。
 	 */
 	public NucleusTag(String value) {
-		this.soul = UUID.fromString(value);
+		this.uuid = UUID.fromString(value);
 		this.strFormat = value;
 	}
 

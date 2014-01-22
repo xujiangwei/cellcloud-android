@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,12 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import net.cellcloud.cluster.ClusterController;
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.exception.CelletSandboxException;
@@ -99,7 +101,7 @@ public final class Nucleus {
 	}
 
 	/** 返回单例。 */
-	public synchronized static Nucleus getInstance() {
+	public static Nucleus getInstance() {
 		return Nucleus.instance;
 	}
 
@@ -143,14 +145,15 @@ public final class Nucleus {
 		// 角色：节点
 		if ((this.config.role & NucleusConfig.Role.NODE) != 0) {
 			if (null == this.clusterController) {
-				this.clusterController = new ClusterController();
+				this.clusterController = new ClusterController(this.config.cluster.host
+						, this.config.cluster.preferredPort, this.config.cluster.numVNode);
 			}
 			// 添加集群地址
-			if (null != this.config.clusterAddressList) {
-				this.clusterController.addClusterAddress(this.config.clusterAddressList);
+			if (null != this.config.cluster.addressList) {
+				this.clusterController.addClusterAddress(this.config.cluster.addressList);
 			}
 			// 设置自动扫描网络
-			this.clusterController.autoScanNetwork = this.config.clusterAutoScan
+			this.clusterController.autoScanNetwork = this.config.cluster.autoScan
 					&& (this.config.device == NucleusConfig.Device.SERVER
 						|| this.config.device == NucleusConfig.Device.DESKTOP);
 			// 启动集群控制器
@@ -162,20 +165,27 @@ public final class Nucleus {
 			}
 
 			// 创建 Talk Service
-			if (null == this.talkService) {
+			if (this.config.talk.enable && (null == this.talkService)) {
 				try {
 					this.talkService = new TalkService(this.context);
 				} catch (SingletonException e) {
-					Logger.logException(e, LogLevel.ERROR);
+					Logger.log(Nucleus.class, e, LogLevel.ERROR);
 				}
 			}
 
-			// 启动 Talk Service
-			if (this.talkService.startup()) {
-				Logger.i(Nucleus.class, "Starting talk service success.");
-			}
-			else {
-				Logger.e(Nucleus.class, "Starting talk service failure.");
+			if (this.config.talk.enable) {
+				// 设置服务端口号
+				this.talkService.setPort(this.config.talk.port);
+				// 设置 Block
+				this.talkService.setBlockSize(this.config.talk.block);
+
+				// 启动 Talk Service
+				if (this.talkService.startup()) {
+					Logger.i(Nucleus.class, "Starting talk service success.");
+				}
+				else {
+					Logger.e(Nucleus.class, "Starting talk service failure.");
+				}
 			}
 
 			// 加载外部 Jar 包
@@ -192,10 +202,11 @@ public final class Nucleus {
 					// 创建 Talk Service
 					this.talkService = new TalkService(this.context);
 				} catch (SingletonException e) {
-					Logger.logException(e, LogLevel.ERROR);
+					Logger.log(Nucleus.class, e, LogLevel.ERROR);
 				}
 			}
 
+			// 启动守护线程
 			this.talkService.startDaemon();
 		}
 
@@ -217,7 +228,10 @@ public final class Nucleus {
 			this.deactivateCellets();
 
 			// 关闭 Talk Service
-			this.talkService.shutdown();
+			if (null != this.talkService) {
+				this.talkService.shutdown();
+			}
+
 		}
 
 		// 角色：消费者
@@ -270,6 +284,22 @@ public final class Nucleus {
 		this.cellets.remove(cellet.getFeature().getIdentifier());
 	}
 
+	/**
+	 * 返回所有 Cellet 的 Feature 列表。
+	 * @return
+	 */
+	public List<CelletFeature> getCelletFeatures() {
+		if (null == this.cellets) {
+			return null;
+		}
+
+		ArrayList<CelletFeature> list = new ArrayList<CelletFeature>(this.cellets.size());
+		for (Cellet c : this.cellets.values()) {
+			list.add(c.getFeature());
+		}
+		return list;
+	}
+
 	/** 查询并返回内核上下文。
 	 */
 	public boolean checkSandbox(final Cellet cellet, final CelletSandbox sandbox) {
@@ -306,7 +336,7 @@ public final class Nucleus {
 			sandbox.sealOff(cellet.getFeature());
 			this.sandboxes.put(cellet.getFeature().getIdentifier(), sandbox);
 		} catch (CelletSandboxException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(Nucleus.class, e, LogLevel.ERROR);
 		}
 	}
 
@@ -337,8 +367,9 @@ public final class Nucleus {
 
 			// 生成类列表
 			ArrayList<String> classNameList = new ArrayList<String>();
+			JarFile jarFile = null;
 			try {
-				JarFile jarFile = new JarFile(jarFilename);
+				jarFile = new JarFile(jarFilename);
 
 				Logger.i(Nucleus.class, "Analysing jar file : " + jarFile.getName());
 
@@ -351,11 +382,15 @@ public final class Nucleus {
 						classNameList.add(name);
 					}
 				}
-
-				jarFile.close();
 			} catch (IOException ioe) {
-				Logger.logException(ioe, LogLevel.DEBUG);
+				Logger.log(Nucleus.class, ioe, LogLevel.WARNING);
 				continue;
+			} finally {
+				try {
+					jarFile.close();
+				} catch (Exception e) {
+					// Nothing
+				}
 			}
 
 			// 定位文件
@@ -363,12 +398,14 @@ public final class Nucleus {
 			try {
 				url = new URL(file.toURI().toURL().toString());
 			} catch (MalformedURLException e) {
-				Logger.logException(e, LogLevel.WARNING);
+				Logger.log(Nucleus.class, e, LogLevel.WARNING);
 				continue;
 			}
 
 			// 加载 Class
-			URLClassLoader loader = new URLClassLoader(new URL[]{url}
+			URLClassLoader loader = null;
+			try {
+				loader = new URLClassLoader(new URL[]{url}
 					, Thread.currentThread().getContextClassLoader());
 
 			// 取出 Cellet 类
@@ -376,42 +413,37 @@ public final class Nucleus {
 			// Cellet 类列表
 			ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
 
-			// 加载所有的 Class
-			for (int i = 0, size = classNameList.size(); i < size; ++i) {
-				try {
-					String className = classNameList.get(i);
-					Class<?> clazz = loader.loadClass(className);
-					if (celletClasslist.contains(className)) {
-						classes.add(clazz);
+				// 加载所有的 Class
+				for (int i = 0, size = classNameList.size(); i < size; ++i) {
+					try {
+						String className = classNameList.get(i);
+						Class<?> clazz = loader.loadClass(className);
+						if (celletClasslist.contains(className)) {
+							classes.add(clazz);
+						}
+					} catch (ClassNotFoundException e) {
+						Logger.log(Nucleus.class, e, LogLevel.ERROR);
 					}
-				} catch (ClassNotFoundException e) {
-					Logger.logException(e, LogLevel.ERROR);
 				}
-			}
 
-			for (int i = 0, size = classes.size(); i < size; ++i) {
-				try {
-					Class<?> clazz = classes.get(i);
-					// 实例化 Cellet
-					Cellet cellet = (Cellet) clazz.newInstance();
-					// 存入列表
-					this.cellets.put(cellet.getFeature().getIdentifier(), cellet);
-				} catch (InstantiationException e) {
-					Logger.logException(e, LogLevel.ERROR);
-					continue;
-				} catch (IllegalAccessException e) {
-					Logger.logException(e, LogLevel.ERROR);
-					continue;
+				for (int i = 0, size = classes.size(); i < size; ++i) {
+					try {
+						Class<?> clazz = classes.get(i);
+						// 实例化 Cellet
+						Cellet cellet = (Cellet) clazz.newInstance();
+						// 存入列表
+						this.cellets.put(cellet.getFeature().getIdentifier(), cellet);
+					} catch (InstantiationException e) {
+						Logger.log(Nucleus.class, e, LogLevel.ERROR);
+						continue;
+					} catch (IllegalAccessException e) {
+						Logger.log(Nucleus.class, e, LogLevel.ERROR);
+						continue;
+					}
 				}
+			} finally {
+				// Nothing
 			}
-
-			/* 以下为 JDK7 的代码
-			try {
-				loader.close();
-			} catch (IOException e) {
-				Logger.logException(e, LogLevel.ERROR);
-			}
-			*/
 		}
 	}
 

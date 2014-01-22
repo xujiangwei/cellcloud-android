@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NonblockingAcceptor extends MessageService implements MessageAcceptor {
 
 	// 缓存数据块大小
-	protected static final int BLOCK = 8192;
+	protected int block = 8192;
 
 	private ServerSocketChannel channel;
 	private Selector selector;
@@ -99,7 +99,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 			this.bindAddress = address;
 
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(NonblockingAcceptor.class, e, LogLevel.ERROR);
 
 			// 返回失败
 			return false;
@@ -122,14 +122,14 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 				try {
 					loopDispatch();
 				} catch (IOException ioe) {
-					Logger.logException(ioe, LogLevel.WARNING);
+					Logger.log(NonblockingAcceptor.class, ioe, LogLevel.WARNING);
 				} catch (CancelledKeyException e) {
 					if (spinning)
-						Logger.logException(e, LogLevel.ERROR);
+						Logger.log(NonblockingAcceptor.class, e, LogLevel.ERROR);
 					else
-						Logger.logException(e, LogLevel.DEBUG);
+						Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				} catch (Exception e) {
-					Logger.logException(e, LogLevel.ERROR);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.ERROR);
 				}
 
 				running = false;
@@ -159,12 +159,12 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 			this.channel.close();
 			this.channel.socket().close();
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.DEBUG);
+			Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 		}
 		try {
 			this.selector.close();
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.DEBUG);
+			Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 		}
 
 		// 关闭工作线程
@@ -180,7 +180,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				}
 
 				for (NonblockingAcceptorWorker worker : this.workers) {
@@ -202,7 +202,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				}
 
 				if (count >= timeout) {
@@ -213,14 +213,14 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
-				Logger.logException(e, LogLevel.DEBUG);
+				Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 			}
 
 			if (count >= timeout) {
 				try {
 					this.handleThread.interrupt();
 				} catch (Exception e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				}
 			}
 
@@ -239,7 +239,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 				try {
 					nas.socket.close();
 				} catch (IOException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				}
 				break;
 			}
@@ -263,6 +263,20 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		// Nothing
 	}
 
+	/**
+	 * 适配器句柄线程是否正在运行。
+	 * @return
+	 */
+	public boolean isRunning() {
+		return this.running;
+	}
+
+	/** 返回绑定地址。
+	 */
+	public final InetSocketAddress  getBindAddress() {
+		return this.bindAddress;
+	}
+
 	/** 设置工作器数量。
 	 */
 	public void setWorkerNum(int num) {
@@ -272,6 +286,20 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 	 */
 	public int getWorkerNum() {
 		return this.workerNum;
+	}
+
+	/** 设置 Block 数据块大小。
+	 * @param size
+	 */
+	public void setBlockSize(int size) {
+		this.block = size;
+	}
+
+	/** 返回 Block 数据块大小。
+	 * @return
+	 */
+	public int getBlockSize() {
+		return this.block;
 	}
 
 	/** 返回所有 Session 。
@@ -368,21 +396,32 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 					SelectionKey key = (SelectionKey) it.next();
 					it.remove();
 
-					if (key.isAcceptable()) {
-						accept(key);
+					try {
+						if (key.isAcceptable()) {
+							accept(key);
+						}
+						else if (key.isReadable()) {
+							receive(key);
+						}
+						else if (key.isWritable()) {
+							send(key);
+						}
 					}
-					else if (key.isReadable()) {
-						receive(key);
-					}
-					else if (key.isWritable()) {
-						send(key);
+					catch (Exception e) {
+						if (this.spinning) {
+							// 没有被主动终止循环
+							continue;
+						}
+						else {
+							throw e;
+						}
 					}
 				}
 
 				try {
 					Thread.sleep(1);
 				} catch (InterruptedException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 				}
 			} // # while
 
@@ -408,10 +447,15 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 			// 创建 Session
 			InetSocketAddress address = new InetSocketAddress(clientChannel.socket().getInetAddress().getHostAddress(),
 					clientChannel.socket().getPort());
-			NonblockingAcceptorSession session = new NonblockingAcceptorSession(this, address);
+			NonblockingAcceptorSession session = new NonblockingAcceptorSession(this, address, this.block);
 			// 设置 Socket
 			session.socket = clientChannel.socket();
 
+			// 为 Session 选择工作线程
+			int index = (int)(session.getId() % this.workerNum);
+			session.worker = this.workers[index];
+
+			// 记录
 			this.sessions.put(clientChannel.socket().hashCode(), session);
 
 			// 回调事件
@@ -436,18 +480,21 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 
 		NonblockingAcceptorSession session = this.sessions.get(channel.socket().hashCode());
 		if (null == session) {
-			Logger.w(NonblockingAcceptor.class, "Not found session");
+			if (Logger.isDebugLevel()) {
+				Logger.d(NonblockingAcceptor.class, "Not found session");
+			}
 			return;
 		}
 
-		// 选出 Worker 为 Session 服务
-		this.selectWorkerForReceive(session, key);
+		// 推入 Worker
+		session.selectionKey = key;
+		session.worker.pushReceiveSession(session);
 
 		try {
 			if (channel.isOpen())
 				channel.register(this.selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.WARNING);
+			Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
 		}
 	}
 
@@ -461,50 +508,21 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 
 		NonblockingAcceptorSession session = this.sessions.get(channel.socket().hashCode());
 		if (null == session) {
-			Logger.w(NonblockingAcceptor.class, "Not found session");
+			if (Logger.isDebugLevel()) {
+				Logger.d(NonblockingAcceptor.class, "Not found session");
+			}
 			return;
 		}
 
-		// 选出 Worker 为 Session 服务
-		this.selectWorkerForSend(session, key);
+		// 推入 Worker
+		session.selectionKey = key;
+		session.worker.pushSendSession(session);
 
 		try {
 			if (channel.isOpen())
 				channel.register(this.selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.WARNING);
+			Logger.log(NonblockingAcceptor.class, e, LogLevel.WARNING);
 		}
-	}
-
-	/** 选择最优的工作线程进行数据接收。
-	 */
-	private void selectWorkerForReceive(NonblockingAcceptorSession session, SelectionKey key) {
-		NonblockingAcceptorWorker worker = null;
-
-		int min = Integer.MAX_VALUE;
-		for (NonblockingAcceptorWorker w : this.workers) {
-			if (w.getReceiveSessionNum() < min) {
-				worker = w;
-				min = w.getReceiveSessionNum();
-			}
-		}
-
-		worker.addReceiveSession(session, key);
-	}
-
-	/** 选择最优的工作线程进行数据发送。
-	 */
-	private void selectWorkerForSend(NonblockingAcceptorSession session, SelectionKey key) {
-		NonblockingAcceptorWorker worker = null;
-
-		int min = Integer.MAX_VALUE;
-		for (NonblockingAcceptorWorker w : this.workers) {
-			if (w.getSendSessionNum() < min) {
-				worker = w;
-				min = w.getSendSessionNum();
-			}
-		}
-
-		worker.addSendSession(session, key);
 	}
 }

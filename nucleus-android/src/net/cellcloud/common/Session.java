@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ package net.cellcloud.common;
 
 import java.net.InetSocketAddress;
 
-import net.cellcloud.util.Util;
+import net.cellcloud.util.Utils;
 
 /** 消息会话描述类。
  * 
@@ -41,7 +41,13 @@ public class Session {
 	private InetSocketAddress address;
 
 	public Session(MessageService service, InetSocketAddress address) {
-		this.id = Math.abs(Util.randomLong());
+		this.id = Math.abs(Utils.randomLong());
+		this.service = service;
+		this.address = address;
+	}
+
+	public Session(long id, MessageService service, InetSocketAddress address) {
+		this.id = id;
 		this.service = service;
 		this.address = address;
 	}

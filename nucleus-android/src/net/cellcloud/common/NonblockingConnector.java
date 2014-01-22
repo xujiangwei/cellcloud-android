@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import net.cellcloud.util.Util;
+import net.cellcloud.util.Utils;
 import android.content.Context;
 
 
@@ -47,9 +47,8 @@ import android.content.Context;
  */
 public class NonblockingConnector extends MessageService implements MessageConnector {
 
-	protected static final int BLOCK = 8192;
-
-	private Context androidContext;
+	// 缓冲块大小
+	private int block = 8192;
 
 	private InetSocketAddress address;
 	private long connectTimeout;
@@ -69,11 +68,13 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private boolean closed = false;
 
+	private Context androidContext;
+
 	public NonblockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
 		this.connectTimeout = 10000;
-		this.readBuffer = ByteBuffer.allocate(BLOCK);
-		this.writeBuffer = ByteBuffer.allocate(BLOCK);
+		this.readBuffer = ByteBuffer.allocate(this.block);
+		this.writeBuffer = ByteBuffer.allocate(this.block);
 		this.messages = new Vector<Message>();
 	}
 
@@ -94,8 +95,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		System.setProperty("java.net.preferIPv6Addresses", "false");
 
 		// 判断是否有网络连接
-		if (!Util.isWifiConnected(this.androidContext)) {
-			if (!Util.isMobileConnected(this.androidContext)) {
+		if (!Utils.isWifiConnected(this.androidContext)) {
+			if (!Utils.isMobileConnected(this.androidContext)) {
 				this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
 				return false;
 			}
@@ -113,19 +114,17 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					this.selector.close();
 				}
 			} catch (IOException e) {
-				Logger.logException(e, LogLevel.DEBUG);
+				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 
 			while (this.running) {
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 					break;
 				}
 			}
-
-			Thread.yield();
 		}
 
 		// 状态初始化
@@ -138,16 +137,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			this.channel = SocketChannel.open();
 			this.channel.configureBlocking(false);
 
-			// 配置
-			/* 以下为 JDK7 的代码
-			this.channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-			this.channel.setOption(StandardSocketOptions.SO_RCVBUF, BLOCK);
-			this.channel.setOption(StandardSocketOptions.SO_SNDBUF, BLOCK);
-			*/
 			// 以下为 JDK6 的代码
 			this.channel.socket().setKeepAlive(true);
-			this.channel.socket().setReceiveBufferSize(BLOCK);
-			this.channel.socket().setSendBufferSize(BLOCK);
+			this.channel.socket().setReceiveBufferSize(this.block);
+			this.channel.socket().setSendBufferSize(this.block);
 
 			this.selector = Selector.open();
 			// 注册事件
@@ -156,7 +149,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			// 连接
 			this.channel.connect(this.address);
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.DEBUG);
+			Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 
 			// 回调错误
 			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
@@ -198,7 +191,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					loopDispatch();
 				} catch (Exception e) {
 					spinning = false;
-					Logger.logException(e, LogLevel.DEBUG);
 				}
 
 				// 通知 Session 销毁。
@@ -237,17 +229,17 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			}
 
 			try {
-				this.channel.socket().close();
-			} catch (Exception e) {
-				//Logger.logException(e, LogLevel.DEBUG);
-			}
-
-			try {
 				if (this.channel.isOpen()) {
 					this.channel.close();
 				}
 			} catch (Exception e) {
-				Logger.logException(e, LogLevel.DEBUG);
+				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
+			}
+
+			try {
+				this.channel.socket().close();
+			} catch (Exception e) {
+				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 		}
 
@@ -256,7 +248,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				this.selector.wakeup();
 				this.selector.close();
 			} catch (Exception e) {
-				Logger.logException(e, LogLevel.DEBUG);
+				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 		}
 
@@ -265,7 +257,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
-				Logger.logException(e, LogLevel.DEBUG);
+				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 
 			if (++count >= 300) {
@@ -282,6 +274,26 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	public long getConnectTimeout() {
 		return this.connectTimeout;
+	}
+
+	@Override
+	public void setBlockSize(int size) {
+		this.block = size;
+		this.readBuffer = ByteBuffer.allocate(this.block);
+		this.writeBuffer = ByteBuffer.allocate(this.block);
+
+		if (null != this.channel) {
+			try {
+				this.channel.socket().setReceiveBufferSize(this.block);
+				this.channel.socket().setSendBufferSize(this.block);
+			} catch (Exception e) {
+				// ignore
+			}
+		}
+	}
+
+	public int getBlockSize() {
+		return this.block;
 	}
 
 	/** 是否已连接。
@@ -346,7 +358,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 		while (this.spinning) {
 			while (this.selector.isOpen()
-					&& this.selector.select(this.channel.isConnected() ? 0 : this.connectTimeout) > 0) {
+					&& this.selector.select((null != this.channel && this.channel.isConnected()) ? 0 : this.connectTimeout) > 0) {
 				Set<SelectionKey> keys = this.selector.selectedKeys();
 				Iterator<SelectionKey> it = keys.iterator();
 				while (it.hasNext()) {
@@ -375,7 +387,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 					Thread.sleep(1);
 				} catch (InterruptedException e) {
-					Logger.logException(e, LogLevel.DEBUG);
+					Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 				}
 			} //# while
 		} // # while
@@ -397,7 +409,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					this.channel.close();
 					this.selector.close();
 				} catch (IOException ce) {
-					Logger.logException(ce, LogLevel.DEBUG);
+					Logger.log(NonblockingConnector.class, ce, LogLevel.DEBUG);
 				}
 
 				// 连接失败
@@ -412,7 +424,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		try {
 			channel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 		} catch (ClosedChannelException e) {
-			Logger.logException(e, LogLevel.DEBUG);
+			Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 		}
 
 		return true;
@@ -430,8 +442,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			try {
 				read = channel.read(this.readBuffer);
 			} catch (IOException e) {
-				Logger.logException(e, LogLevel.DEBUG);
-
 				fireSessionClosed();
 
 				try {
@@ -440,7 +450,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					if (null != this.selector)
 						this.selector.close();
 				} catch (IOException ce) {
-					Logger.logException(ce, LogLevel.DEBUG);
+					Logger.log(NonblockingConnector.class, ce, LogLevel.DEBUG);
 				}
 
 				// 不能继续进行数据接收
@@ -459,7 +469,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					this.channel.close();
 					this.selector.close();
 				} catch (IOException ce) {
-					Logger.logException(ce, LogLevel.DEBUG);
+					Logger.log(NonblockingConnector.class, ce, LogLevel.DEBUG);
 				}
 
 				// 不能继续进行数据接收
@@ -482,7 +492,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			// 注册
 			channel.register(this.selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.DEBUG);
+			Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			this.fireErrorOccurred(MessageErrorCode.READ_FAILED);
 		}
 	}
@@ -533,11 +543,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				// 注册
 				channel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 			} catch (ClosedChannelException ce) {
-				Logger.logException(ce, LogLevel.DEBUG);
+				Logger.log(NonblockingConnector.class, ce, LogLevel.DEBUG);
 				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 			}
 		} catch (IOException e) {
-			Logger.logException(e, LogLevel.WARNING);
+			Logger.log(NonblockingConnector.class, e, LogLevel.WARNING);
 		}
 	}
 
@@ -551,7 +561,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			int length = data.length;
 			boolean head = false;
 			boolean tail = false;
-			byte[] buf = new byte[NonblockingConnector.BLOCK];
+			byte[] buf = new byte[this.block];
 			int bufIndex = 0;
 
 			while (cursor < length) {

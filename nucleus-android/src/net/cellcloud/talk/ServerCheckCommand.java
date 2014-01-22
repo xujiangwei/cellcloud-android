@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +65,7 @@ public final class ServerCheckCommand extends ServerCommand {
 		try {
 			pt = new String(plaintext, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			Logger.logException(e, LogLevel.ERROR);
+			Logger.log(ServerCheckCommand.class, e, LogLevel.ERROR);
 		}
 		if (pt.equals(cert.plaintext)) {
 			checkin = true;
@@ -101,7 +101,9 @@ public final class ServerCheckCommand extends ServerCommand {
 			this.service.rejectSession(this.session);
 		}
 
-		Logger.i(ServerCheckCommand.class, log.toString());
+		if (Logger.isDebugLevel()) {
+			Logger.d(ServerCheckCommand.class, log.toString());
+		}
 		log = null;
 	}
 }

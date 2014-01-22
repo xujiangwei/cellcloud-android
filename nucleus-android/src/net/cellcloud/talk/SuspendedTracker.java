@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 import net.cellcloud.core.Cellet;
 
@@ -108,11 +109,11 @@ public final class SuspendedTracker {
 
 	/** 按照匹配被动挂起方式推送原语给对端。
 	 */
-	protected boolean pollPrimitiveMatchMode(final TalkServiceDaemon daemon, final Cellet cellet,
+	protected boolean pollPrimitiveMatchMode(final ExecutorService executor, final Cellet cellet,
 			final int suspendMode, final long startTime) {
 		final Record r = this.records.get(cellet.getFeature().getIdentifier());
 		if (null != r && r.suspendMode == suspendMode) {
-			daemon.joinTask(new Thread() {
+			executor.execute(new Runnable() {
 				@Override
 				public void run() {
 					TalkService.getInstance().noticeResume(r.cellet, tag, r.timestamps, r.primitives, startTime);
