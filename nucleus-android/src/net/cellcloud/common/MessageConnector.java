@@ -35,10 +35,13 @@ import java.net.InetSocketAddress;
 public interface MessageConnector {
 
 	/** 连接远端的消息接收器。 */
-	public boolean connect(InetSocketAddress addres);
+	public boolean connect(InetSocketAddress address);
 
 	/** 关闭已建立的连接。 */
 	public void disconnect();
+
+	/** 是否已经建立连接。 */
+	public boolean isConnected();
 
 	/** 设置连接超时值。 */
 	public void setConnectTimeout(long timeout);

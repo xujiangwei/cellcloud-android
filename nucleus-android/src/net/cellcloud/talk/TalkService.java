@@ -407,6 +407,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * @note Client
 	 */
 	public boolean call(String identifier, InetSocketAddress address, TalkCapacity capacity, boolean http) {
+		boolean ret = true;
 		if (!http) {
 			// 私有协议 Speaker
 
@@ -428,13 +429,14 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 
 			// Call
-			return speaker.call(address);
+			ret = speaker.call(address);
 		}
 		else {
 			// HTTP 协议 Speaker
 			// TODO
-			return false;
 		}
+		
+		return ret;
 	}
 
 	/** 挂起 Cellet 调用。

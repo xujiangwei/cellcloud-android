@@ -26,6 +26,8 @@ THE SOFTWARE.
 
 package net.cellcloud.android;
 
+import java.net.InetSocketAddress;
+
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.core.Nucleus;
@@ -130,44 +132,44 @@ public class MainActivity extends Activity implements TalkListener {
 
 	private void ready() {
 		TalkService talkService = Nucleus.getInstance().getTalkService();
-		talkService.addListener(this);
+		if (talkService.hasListener(this)) {
+			talkService.addListener(this);
+		}
+
+		boolean ret = talkService.call("Dummy", new InetSocketAddress("192.168.1.109", 7000));
+
+		Logger.i(MainActivity.class, "ready : " + (ret ? "yes" : "no"));
 	}
 
 	@Override
 	public void dialogue(String identifier, Primitive primitive) {
-		// TODO Auto-generated method stub
-		
+		Logger.i(MainActivity.class, "dialogue");
 	}
 
 	@Override
 	public void contacted(String identifier, String tag) {
-		// TODO Auto-generated method stub
-		
+		Logger.i(MainActivity.class, "contacted");
 	}
 
 	@Override
 	public void quitted(String identifier, String tag) {
-		// TODO Auto-generated method stub
-		
+		Logger.i(MainActivity.class, "quitted");
 	}
 
 	@Override
 	public void suspended(String identifier, String tag, long timestamp,
 			int mode) {
-		// TODO Auto-generated method stub
-		
+		Logger.i(MainActivity.class, "suspended");
 	}
 
 	@Override
 	public void resumed(String identifier, String tag, long timestamp,
 			Primitive primitive) {
-		// TODO Auto-generated method stub
-		
+		Logger.i(MainActivity.class, "resumed");
 	}
 
 	@Override
 	public void failed(String identifier, String tag, TalkServiceFailure failure) {
-		// TODO Auto-generated method stub
-		
+		Logger.w(MainActivity.class, "failed");
 	}
 }

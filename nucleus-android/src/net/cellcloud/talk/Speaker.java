@@ -108,7 +108,7 @@ public class Speaker implements Speakable {
 	/** 向指定地址发起请求 Cellet 服务。
 	 */
 	@Override
-	public boolean call(InetSocketAddress address) {
+	public boolean call(final InetSocketAddress address) {
 		if (SpeakerState.CALLING == this.state) {
 			// 正在 Call 返回 false
 			return false;
