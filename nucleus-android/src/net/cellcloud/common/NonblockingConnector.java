@@ -446,8 +446,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				return;
 			}
 
-//			Thread.yield();
-
 			// thread sleep
 			Thread.sleep(2);
 		} //# while

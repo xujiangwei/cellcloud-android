@@ -27,9 +27,11 @@ THE SOFTWARE.
 package net.cellcloud.android;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
+import net.cellcloud.common.MessageErrorCode;
 import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
@@ -37,6 +39,10 @@ import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkServiceFailure;
+import net.cellcloud.talk.stuff.ObjectiveStuff;
+import net.cellcloud.talk.stuff.PredicateStuff;
+import net.cellcloud.talk.stuff.SubjectStuff;
+import net.cellcloud.util.Utils;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
@@ -44,8 +50,19 @@ import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 
 public class MainActivity extends Activity implements TalkListener {
+
+	private final String address = "192.168.2.3";
+	private final String identifier = "Dummy";
+
+	private Button btnReady;
+	private Button btnStart;
+	private Button btnStop;
+	private EditText txtLog;
+
+	private boolean running = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +71,7 @@ public class MainActivity extends Activity implements TalkListener {
 
 		setContentView(R.layout.activity_main);
 
-		configView();
+		this.configView();
 
 		this.startup();
 	}
@@ -116,44 +133,175 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	private void shutdown() {
+		this.stopDemo();
+
 		Nucleus nucleus = Nucleus.getInstance();
 		nucleus.shutdown();
 	}
 
+	/**
+	 * 配置 View
+	 */
 	private void configView() {
-		Button btnReady = (Button) this.getWindow().getDecorView().findViewById(R.id.button_ready);
-		btnReady.setOnClickListener(new OnClickListener() {
+		this.btnReady = (Button) this.getWindow().getDecorView().findViewById(R.id.button_ready);
+		this.btnStart = (Button) this.getWindow().getDecorView().findViewById(R.id.button_start);
+		this.btnStop = (Button) this.getWindow().getDecorView().findViewById(R.id.button_stop);
+		this.txtLog = (EditText) this.getWindow().getDecorView().findViewById(R.id.text_log);
+
+		this.btnStart.setEnabled(false);
+		this.btnStop.setEnabled(false);
+
+		this.btnReady.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				ready();
+				if (ready()) {
+					btnReady.setEnabled(false);
+				}
+			}
+		});
+
+		this.btnStart.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				btnStop.setEnabled(true);
+				btnStart.setEnabled(false);
+				startDemo();
+			}
+		});
+
+		this.btnStop.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				btnStart.setEnabled(true);
+				btnStop.setEnabled(false);
+				stopDemo();
 			}
 		});
 	}
 
-	private void ready() {
+	private boolean ready() {
 		TalkService talkService = Nucleus.getInstance().getTalkService();
-		if (talkService.hasListener(this)) {
+		if (!talkService.hasListener(this)) {
 			talkService.addListener(this);
 		}
 
-		boolean ret = talkService.call("Dummy", new InetSocketAddress("192.168.1.109", 7000));
+		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, 7000));
+		if (ret) {
+			this.txtLog.append("Calling cellet 'Dummy' ...\n");
+		}
+		else {
+			this.txtLog.append("Call cellet 'Dummy' Failed.\n");
+		}
 
-		Logger.i(MainActivity.class, "ready : " + (ret ? "yes" : "no"));
+		return ret;
+	}
+
+	private void startDemo() {
+		if (this.running) {
+			return;
+		}
+
+		this.txtLog.append("Start demo ...\n");
+
+		// 创建测试用原语
+		final int num = 10;
+		final ArrayList<Primitive> list = new ArrayList<Primitive>(num);
+
+		for (int i = 0; i < num; ++i) {
+			Primitive primitive = new Primitive();
+			primitive.commit(new SubjectStuff(Utils.randomString(32)));
+			primitive.commit(new PredicateStuff(Utils.randomInt()));
+			primitive.commit(new ObjectiveStuff(Utils.randomInt() % 2 == 0 ? true : false));
+			list.add(primitive);
+		}
+
+		this.running = true;
+
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				while (running) {
+					Primitive primitive = list.remove(0);
+					TalkService.getInstance().talk(identifier, primitive);
+
+					if (list.isEmpty()) {
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								stopDemo();
+							}
+						});
+
+						break;
+					}
+
+					try {
+						Thread.sleep(Utils.randomInt(200, 500));
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				} // #while
+
+				// 清空列表
+				list.clear();
+			}
+		};
+		t.start();
+	}
+
+	private void stopDemo() {
+		if (!this.running) {
+			return;
+		}
+
+		this.txtLog.append("Stop demo ...\n");
+
+		this.btnStart.setEnabled(false);
+
+		this.running = false;
+
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+
+				btnStart.setEnabled(true);
+				btnStop.setEnabled(false);
+			}
+		});
 	}
 
 	@Override
-	public void dialogue(String identifier, Primitive primitive) {
-		Logger.i(MainActivity.class, "dialogue");
+	public void dialogue(String identifier, final Primitive primitive) {
+		Logger.i(MainActivity.class, "dialogue - " + primitive.subjects().get(0).getValueAsString());
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				txtLog.append("dialogue - " + primitive.subjects().get(0).getValueAsString() + "\n");
+			}
+		});
 	}
 
 	@Override
-	public void contacted(String identifier, String tag) {
-		Logger.i(MainActivity.class, "contacted");
+	public void contacted(final String identifier, String tag) {
+		Logger.i(MainActivity.class, "contacted @" + identifier);
+
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				txtLog.append("contacted @" + identifier + "\n");
+				btnStart.setEnabled(true);
+			}
+		});
 	}
 
 	@Override
 	public void quitted(String identifier, String tag) {
-		Logger.i(MainActivity.class, "quitted");
+		Logger.i(MainActivity.class, "quitted @" + identifier);
 	}
 
 	@Override
@@ -171,5 +319,24 @@ public class MainActivity extends Activity implements TalkListener {
 	@Override
 	public void failed(String identifier, String tag, TalkServiceFailure failure) {
 		Logger.w(MainActivity.class, "failed");
+		if (failure.getCode() == MessageErrorCode.CONNECT_TIMEOUT
+			|| failure.getCode() == MessageErrorCode.CONNECT_FAILED) {
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					btnReady.setEnabled(true);
+				}
+			});
+		}
+		else {
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					btnReady.setEnabled(true);
+					btnStart.setEnabled(false);
+					btnStop.setEnabled(false);
+				}
+			});
+		}
 	}
 }

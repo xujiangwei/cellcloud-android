@@ -8,19 +8,49 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical" >
+        android:orientation="horizontal" ><!-- android:gravity="center_vertical" -->
 
         <Button
             android:id="@+id/button_ready"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
             android:text="@string/btn_ready" />
 
         <Button
-            android:id="@+id/button_talk"
+            android:id="@+id/button_start"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_talk" />
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:text="@string/btn_start" />
+
+        <Button
+            android:id="@+id/button_stop"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:text="@string/btn_stop" />
+
+    </LinearLayout>
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:orientation="horizontal" >
+
+        <EditText
+            android:id="@+id/text_log"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:ems="10"
+            android:enabled="false"
+            android:gravity="top|left"
+            android:scrollHorizontally="false"
+            android:inputType="textMultiLine" >
+
+            <requestFocus />
+        </EditText>
 
     </LinearLayout>
 
