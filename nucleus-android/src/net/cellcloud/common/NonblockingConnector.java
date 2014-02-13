@@ -213,6 +213,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 						// 清理
 						cleanup();
 						running = false;
+						// 通知 Session 销毁。
+						fireSessionDestroyed();
 						return;
 					}
 
@@ -224,6 +226,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					// 清理
 					cleanup();
 					running = false;
+					// 通知 Session 销毁。
+					fireSessionDestroyed();
 					return;
 				} finally {
 					if (key.isValid()) {
@@ -242,6 +246,9 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					Logger.log(NonblockingConnector.class, e, LogLevel.WARNING);
 				}
 
+				// 连接断开，关闭 Session
+				fireSessionClosed();
+
 				// 通知 Session 销毁。
 				fireSessionDestroyed();
 
@@ -252,11 +259,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 						selector.close();
 					if (channel.isOpen())
 						channel.close();
-
-					channel = null;
 				} catch (IOException e) {
 					// Nothing
-					channel = null;
 				}
 			}
 		};
@@ -321,7 +325,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 
-			if (++count >= 300) {
+			if (++count >= 200) {
 				this.handleThread.interrupt();
 				this.running = false;
 			}

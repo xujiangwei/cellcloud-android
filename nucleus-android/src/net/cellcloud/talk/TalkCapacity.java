@@ -38,15 +38,30 @@ public final class TalkCapacity {
 	public boolean autoSuspend = false;
 	/// 自动挂起时，连接挂起的有效时长，单位：毫秒
 	public long suspendDuration = 0;
-	
+
 	/// 重复尝试连接的次数
 	public int retryAttempts = 0;
 	/// 两次连接中间隔时间，单位毫秒
-	public long retryDelay = 1000;
+	public long retryDelay = 5000;
 
+	/**
+	 * 构造函数。
+	 * @param autoSuspend
+	 * @param suspendDuration
+	 */
 	public TalkCapacity(boolean autoSuspend, long suspendDuration) {
 		this.autoSuspend = autoSuspend;
 		this.suspendDuration = suspendDuration;
+	}
+
+	/**
+	 * 构造函数。
+	 * @param retryAttempts
+	 * @param retryDelay
+	 */
+	public TalkCapacity(int retryAttempts, long retryDelay) {
+		this.retryAttempts = retryAttempts;
+		this.retryDelay = retryDelay;
 	}
 
 	public final static byte[] serialize(TalkCapacity capacity) {
