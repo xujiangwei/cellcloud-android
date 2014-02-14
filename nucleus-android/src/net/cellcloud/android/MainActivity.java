@@ -120,13 +120,12 @@ public class MainActivity extends Activity implements TalkListener {
 		config.role = NucleusConfig.Role.CONSUMER;
 		config.device = NucleusConfig.Device.PHONE;
 
-		Nucleus nucleus = Nucleus.getInstance();
-		if (null == nucleus) {
-			try {
-				nucleus = new Nucleus(config, this.getApplication());
-			} catch (SingletonException e) {
-				Logger.log(MainActivity.class, e, LogLevel.ERROR);
-			}
+		Nucleus nucleus = null;
+		try {
+			nucleus = Nucleus.createInstance(config, this.getApplication());
+		} catch (SingletonException e) {
+			Logger.log(MainActivity.class, e, LogLevel.ERROR);
+			nucleus = Nucleus.getInstance();
 		}
 
 		return nucleus.startup();

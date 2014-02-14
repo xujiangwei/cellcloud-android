@@ -74,7 +74,7 @@ public final class Nucleus {
 
 	/** 构造函数。
 	 */
-	public Nucleus(NucleusConfig config, Application application)
+	private Nucleus(NucleusConfig config, Application application)
 			throws SingletonException {
 		if (null == Nucleus.instance) {
 			Nucleus.instance = this;
@@ -98,6 +98,18 @@ public final class Nucleus {
 		else {
 			throw new SingletonException(Nucleus.class.getName());
 		}
+	}
+
+	/**
+	 * 创建 Nucleus 实例。
+	 * @param config
+	 * @param application
+	 * @return
+	 * @throws SingletonException
+	 */
+	public synchronized static Nucleus createInstance(NucleusConfig config, Application application)
+			throws SingletonException {
+		return new Nucleus(config, application);
 	}
 
 	/** 返回单例。 */
