@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2014 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -112,9 +112,8 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 
 		if (errorCode == MessageErrorCode.CONNECT_TIMEOUT
 			|| errorCode == MessageErrorCode.CONNECT_FAILED) {
-
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_TIMEOUT
-				, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED
+					, this.getClass());
 			failure.setSourceDescription("Attempt to connect to host timed out");
 			this.speaker.fireFailed(failure);
 
@@ -122,6 +121,13 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			if (null != this.speaker.capacity && this.speaker.capacity.retryAttempts > 0) {
 				this.speaker.lost = true;
 			}
+		}
+		else if (errorCode == MessageErrorCode.NO_NETWORK) {
+			// 无网络错误
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NO_NETWORK
+					, this.getClass());
+			failure.setSourceDescription("No network found in device.");
+			this.speaker.fireFailed(failure);
 		}
 	}
 

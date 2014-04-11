@@ -243,7 +243,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					loopDispatch();
 				} catch (Exception e) {
 					spinning = false;
-					Logger.log(NonblockingConnector.class, e, LogLevel.WARNING);
+					Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 				}
 
 				// 连接断开，关闭 Session

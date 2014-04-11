@@ -280,6 +280,20 @@ public class Speaker implements Speakable {
 			}
 		}
 
+		// 判断是否为异常网络中断
+		if (SpeakerState.CALLING == this.state) {
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED
+					, this.getClass());
+			failure.setSourceDescription("No network device");
+			this.fireFailed(failure);
+		}
+		else if (SpeakerState.CALLED == this.state) {
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST
+					, this.getClass());
+			failure.setSourceDescription("Network fault, connection closed");
+			this.fireFailed(failure);
+		}
+
 		this.authenticated = false;
 		this.state = SpeakerState.HANGUP;
 

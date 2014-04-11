@@ -31,11 +31,11 @@ import java.util.ArrayList;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
-import net.cellcloud.common.MessageErrorCode;
 import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkServiceFailure;
@@ -208,7 +208,7 @@ public class MainActivity extends Activity implements TalkListener {
 
 		for (int i = 0; i < num; ++i) {
 			Primitive primitive = new Primitive();
-			primitive.commit(new SubjectStuff(Utils.randomString(32)));
+			primitive.commit(new SubjectStuff(Utils.randomString(1024)));
 			primitive.commit(new PredicateStuff(Utils.randomInt()));
 			primitive.commit(new ObjectiveStuff(Utils.randomInt() % 2 == 0 ? true : false));
 			list.add(primitive);
@@ -316,14 +316,36 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	@Override
-	public void failed(String identifier, String tag, TalkServiceFailure failure) {
+	public void failed(String identifier, String tag, final TalkServiceFailure failure) {
 		Logger.w(MainActivity.class, "failed");
-		if (failure.getCode() == MessageErrorCode.CONNECT_TIMEOUT
-			|| failure.getCode() == MessageErrorCode.CONNECT_FAILED) {
+		if (failure.getCode() == TalkFailureCode.CALL_FAILED) {
 			runOnUiThread(new Runnable() {
 				@Override
 				public void run() {
 					btnReady.setEnabled(true);
+					txtLog.append("Failed calls cellet 'Dummy'!\n");
+				}
+			});
+		}
+		else if (failure.getCode() == TalkFailureCode.TALK_LOST) {
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					btnReady.setEnabled(true);
+					btnStart.setEnabled(false);
+					btnStop.setEnabled(false);
+					txtLog.append(failure.getDescription() + "\n");
+				}
+			});
+		}
+		else if (failure.getCode() == TalkFailureCode.NO_NETWORK) {
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					btnReady.setEnabled(true);
+					btnStart.setEnabled(false);
+					btnStop.setEnabled(false);
+					txtLog.append(failure.getDescription() + "\n");
 				}
 			});
 		}
@@ -334,6 +356,7 @@ public class MainActivity extends Activity implements TalkListener {
 					btnReady.setEnabled(true);
 					btnStart.setEnabled(false);
 					btnStop.setEnabled(false);
+					txtLog.append("Unknown failure.\n");
 				}
 			});
 		}

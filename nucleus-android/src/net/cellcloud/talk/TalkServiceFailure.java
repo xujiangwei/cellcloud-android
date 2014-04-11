@@ -32,34 +32,31 @@ package net.cellcloud.talk;
  */
 public final class TalkServiceFailure {
 
-	private int code = 0;
+	private TalkFailureCode code = null;
 	private String reason = null;
 	private String description = null;
 	private String sourceDescription = "";
 	private String sourceCelletIdentifier = "";
 
-	public TalkServiceFailure(int code, @SuppressWarnings("rawtypes") Class clazz) {
+	public TalkServiceFailure(TalkFailureCode code, @SuppressWarnings("rawtypes") Class clazz) {
 		construct(code, clazz);
 	}
 
-	private void construct(int code, @SuppressWarnings("rawtypes") Class clazz) {
+	private void construct(TalkFailureCode code, @SuppressWarnings("rawtypes") Class clazz) {
 		this.code = code;
 		this.reason = "Error in " + clazz.getName();
 
-		switch (code) {
-		case TalkFailureCode.NOTFOUND_CELLET:
+		if (code == TalkFailureCode.NOTFOUND_CELLET)
 			this.description = "Server can not find specified cellet";
-			break;
-		case TalkFailureCode.CALL_TIMEOUT:
+		else if (code == TalkFailureCode.CALL_FAILED)
 			this.description = "Network connecting timeout";
-			break;
-		default:
+		else if (code == TalkFailureCode.TALK_LOST)
+			this.description = "Lost talk connection";
+		else
 			this.description = "Unknown failure";
-			break;
-		}
 	}
 
-	public int getCode() {
+	public TalkFailureCode getCode() {
 		return this.code;
 	}
 
