@@ -52,6 +52,10 @@ public final class TalkServiceFailure {
 			this.description = "Network connecting timeout";
 		else if (code == TalkFailureCode.TALK_LOST)
 			this.description = "Lost talk connection";
+		else if (code == TalkFailureCode.RETRY_END)
+			this.description = "Auto retry end";
+		else if (code == TalkFailureCode.NO_NETWORK)
+			this.description = "No network device found";
 		else
 			this.description = "Unknown failure";
 	}

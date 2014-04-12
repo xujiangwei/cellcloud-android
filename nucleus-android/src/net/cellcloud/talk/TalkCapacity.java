@@ -44,6 +44,8 @@ public final class TalkCapacity {
 	/// 两次连接中间隔时间，单位毫秒
 	public long retryDelay = 5000;
 
+	protected int retryCounts = 0;
+
 	/**
 	 * 构造函数。
 	 * @param autoSuspend
@@ -62,6 +64,10 @@ public final class TalkCapacity {
 	public TalkCapacity(int retryAttempts, long retryDelay) {
 		this.retryAttempts = retryAttempts;
 		this.retryDelay = retryDelay;
+
+		if (this.retryAttempts == Integer.MAX_VALUE) {
+			this.retryAttempts -= 1;
+		}
 	}
 
 	public final static byte[] serialize(TalkCapacity capacity) {

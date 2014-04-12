@@ -32,7 +32,9 @@ package net.cellcloud.talk;
  */
 public enum TalkFailureCode {
 
-	/** 未找到指定的 Cellet 。 */
+	/** 未找到指定的 Cellet 。
+	 * @note 此错误不触发自动重连。
+	 */
 	NOTFOUND_CELLET(1000),
 
 	/** Call 请求失败。 */
@@ -41,7 +43,14 @@ public enum TalkFailureCode {
 	/** 会话连接被断开。 */
 	TALK_LOST(3000),
 
-	/** 无网络。 */
+	/** 重试次数达到上限，重试结束。
+	 * @note 此错误不触发自动重连。
+	 */
+	RETRY_END(4000),
+
+	/** 无网络。
+	 * @note 此错误不触发自动重连。
+	 */
 	NO_NETWORK(7000);
 
 	private int code;

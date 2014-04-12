@@ -117,10 +117,8 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			failure.setSourceDescription("Attempt to connect to host timed out");
 			this.speaker.fireFailed(failure);
 
-			// 重试参数 retryAttempts 必须有效才能激活重试
-			if (null != this.speaker.capacity && this.speaker.capacity.retryAttempts > 0) {
-				this.speaker.lost = true;
-			}
+			// 标记为丢失
+			this.speaker.lost = true;
 		}
 		else if (errorCode == MessageErrorCode.NO_NETWORK) {
 			// 无网络错误

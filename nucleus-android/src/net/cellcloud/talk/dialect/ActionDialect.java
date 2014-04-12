@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2014 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,8 +51,13 @@ public class ActionDialect extends Dialect {
 	private Object customContext;
 
 	public ActionDialect(String tracker) {
+		this(tracker, null);
+	}
+
+	public ActionDialect(String tracker, String action) {
 		super(ActionDialect.DIALECT_NAME, tracker);
-		this.params = new HashMap<String, String>();
+		this.action = action;
+		this.params = new HashMap<String, String>(2);
 	}
 
 	/** 设置自定义上下文。
