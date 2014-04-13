@@ -69,7 +69,9 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 	 */
 	@Override
 	public void sessionOpened(Session session) {
-		// Nothing
+		if (null != this.speaker.capacity) {
+			this.speaker.capacity.retryCounts = 0;
+		}
 	}
 
 	/**
