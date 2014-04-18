@@ -141,8 +141,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			// 设置 Socket 参数
 			this.channel.socket().setSoTimeout(30000);
 			this.channel.socket().setKeepAlive(true);
-			this.channel.socket().setReceiveBufferSize(this.block);
-			this.channel.socket().setSendBufferSize(this.block);
+			this.channel.socket().setReceiveBufferSize(this.block + 1024);
+			this.channel.socket().setSendBufferSize(this.block + 1024);
 
 			this.selector = Selector.open();//SelectorProvider.provider().openSelector();
 
@@ -353,8 +353,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 		if (null != this.channel) {
 			try {
-				this.channel.socket().setReceiveBufferSize(this.block);
-				this.channel.socket().setSendBufferSize(this.block);
+				this.channel.socket().setReceiveBufferSize(this.block + 1024);
+				this.channel.socket().setSendBufferSize(this.block + 1024);
 			} catch (Exception e) {
 				// ignore
 			}

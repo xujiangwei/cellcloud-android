@@ -39,10 +39,16 @@ import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkServiceFailure;
+import net.cellcloud.talk.stuff.AttributiveStuff;
 import net.cellcloud.talk.stuff.ObjectiveStuff;
 import net.cellcloud.talk.stuff.PredicateStuff;
 import net.cellcloud.talk.stuff.SubjectStuff;
 import net.cellcloud.util.Utils;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
@@ -54,7 +60,7 @@ import android.widget.EditText;
 
 public class MainActivity extends Activity implements TalkListener {
 
-	private final String address = "192.168.2.3";
+	private final String address = "192.168.1.106";
 	private final String identifier = "Dummy";
 
 	private Button btnReady;
@@ -62,6 +68,7 @@ public class MainActivity extends Activity implements TalkListener {
 	private Button btnStop;
 	private EditText txtLog;
 
+	private int counts = 0;
 	private boolean running = false;
 
 	@Override
@@ -202,6 +209,8 @@ public class MainActivity extends Activity implements TalkListener {
 
 		this.txtLog.append("Start demo ...\n");
 
+		this.counts = 0;
+
 		// 创建测试用原语
 		final int num = 10;
 		final ArrayList<Primitive> list = new ArrayList<Primitive>(num);
@@ -211,6 +220,34 @@ public class MainActivity extends Activity implements TalkListener {
 			primitive.commit(new SubjectStuff(Utils.randomString(1024)));
 			primitive.commit(new PredicateStuff(Utils.randomInt()));
 			primitive.commit(new ObjectiveStuff(Utils.randomInt() % 2 == 0 ? true : false));
+
+			JSONObject json = new JSONObject();
+			try {
+				json.put("name", "Xu Jiangwei");
+				json.put("timestamp", System.currentTimeMillis());
+
+				JSONObject phone = new JSONObject();
+				phone.put("name", "iPhone");
+				phone.put("vendor", "Apple");
+				json.put("phone", phone);
+
+				JSONObject c1 = new JSONObject();
+				c1.put("name", "ThinkPad");
+				c1.put("vendor", "Lenovo");
+
+				JSONObject c2 = new JSONObject();
+				c2.put("name", "MacBook Pro");
+				c2.put("vendor", "Apple");
+
+				JSONArray computers = new JSONArray();
+				computers.put(c1);
+				computers.put(c2);
+
+				json.put("computer", computers);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			primitive.commit(new AttributiveStuff(json.toString()));
 			list.add(primitive);
 		}
 
@@ -276,11 +313,15 @@ public class MainActivity extends Activity implements TalkListener {
 
 	@Override
 	public void dialogue(String identifier, final Primitive primitive) {
-		Logger.i(MainActivity.class, "dialogue - " + primitive.subjects().get(0).getValueAsString());
+		++this.counts;
+
+		Logger.i(MainActivity.class, "dialogue - [" + this.counts + "] " + primitive.attributives().get(0).getValueAsString());
+
+		final int c = this.counts;
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				txtLog.append("dialogue - " + primitive.subjects().get(0).getValueAsString() + "\n");
+				txtLog.append("dialogue - [" + c + "] " + primitive.attributives().get(0).getValueAsString() + "\n");
 			}
 		});
 	}
