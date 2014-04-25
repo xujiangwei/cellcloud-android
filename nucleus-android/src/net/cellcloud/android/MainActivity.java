@@ -28,6 +28,7 @@ package net.cellcloud.android;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
@@ -40,6 +41,7 @@ import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkServiceFailure;
+import net.cellcloud.talk.dialect.ActionDialect;
 import net.cellcloud.talk.stuff.AttributiveStuff;
 import net.cellcloud.talk.stuff.ObjectiveStuff;
 import net.cellcloud.talk.stuff.PredicateStuff;
@@ -69,7 +71,7 @@ public class MainActivity extends Activity implements TalkListener {
 	private Button btnStop;
 	private EditText txtLog;
 
-	private int counts = 0;
+	private AtomicInteger counts = new AtomicInteger(0);
 	private boolean running = false;
 
 	@Override
@@ -211,16 +213,17 @@ public class MainActivity extends Activity implements TalkListener {
 
 		this.txtLog.append("Start demo ...\n");
 
-		this.counts = 0;
+		this.counts.set(0);
+
+		final int num = 30;
 
 		// 创建测试用原语
-		final int num = 10;
-		final ArrayList<Primitive> list = new ArrayList<Primitive>(num);
+		final ArrayList<Primitive> primList = new ArrayList<Primitive>(num);
 
 		for (int i = 0; i < num; ++i) {
 			Primitive primitive = new Primitive();
-			primitive.commit(new SubjectStuff(Utils.randomString(1024)));
-			primitive.commit(new PredicateStuff(Utils.randomInt()));
+			primitive.commit(new SubjectStuff(Utils.randomInt()));
+			primitive.commit(new PredicateStuff(Utils.randomString(1024)));
 			primitive.commit(new ObjectiveStuff(Utils.randomInt() % 2 == 0 ? true : false));
 
 			JSONObject json = new JSONObject();
@@ -249,8 +252,26 @@ public class MainActivity extends Activity implements TalkListener {
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
+
 			primitive.commit(new AttributiveStuff(json.toString()));
-			list.add(primitive);
+			primList.add(primitive);
+		}
+
+		// 创建测试用方言
+		final ArrayList<ActionDialect> dialectList = new ArrayList<ActionDialect>(num);
+		for (int i = 0; i < num; ++i) {
+			ActionDialect ad = new ActionDialect();
+			ad.setAction("test");
+
+			JSONObject json = null;
+			try {
+				json = new JSONObject("{\"total\":26,\"authorized\":true,\"root\":[{\"id\":\"8a000217444e1a0c01444e26ebdc0001\",\"summary\":\"as\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已制定变更计划\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000005\",\"updatedOn\":\"2014-02-20 15:18:17\"},{\"id\":\"8a0002d24449830a0144498955970001\",\"summary\":\"bb\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已执行变更任务\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000004\",\"updatedOn\":\"2014-02-19 17:47:13\"},{\"id\":\"8a0002d2444977bd0144497c3caf0001\",\"summary\":\"vv\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已执行变更任务\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000003\",\"updatedOn\":\"2014-02-19 17:32:25\"},{\"id\":\"8a0002d2444971420144497263530001\",\"summary\":\"dd\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已执行变更任务\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000002\",\"updatedOn\":\"2014-02-19 17:21:51\"},{\"id\":\"8a0002d244496e050144496f21370001\",\"summary\":\"sss\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已执行变更任务\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000001\",\"updatedOn\":\"2014-02-19 17:18:10\"},{\"id\":\"8a0002bd446d12d301446d183d480001\",\"summary\":\"在郑州\",\"servicelevelSymbol\":\"二级\",\"stateName\":\"已关闭\",\"isMajor\":\"2\",\"isOvertime\":\"暂无\",\"code\":\"Incident00000012\",\"updatedOn\":\"2009-02-12 00:00:00\"}],\"success\":true}");
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			ad.appendParam("data", json.toString());
+
+			dialectList.add(ad);
 		}
 
 		this.running = true;
@@ -259,10 +280,35 @@ public class MainActivity extends Activity implements TalkListener {
 			@Override
 			public void run() {
 				while (running) {
-					Primitive primitive = list.remove(0);
-					TalkService.getInstance().talk(identifier, primitive);
+					if (!primList.isEmpty()) {
+						Primitive primitive = primList.remove(0);
+						TalkService.getInstance().talk(identifier, primitive);
+					}
 
-					if (list.isEmpty()) {
+					try {
+						Thread.sleep(Utils.randomInt(200, 300));
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+					if (!dialectList.isEmpty()) {
+						ActionDialect dialect = dialectList.remove(0);
+						TalkService.getInstance().talk(identifier, dialect);
+					}
+
+					try {
+						Thread.sleep(Utils.randomInt(200, 300));
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+					if (primList.isEmpty() && dialectList.isEmpty()) {
+						try {
+							Thread.sleep(Utils.randomInt(500, 800));
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
@@ -272,16 +318,7 @@ public class MainActivity extends Activity implements TalkListener {
 
 						break;
 					}
-
-					try {
-						Thread.sleep(Utils.randomInt(200, 500));
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
 				} // #while
-
-				// 清空列表
-				list.clear();
 			}
 		};
 		t.start();
@@ -315,15 +352,20 @@ public class MainActivity extends Activity implements TalkListener {
 
 	@Override
 	public void dialogue(String identifier, final Primitive primitive) {
-		++this.counts;
+		final int c = this.counts.addAndGet(1);
 
-		Logger.i(MainActivity.class, "dialogue - [" + this.counts + "] " + primitive.attributives().get(0).getValueAsString());
+		Logger.i(MainActivity.class, "dialogue - [" + this.counts + "] " + primitive.subjects().get(0).getValueAsString());
 
-		final int c = this.counts;
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				txtLog.append("dialogue - [" + c + "] " + primitive.attributives().get(0).getValueAsString() + "\n");
+				if (primitive.isDialectal()) {
+					ActionDialect ad = (ActionDialect) primitive.getDialect();
+					txtLog.append("dialogue - [" + c + "] " + ad.getAction() + " - " + ad.getParamAsString("data").length() + "\n");
+				}
+				else {
+					txtLog.append("dialogue - [" + c + "] " + primitive.subjects().get(0).getValueAsString() + "\n");
+				}
 			}
 		});
 	}
