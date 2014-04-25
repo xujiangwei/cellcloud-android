@@ -64,6 +64,8 @@ public class Speaker implements Speakable {
 	// 是否需要重新连接
 	protected boolean lost = false;
 	protected long retryTimestamp = 0;
+	protected int retryCounts = 0;
+	protected boolean retryEnd = false;
 
 	/** 构造函数。
 	 */
@@ -250,6 +252,15 @@ public class Speaker implements Speakable {
 	@Override
 	public boolean isSuspended() {
 		return this.state == SpeakerState.SUSPENDED;
+	}
+
+	/**
+	 * 重置状态数据。
+	 */
+	protected void reset() {
+		this.retryTimestamp = 0;
+		this.retryCounts = 0;
+		this.retryEnd = false;
 	}
 
 	/** 记录服务端 Tag */

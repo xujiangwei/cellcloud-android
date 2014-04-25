@@ -428,6 +428,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 				this.speakers.put(identifier, speaker);
 			}
 
+			// 复位参数
+			speaker.reset();
+
 			// Call
 			ret = speaker.call(address);
 		}

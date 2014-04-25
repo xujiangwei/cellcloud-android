@@ -208,7 +208,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 						keys = selector.select(connectTimeout);
 					}
 
-					if (keys == 0) {
+					if (keys <= 0) {
 						fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
 						// 清理
 						cleanup();

@@ -35,6 +35,7 @@ import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.TalkCapacity;
 import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
@@ -191,7 +192,8 @@ public class MainActivity extends Activity implements TalkListener {
 			talkService.addListener(this);
 		}
 
-		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, 7000));
+		TalkCapacity capacity = new TalkCapacity(3, 6000);
+		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, 7000), capacity);
 		if (ret) {
 			this.txtLog.append("Calling cellet 'Dummy' ...\n");
 		}
@@ -390,6 +392,17 @@ public class MainActivity extends Activity implements TalkListener {
 				}
 			});
 		}
+		else if (failure.getCode() == TalkFailureCode.RETRY_END) {
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					btnReady.setEnabled(true);
+					btnStart.setEnabled(false);
+					btnStop.setEnabled(false);
+					txtLog.append(failure.getDescription() + "\n");
+				}
+			});
+		}
 		else {
 			runOnUiThread(new Runnable() {
 				@Override
@@ -397,7 +410,7 @@ public class MainActivity extends Activity implements TalkListener {
 					btnReady.setEnabled(true);
 					btnStart.setEnabled(false);
 					btnStop.setEnabled(false);
-					txtLog.append("Unknown failure.\n");
+					txtLog.append(failure.getDescription() + "\n");
 				}
 			});
 		}
