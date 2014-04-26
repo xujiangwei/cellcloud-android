@@ -66,9 +66,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	// 待发送消息列表
 	private Vector<Message> messages;
 
-	private byte[] cache = new byte[2048];
-	private int cacheCursor = 0;
-
 	private boolean closed = false;
 
 	private Context androidContext;
@@ -590,7 +587,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
 			ArrayList<byte[]> out = new ArrayList<byte[]>(2);
-			// 进行递归提取
+			// 数据递归提取
 			this.extract(out, data);
 
 			if (!out.isEmpty()) {
@@ -613,6 +610,9 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		}
 	}
 
+	/**
+	 * @deprecated
+	 */
 	protected void processData(byte[] data) {
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
@@ -705,17 +705,17 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 		// 当数据小于标签长度时直接缓存
 		if (data.length < headMark.length) {
-			System.arraycopy(data, 0, this.cache, this.cacheCursor, data.length);
-			this.cacheCursor += data.length;
+			System.arraycopy(data, 0, this.session.cache, this.session.cacheCursor, data.length);
+			this.session.cacheCursor += data.length;
 			return;
 		}
 
 		byte[] real = data;
-		if (this.cacheCursor > 0) {
-			real = new byte[this.cacheCursor + data.length];
-			System.arraycopy(this.cache, 0, real, 0, this.cacheCursor);
-			System.arraycopy(data, 0, real, this.cacheCursor, data.length);
-			this.cacheCursor = 0;
+		if (this.session.cacheCursor > 0) {
+			real = new byte[this.session.cacheCursor + data.length];
+			System.arraycopy(this.session.cache, 0, real, 0, this.session.cacheCursor);
+			System.arraycopy(data, 0, real, this.session.cacheCursor, data.length);
+			this.session.cacheCursor = 0;
 		}
 
 		int index = 0;
@@ -762,8 +762,13 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			else {
 				// 没有尾标签
 				// 仅进行缓存
-				System.arraycopy(real, 0, this.cache, this.cacheCursor, len);
-				this.cacheCursor += len;
+				if (len + this.session.cacheCursor > this.session.cacheSize) {
+					// 缓存扩容
+					this.session.resetCacheSize(len + this.session.cacheCursor);
+				}
+
+				System.arraycopy(real, 0, this.session.cache, this.session.cacheCursor, len);
+				this.session.cacheCursor += len;
 			}
 
 			return;
