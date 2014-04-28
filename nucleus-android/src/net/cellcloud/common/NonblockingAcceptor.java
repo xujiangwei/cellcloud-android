@@ -390,7 +390,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 	/** 事件循环。 */
 	private void loopDispatch() throws IOException, Exception {
 		while (this.spinning) {
-			while (this.selector.isOpen() && this.selector.select() > 0) {
+			if (this.selector.isOpen() && this.selector.select() > 0) {
 				Iterator<SelectionKey> it = this.selector.selectedKeys().iterator();
 				while (it.hasNext()) {
 					SelectionKey key = (SelectionKey) it.next();
@@ -417,15 +417,13 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 						}
 					}
 				}
+			} // # if
 
-				try {
-					Thread.sleep(1);
-				} catch (InterruptedException e) {
-					Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
-				}
-			} // # while
-
-			Thread.yield();
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				Logger.log(NonblockingAcceptor.class, e, LogLevel.DEBUG);
+			}
 		} // # while
 	}
 

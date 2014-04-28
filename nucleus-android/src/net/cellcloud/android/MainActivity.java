@@ -36,7 +36,6 @@ import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.Primitive;
-import net.cellcloud.talk.TalkCapacity;
 import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
@@ -63,7 +62,8 @@ import android.widget.EditText;
 
 public class MainActivity extends Activity implements TalkListener {
 
-	private final String address = "192.168.1.106";
+	private final String address = "192.168.2.3";
+	private final int port = 7000;
 	private final String identifier = "Dummy";
 
 	private Button btnReady;
@@ -194,8 +194,8 @@ public class MainActivity extends Activity implements TalkListener {
 			talkService.addListener(this);
 		}
 
-		TalkCapacity capacity = new TalkCapacity(3, 6000);
-		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, 7000), capacity);
+//		TalkCapacity capacity = new TalkCapacity(3, 6000);
+		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, this.port));
 		if (ret) {
 			this.txtLog.append("Calling cellet 'Dummy' ...\n");
 		}
