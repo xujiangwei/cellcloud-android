@@ -146,7 +146,7 @@ public final class TalkServiceDaemon extends Thread {
 					dt = 1000 - dt;
 				}
 				else {
-					dt = dt % 2000;
+					dt = dt % 1000;
 				}
 
 				Thread.sleep(dt);

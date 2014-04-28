@@ -95,7 +95,11 @@ public final class NonblockingAcceptorWorker extends Thread {
 			}
 
 			// 让步
-			Thread.yield();
+//			Thread.yield();
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+			}
 		}
 
 		this.working = false;
