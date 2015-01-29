@@ -226,7 +226,6 @@ public final class NonblockingAcceptorWorker extends Thread {
 
 					// 移除 Session
 					this.acceptor.eraseSession(session);
-
 					this.removeSession(session);
 
 					session.selectionKey.cancel();
@@ -251,7 +250,6 @@ public final class NonblockingAcceptorWorker extends Thread {
 
 					// 移除 Session
 					this.acceptor.eraseSession(session);
-
 					this.removeSession(session);
 
 					session.selectionKey.cancel();
@@ -352,8 +350,7 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/**
-	 * 解析数据格式。
+	/** 解析数据格式。
 	 * @deprecated
 	 */
 	protected void parseData(NonblockingAcceptorSession session, byte[] data) {

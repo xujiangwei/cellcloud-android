@@ -26,6 +26,9 @@ THE SOFTWARE.
 
 package net.cellcloud.talk;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** 服务故障描述类。
  * 
  * @author Jiangwei Xu
@@ -36,7 +39,7 @@ public final class TalkServiceFailure {
 	private String reason = null;
 	private String description = null;
 	private String sourceDescription = "";
-	private String sourceCelletIdentifier = "";
+	private ArrayList<String> sourceCelletIdentifiers = new ArrayList<String>(2);
 
 	public TalkServiceFailure(TalkFailureCode code, @SuppressWarnings("rawtypes") Class clazz) {
 		construct(code, clazz);
@@ -80,11 +83,17 @@ public final class TalkServiceFailure {
 		this.sourceDescription = desc;
 	}
 
-	public String getSourceCelletIdentifier() {
-		return this.sourceCelletIdentifier;
+	public List<String> getSourceCelletIdentifierList() {
+		return this.sourceCelletIdentifiers;
 	}
 
-	public void setSourceCelletIdentifier(String celletIdentifier) {
-		this.sourceCelletIdentifier = celletIdentifier;
+	public void setSourceCelletIdentifiers(List<String> celletIdentifiers) {
+		for (String identifier : celletIdentifiers) {
+			if (this.sourceCelletIdentifiers.contains(identifier)) {
+				continue;
+			}
+
+			this.sourceCelletIdentifiers.add(identifier);
+		}
 	}
 }

@@ -195,7 +195,7 @@ public class MainActivity extends Activity implements TalkListener {
 		}
 
 //		TalkCapacity capacity = new TalkCapacity(3, 6000);
-		boolean ret = talkService.call(this.identifier, new InetSocketAddress(this.address, this.port));
+		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port));
 		if (ret) {
 			this.txtLog.append("Calling cellet 'Dummy' ...\n");
 		}
@@ -389,19 +389,19 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	@Override
-	public void suspended(String identifier, String tag, long timestamp,
+	public void suspended(String tag, long timestamp,
 			int mode) {
 		Logger.i(MainActivity.class, "suspended");
 	}
 
 	@Override
-	public void resumed(String identifier, String tag, long timestamp,
+	public void resumed(String tag, long timestamp,
 			Primitive primitive) {
 		Logger.i(MainActivity.class, "resumed");
 	}
 
 	@Override
-	public void failed(String identifier, String tag, final TalkServiceFailure failure) {
+	public void failed(String tag, final TalkServiceFailure failure) {
 		Logger.w(MainActivity.class, "failed");
 		if (failure.getCode() == TalkFailureCode.CALL_FAILED) {
 			runOnUiThread(new Runnable() {

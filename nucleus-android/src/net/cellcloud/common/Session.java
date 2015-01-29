@@ -49,7 +49,7 @@ public class Session {
 		this.service = service;
 		this.address = address;
 
-		this.cacheSize = 512;
+		this.cacheSize = 1024;
 		this.cache = new byte[this.cacheSize];
 		this.cacheCursor = 0;
 	}
@@ -59,7 +59,7 @@ public class Session {
 		this.service = service;
 		this.address = address;
 
-		this.cacheSize = 512;
+		this.cacheSize = 1024;
 		this.cache = new byte[this.cacheSize];
 		this.cacheCursor = 0;
 	}

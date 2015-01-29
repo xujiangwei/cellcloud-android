@@ -420,10 +420,10 @@ public final class Nucleus {
 				loader = new URLClassLoader(new URL[]{url}
 					, Thread.currentThread().getContextClassLoader());
 
-			// 取出 Cellet 类
-			ArrayList<String> celletClasslist = this.celletJarClasses.get(jarFilename);
-			// Cellet 类列表
-			ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
+				// 取出 Cellet 类
+				ArrayList<String> celletClasslist = this.celletJarClasses.get(jarFilename);
+				// Cellet 类列表
+				ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
 
 				// 加载所有的 Class
 				for (int i = 0, size = classNameList.size(); i < size; ++i) {
