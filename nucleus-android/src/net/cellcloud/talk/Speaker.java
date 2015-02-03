@@ -154,16 +154,21 @@ public class Speaker implements Speakable {
 		this.state = SpeakerState.HANGUP;
 		this.authenticated = false;
 
-		// 进行连接
-		boolean ret = this.connector.connect(this.address);
-		if (ret) {
-			// 开始进行调用
-			this.state = SpeakerState.CALLING;
-			this.lost = false;
-			this.retryTimestamp = 0;
-		}
+		(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				// 进行连接
+				boolean ret = connector.connect(address);
+				if (ret) {
+					// 开始进行调用
+					state = SpeakerState.CALLING;
+					lost = false;
+					retryTimestamp = 0;
+				}
+			}
+		})).start();
 
-		return ret;
+		return true;
 	}
 
 	/** 挂起服务。

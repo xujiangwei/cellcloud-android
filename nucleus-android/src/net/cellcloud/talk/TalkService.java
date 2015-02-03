@@ -1160,6 +1160,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 		// 1、挂起会话超时
 		// 2、挂起会话所标识的消费端已经和 Cellet 重建连接
 
+		if (this.suspendedTrackers == null || this.suspendedTrackers.isEmpty()) {
+			return;
+		}
+
 		// 检查超时的挂起会话
 		Iterator<Map.Entry<String, SuspendedTracker>> eiter = this.suspendedTrackers.entrySet().iterator();
 		while (eiter.hasNext()) {

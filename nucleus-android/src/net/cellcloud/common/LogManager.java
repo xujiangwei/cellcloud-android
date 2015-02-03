@@ -67,6 +67,14 @@ public final class LogManager {
 		return this.level;
 	}
 
+	/**
+	 * 返回句柄数量。
+	 * @return
+	 */
+	public int numHandles() {
+		return this.handles.size();
+	}
+
 	/** 记录日志。
 	 */
 	public void log(byte level, String tag, String log) {

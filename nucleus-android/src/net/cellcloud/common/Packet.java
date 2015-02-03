@@ -142,9 +142,9 @@ public final class Packet {
 
 	/** 直接设置 Body 数据。
 	 */
-	public void setBody(byte[] body) {
+	/*public void setBody(byte[] body) {
 		this.body = body;
-	}
+	}*/
 	/** 直接返回 Body 数据。
 	 */
 	public byte[] getBody() {
@@ -314,7 +314,7 @@ public final class Packet {
 					// 不是数字，直接使用 Body
 					byte[] body = new byte[bodyLength];
 					System.arraycopy(data, begin, body, 0, bodyLength);
-					packet.setBody(body);
+					packet.body  = body;
 					return packet;
 				}
 			}
