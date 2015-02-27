@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,21 +26,7 @@ THE SOFTWARE.
 
 package net.cellcloud.talk.dialect;
 
-/** 方言工厂。
- * 
- * @author Jiangwei Xu
- */
-public abstract class DialectFactory {
+public interface ChunkListener {
 
-	/** 返回元数据。
-	 */
-	abstract public DialectMetaData getMetaData();
-
-	/** 创建方言。
-	 */
-	abstract public Dialect create(final String tracker);
-
-	/** 关闭。
-	 */
-	abstract public void shutdown();
+	public void onProgress(String sign, int chunkIndex, int chunkNum, int chunkLength);
 }

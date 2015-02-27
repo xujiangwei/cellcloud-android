@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,7 @@ import net.cellcloud.core.NucleusContext;
 import net.cellcloud.exception.InvalidException;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.dialect.ActionDialectFactory;
+import net.cellcloud.talk.dialect.ChunkDialectFactory;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
 import net.cellcloud.talk.stuff.PrimitiveSerializer;
@@ -63,9 +64,12 @@ import net.cellcloud.util.Utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** 会话服务。
- *
- * @author Jiangwei Xu
+//! 会话服务。
+/*!
+ * 会话服务是节点与 Cellet 之间通信的基础服务。
+ * 通过会话服务完成节点与 Cellet 之间的数据传输。
+ * 
+ * \author Jiangwei Xu
  */
 public final class TalkService implements Service, SpeakerDelegate {
 
@@ -103,8 +107,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 	private TalkServiceDaemon daemon;
 	private ArrayList<TalkListener> listeners;
 
-	/** 构造函数。
-	 * @throws SingletonException 
+	//! 构造函数。
+	/*!
+	 * \throws SingletonException 
 	 */
 	public TalkService(NucleusContext nucleusContext)
 			throws SingletonException {
@@ -117,26 +122,28 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.block = 8192;
 
 			// 创建执行器
-			this.executor = CachedQueueExecutor.newCachedQueueThreadPool(8);
+			this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
 
 			// 添加默认方言工厂
 			DialectEnumerator.getInstance().addFactory(new ActionDialectFactory());
+			DialectEnumerator.getInstance().addFactory(new ChunkDialectFactory());
 		}
 		else {
 			throw new SingletonException(TalkService.class.getName());
 		}
 	}
 
-	/**
-	 * 返回会话服务单例。
+	//! 返回会话服务单例。
+	/*!
+	 * \return 如果返回空指针，则表示内核服务尚未启动，需要先启动内核。
 	 */
 	public static TalkService getInstance() {
 		return TalkService.instance;
 	}
 
-	/**
-	 * 启动会话服务。
-	 * @return 如果启动成功，则返回 true，否则返回 false
+	//! 启动会话服务。
+	/*!
+	 * \return 如果启动成功，则返回 \c true ，否则返回 \c false 。
 	 */
 	@Override
 	public boolean startup() {
@@ -182,7 +189,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return succeeded;
 	}
 
-	/** 关闭会话服务。
+	/*!
+	 * 关闭会话服务。
 	 */
 	@Override
 	public void shutdown() {
@@ -206,9 +214,11 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 设置服务端口。
-	 * @note 在 startup 之前设置才能生效。
-	 * @param port 指定服务监听端口。
+	//! 设置服务端口。
+	/*!
+	 * \note 在 TalkService#startup 之前设置才能生效。
+	 * 
+	 * \param port 指定服务监听端口。
 	 */
 	public void setPort(int port) {
 		if (null != this.acceptor && this.acceptor.isRunning()) {
@@ -218,22 +228,24 @@ public final class TalkService implements Service, SpeakerDelegate {
 		this.port = port;
 	}
 
-	/** 返回服务端口。
-	 * @return
+	//! 返回服务端口。
+	/*!
+	 * \return 返回正在使用的服务端口号。
 	 */
 	public int getPort() {
 		return this.port;
 	}
 
-	/**
-	 * 设置适配器缓存块大小。
-	 * @param size
+	//! 设置适配器缓存块大小。
+	/*!
+	 * \param size 指定新的缓存块大小。
 	 */
 	public void setBlockSize(int size) {
 		this.block = size;
 	}
 
-	/** 启动任务表守护线程。
+	//! 启动任务守护线程。
+	/*!
 	 */
 	public void startDaemon() {
 		if (null == this.daemon) {
@@ -244,7 +256,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.daemon.start();
 	}
 
-	/** 关闭任务表守护线程。
+	//! 关闭任务守护线程。
+	/*!
 	 */
 	public void stopDaemon() {
 		if (null != this.daemon) {
@@ -263,7 +276,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 添加会话监听器。
+	//! 添加会话监听器。
+	/*!
+	 * \param listener 指定添加的监听器对象实例。
 	 */
 	public void addListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -277,7 +292,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 删除会话监听器。
+	//! 删除会话监听器。
+	/*!
+	 * \param listener 指定删除的监听器对象实例。
 	 */
 	public void removeListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -289,10 +306,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/**
-	 * 是否已添加指定的监听器。
-	 * @param listener
-	 * @return
+	//! 是否已添加指定的监听器。
+	/*!
+	 * \param listener 指定待判断的监听器实例。
+	 * \return 如果指定的监听器已添加到会话服务则返回 \c true ，否则返回 \c false 。
 	 */
 	public boolean hasListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -304,15 +321,21 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/**
-	 * 返回当前所有会话者的 Tag 列表。
-	 * @return
+	//! 返回当前所有会话者的 Tag 列表。
+	/*!
+	 * \return 返回已经连接的会话客户端 Tag 列表。
 	 */
 	public Set<String> getTalkerList() {
 		return this.tagList;
 	}
 
-	/** 通知对端 Speaker 原语。
+	//! 向指定 Tag 端发送原语。
+	/*!
+	 * \param targetTag 指定目标 Tag 。
+	 * \param primitive 指定发送的原语。
+	 * \param cellet 指定源 Cellet 。
+	 * \param sandbox 指定校验用的安全沙箱实例。
+	 * \return 如果发送原语成功返回 \c true ，否则返回 \c false 。
 	 */
 	public boolean notice(final String targetTag, final Primitive primitive,
 			final Cellet cellet, final CelletSandbox sandbox) {
@@ -351,27 +374,18 @@ public final class TalkService implements Service, SpeakerDelegate {
 					session.write(message);
 				}
 			}
-//			for (TalkSessionContext ctx : contexts) {
-//				// 查找上文里指定的会话追踪器
-//				TalkTracker tracker = ctx.getTracker(targetTag);
-//				if (null != tracker) {
-//					// 判断是否是同一个 Cellet
-//					if (tracker.activeCellet == cellet) {
-//						Session session = ctx.getSession();
-//						message = this.packetDialogue(primitive);
-//						if (null != message) {
-//							session.write(message);
-//						}
-//						break;
-//					}
-//				}
-//			}
 		}
 
 		return (null != message);
 	}
 
-	/** 通知对端 Speaker 方言。
+	//! 向指定 Tag 端发送原语方言。
+	/*!
+	 * \param targetTag 指定目标 Tag 。
+	 * \param dialect 指定发送的原语方言。
+	 * \param cellet 指定源 Cellet 。
+	 * \param sandbox 指定校验用的安全沙箱实例。
+	 * \return 如果发送原语方言成功返回 \c true ，否则返回 \c false 。
 	 */
 	public boolean notice(final String targetTag, final Dialect dialect,
 			final Cellet cellet, final CelletSandbox sandbox) {
@@ -379,9 +393,17 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null != primitive) {
 			return this.notice(targetTag, primitive, cellet, sandbox);
 		}
+
 		return false;
 	}
 
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
+	 */
 	public boolean call(String[] identifiers, InetSocketAddress address) {
 		ArrayList<String> list = new ArrayList<String>(identifiers.length);
 		for (String identifier : identifiers) {
@@ -390,44 +412,65 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return this.call(list, address);
 	}
 
-	/** 申请调用 Cellet 服务。
-	 * 
-	 * @note Client
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \param capacity 指定能力协商。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
+	 */
+	public boolean call(String[] identifiers, InetSocketAddress address, TalkCapacity capacity) {
+		ArrayList<String> list = new ArrayList<String>(identifiers.length);
+		for (String identifier : identifiers) {
+			list.add(identifier);
+		}
+		return this.call(list, address, capacity);
+	}
+
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
 	 */
 	public boolean call(List<String> identifiers, InetSocketAddress address) {
 		return this.call(identifiers, address, null, false);
 	}
 
-	/**
-	 * 申请调用 Cellet 服务。
-	 * 
-	 * @param identifier
-	 * @param address
-	 * @return
-	 * 
-	 * @note Client
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \param http 指定是否使用 HTTP 协议。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
 	 */
 	public boolean call(List<String> identifiers, InetSocketAddress address, boolean http) {
 		return this.call(identifiers, address, null, http);
 	}
 
-	/**
-	 * 申请调用 Cellet 服务。
-	 * 
-	 * @param identifier
-	 * @param address
-	 * @param capacity
-	 * @return
-	 * 
-	 * @note Client
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \param capacity 指定能力协商。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
 	 */
 	public boolean call(List<String> identifiers, InetSocketAddress address, TalkCapacity capacity) {
 		return this.call(identifiers, address, capacity, false);
 	}
 
-	/** 申请调用 Cellet 服务。
-	 * 
-	 * @note Client
+	//! 向指定的 Cellet 发起会话请求。
+	/*!
+	 * \param identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * \param address 指定服务器地址及端口。
+	 * \param capacity 指定能力协商。
+	 * \param http 指定是否使用 HTTP 协议。
+	 * \return 返回是否成功发起请求。
+	 * \note Client
 	 */
 	public synchronized boolean call(List<String> identifiers, InetSocketAddress address, TalkCapacity capacity, boolean http) {
 		if (!http) {
@@ -468,9 +511,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 挂起 Cellet 调用。
-	 * 
-	 * @note Client
+	//! 挂起 Cellet 会话。
+	/*!
+	 * \note Client
 	 */
 	public void suspend(final String identifier, final long duration) {
 		if (null == this.speakerMap || !this.speakerMap.containsKey(identifier))
@@ -482,9 +525,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 恢复 Cellet 调用。
-	 * 
-	 * @note Client
+	//! 恢复 Cellet 会话。
+	/*!
+	 * \note Client
 	 */
 	public void resume(final String identifier, final long startTime) {
 		if (null == this.speakerMap || !this.speakerMap.containsKey(identifier))
@@ -496,9 +539,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	/** 挂断 Cellet 服务。
-	 * 
-	 * @note Client
+	//! 挂断 Cellet 会话服务。
+	/*!
+	 * \param identifier 指定需挂断的 Cellet 标识符。
+	 * \note Client
 	 */
 	public void hangUp(String identifier) {
 		if (null != this.speakerMap && this.speakerMap.containsKey(identifier)) {
@@ -513,7 +557,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		if (null != this.httpSpeakerMap && this.httpSpeakerMap.containsKey(identifier)) {
-			// TODO
+			// TODO HTTP 协议 Speaker
 //			HttpSpeaker speaker = this.httpSpeakerMap.get(identifier);
 //			speaker.hangUp();
 //

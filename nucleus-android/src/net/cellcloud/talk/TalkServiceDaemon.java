@@ -30,8 +30,6 @@ import java.util.Iterator;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
-import net.cellcloud.talk.dialect.ActionDialect;
-import net.cellcloud.talk.dialect.ActionDialectFactory;
 import net.cellcloud.talk.dialect.DialectEnumerator;
 
 /** Talk Service 守护线程。
@@ -188,9 +186,7 @@ public final class TalkServiceDaemon extends Thread {
 //			service.httpSpeakers.clear();
 //		}
 
-		ActionDialectFactory factory =
-				(ActionDialectFactory) DialectEnumerator.getInstance().getFactory(ActionDialect.DIALECT_NAME);
-		factory.shutdown();
+		DialectEnumerator.getInstance().shutdownAll();
 
 		Logger.i(this.getClass(), "Talk service daemon quit.");
 		this.running = false;
