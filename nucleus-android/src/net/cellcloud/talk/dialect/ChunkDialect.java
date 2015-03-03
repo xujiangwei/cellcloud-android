@@ -53,6 +53,8 @@ public class ChunkDialect extends Dialect {
 
 	private ChunkListener listener;
 
+	private int readIndex = 0;
+
 	public ChunkDialect() {
 		super(ChunkDialect.DIALECT_NAME);
 	}
@@ -143,6 +145,21 @@ public class ChunkDialect extends Dialect {
 	public int read(int index, byte[] buffer) {
 		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
 		return fact.read(this.getOwnerTag(), this.sign, index, buffer);
+	}
+
+	public int read(byte[] buffer) {
+		if (this.readIndex >= this.chunkNum) {
+			return -1;
+		}
+
+		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
+		int length = fact.read(this.getOwnerTag(), this.sign, this.readIndex, buffer);
+		++this.readIndex;
+		return length;
+	}
+
+	public void resetRead() {
+		this.readIndex = 0;
 	}
 
 	public void clearAll() {
