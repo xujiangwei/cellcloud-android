@@ -43,7 +43,7 @@ import net.cellcloud.talk.stuff.SubjectStuff;
 public class ChunkDialect extends Dialect {
 
 	public final static String DIALECT_NAME = "ChunkDialect";
-	public final static int DEFAULT_LENGTH = 6144;
+	public final static int CHUNK_SIZE = 4096;
 
 	protected String sign;
 	protected int chunkIndex;
