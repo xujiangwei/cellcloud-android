@@ -75,6 +75,16 @@ public final class ActionDialectFactory extends DialectFactory {
 		}
 	}
 
+	@Override
+	protected boolean onTalk(String identifier, Dialect dialect) {
+		return true;
+	}
+
+	@Override
+	protected boolean onDialogue(String identifier, Dialect dialect) {
+		return true;
+	}
+
 	/** 执行动作。
 	 */
 	protected void doAction(final ActionDialect dialect, final ActionDelegate delegate) {

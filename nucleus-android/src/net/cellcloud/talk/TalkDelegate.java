@@ -24,9 +24,17 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.talk.dialect;
+package net.cellcloud.talk;
 
-public interface ChunkListener {
+import net.cellcloud.talk.dialect.Dialect;
 
-	public void onProgress(String sign, long totalLength, int chunkIndex, int chunkNum, int chunkLength);
+public interface TalkDelegate {
+
+	public boolean doTalk(String identifier, Dialect dialect);
+
+	public void didTalk(String identifier, Dialect dialect);
+
+	public boolean doDialogue(String identifier, Dialect dialect);
+
+	public void didDialogue(String identifier, Dialect dialect);
 }

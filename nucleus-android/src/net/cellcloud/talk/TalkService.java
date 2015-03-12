@@ -107,6 +107,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 	private TalkServiceDaemon daemon;
 	private ArrayList<TalkListener> listeners;
 
+	private TalkDelegate delegate;
+
 	//! 构造函数。
 	/*!
 	 * \throws SingletonException 
@@ -127,6 +129,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 			// 添加默认方言工厂
 			DialectEnumerator.getInstance().addFactory(new ActionDialectFactory());
 			DialectEnumerator.getInstance().addFactory(new ChunkDialectFactory());
+
+			this.delegate = DialectEnumerator.getInstance();
 		}
 		else {
 			throw new SingletonException(TalkService.class.getName());
@@ -577,7 +581,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null != this.speakerMap) {
 			Speaker speaker = this.speakerMap.get(identifier);
 			if (null != speaker) {
-				// Speak
+				// Speaker
 				return speaker.speak(identifier, primitive);
 			}
 		}
@@ -602,9 +606,25 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null == this.speakerMap && null == this.httpSpeakerMap)
 			return false;
 
+		// 通知委派
+		if (null != this.delegate) {
+			boolean ret = this.delegate.doTalk(identifier, dialect);
+			if (!ret) {
+				// 委派劫持，依然返回 true
+				return true;
+			}
+		}
+
 		Primitive primitive = dialect.translate();
 		if (null != primitive) {
-			return this.talk(identifier, primitive);
+			boolean ret = this.talk(identifier, primitive);
+
+			// 发送成功，通知委派
+			if (ret && null != this.delegate) {
+				this.delegate.didTalk(identifier, dialect);
+			}
+
+			return ret;
 		}
 
 		return false;
@@ -648,19 +668,34 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return false;
 	}
 
+	public ExecutorService getExecutorService() {
+		return this.executor;
+	}
+
 	/**
 	 * 通知 Dialogue 。
 	 */
 	@Override
 	public void onDialogue(Speakable speaker, String identifier, Primitive primitive) {
-		if (null == this.listeners) {
-			return;
+		boolean delegated = (null != this.delegate && primitive.isDialectal());
+		if (delegated) {
+			boolean ret = this.delegate.doDialogue(identifier, primitive.getDialect());
+			if (!ret) {
+				// 劫持对话
+				return;
+			}
 		}
 
-		synchronized (this.listeners) {
-			for (TalkListener listener : this.listeners) {
-				listener.dialogue(identifier, primitive);
+		if (null != this.listeners) {
+			synchronized (this.listeners) {
+				for (TalkListener listener : this.listeners) {
+					listener.dialogue(identifier, primitive);
+				}
 			}
+		}
+
+		if (delegated) {
+			this.delegate.didDialogue(identifier, primitive.getDialect());
 		}
 	}
 

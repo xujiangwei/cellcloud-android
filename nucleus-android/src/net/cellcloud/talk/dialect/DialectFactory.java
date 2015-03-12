@@ -26,21 +26,31 @@ THE SOFTWARE.
 
 package net.cellcloud.talk.dialect;
 
-/** 方言工厂。
+/*! 方言工厂。
  * 
- * @author Jiangwei Xu
+ * \author Jiangwei Xu
  */
 public abstract class DialectFactory {
 
-	/** 返回元数据。
+	/*! 返回元数据。
 	 */
 	abstract public DialectMetaData getMetaData();
 
-	/** 创建方言。
+	/*! 创建方言。
 	 */
 	abstract public Dialect create(final String tracker);
 
-	/** 关闭。
+	/*! 关闭。
 	 */
 	abstract public void shutdown();
+
+	/*! 发送回调。
+	 * \return
+	 */
+	abstract protected boolean onTalk(String identifier, Dialect dialect);
+
+	/*! 接收回调。
+	 * \return
+	 */
+	abstract protected boolean onDialogue(String identifier, Dialect dialect);
 }

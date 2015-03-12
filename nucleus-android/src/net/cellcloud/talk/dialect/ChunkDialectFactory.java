@@ -27,9 +27,12 @@ THE SOFTWARE.
 package net.cellcloud.talk.dialect;
 
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.cellcloud.common.Logger;
+import net.cellcloud.talk.TalkService;
 
 /** 块数据传输方言工厂。
  * 
@@ -42,6 +45,8 @@ public class ChunkDialectFactory extends DialectFactory {
 
 	private ConcurrentHashMap<String, Cache> cacheMap;
 
+	private ConcurrentHashMap<String, Queue> queueMap;
+
 	private long cacheMemorySize = 0;
 	private final long clearThreshold = 5 * 1024 * 1024;
 	private Object mutex = new Object();
@@ -50,6 +55,7 @@ public class ChunkDialectFactory extends DialectFactory {
 	public ChunkDialectFactory() {
 		this.metaData = new DialectMetaData(ChunkDialect.DIALECT_NAME, "Chunk Dialect");
 		this.cacheMap = new ConcurrentHashMap<String, Cache>();
+		this.queueMap = new ConcurrentHashMap<String, Queue>();
 	}
 
 	@Override
@@ -66,6 +72,64 @@ public class ChunkDialectFactory extends DialectFactory {
 	public void shutdown() {
 		this.cacheMap.clear();
 		this.cacheMemorySize = 0;
+	}
+
+	@Override
+	protected synchronized boolean onTalk(String identifier, Dialect dialect) {
+		ChunkDialect chunk = (ChunkDialect) dialect;
+		if (chunk.getChunkIndex() == 0 || chunk.infectant) {
+			// 直接发送
+			return true;
+		}
+		else {
+			Queue queue = this.queueMap.get(chunk.getSign());
+			if (null != queue) {
+				// 写入队列
+				queue.push(chunk);
+				// 劫持，由队列发送
+				return false;
+			}
+			else {
+				queue = new Queue(identifier, chunk.getChunkNum());
+				queue.push(chunk);
+				this.queueMap.put(chunk.getSign(), queue);
+				// 劫持，由队列发送
+				return false;
+			}
+		}
+	}
+
+	@Override
+	protected synchronized boolean onDialogue(String identifier, Dialect dialect) {
+		ChunkDialect chunk = (ChunkDialect) dialect;
+
+		if (chunk.ack) {
+			// 收到 ACK ，发送下一个
+			String sign = chunk.getSign();
+			final Queue queue = this.queueMap.get(sign);
+			if (null != queue) {
+				// 更新应答索引
+				queue.ackIndex = chunk.getChunkIndex();
+				// 发送下一条数据
+				ChunkDialect response = queue.pop();
+				if (null != response) {
+					TalkService.getInstance().talk(queue.identifier, response);
+				}
+
+				// 检查
+				if (queue.ackIndex == chunk.getChunkNum() - 1) {
+					this.checkAndClearQueue();
+				}
+			}
+
+			// 应答包，劫持
+			return false;
+		}
+		else {
+			// TODO
+		}
+
+		return true;
 	}
 
 	protected void write(ChunkDialect chunk) {
@@ -141,6 +205,32 @@ public class ChunkDialectFactory extends DialectFactory {
 				this.cacheMap.remove(tag);
 			}
 		}
+	}
+
+	private void checkAndClearQueue() {
+		LinkedList<String> deleteList = new LinkedList<String>();
+
+		for (Map.Entry<String, Queue> entry : this.queueMap.entrySet()) {
+			Queue queue = entry.getValue();
+			if (queue.ackIndex >= 0 && queue.chunkNum - 1 == queue.ackIndex) {
+				// 删除
+				deleteList.add(entry.getKey());
+			}
+		}
+
+		if (!deleteList.isEmpty()) {
+			for (String sign : deleteList) {
+				this.queueMap.remove(sign);
+
+				if (Logger.isDebugLevel()) {
+					Logger.i(this.getClass(), "Clear chunk factory queue: " + sign);
+				}
+			}
+
+			deleteList.clear();
+		}
+
+		deleteList = null;
 	}
 
 	/**
@@ -243,6 +333,46 @@ public class ChunkDialectFactory extends DialectFactory {
 				sign = this.signQueue.getFirst();
 			}
 			return this.clear(sign);
+		}
+	}
+
+	private class Queue {
+		private String identifier;
+		private long timestamp;
+		private Vector<ChunkDialect> queue;
+
+		protected int ackIndex = -1;
+
+		protected int chunkNum = 0;
+
+		private Queue(String identifier, int chunkNum) {
+			this.identifier = identifier;
+			this.chunkNum = chunkNum;
+			this.timestamp = System.currentTimeMillis();
+			this.queue = new Vector<ChunkDialect>();
+		}
+
+		protected void push(ChunkDialect chunk) {
+			// 标识为已污染
+			chunk.infectant = true;
+
+			synchronized (this) {
+				this.queue.add(chunk);
+			}
+		}
+
+		protected ChunkDialect pop() {
+			synchronized (this) {
+				if (this.queue.isEmpty()) {
+					return null;
+				}
+
+				ChunkDialect first = this.queue.get(0);
+				if (null != first) {
+					this.queue.remove(0);
+				}
+				return first;
+			}
 		}
 	}
 

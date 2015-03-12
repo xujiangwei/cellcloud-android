@@ -33,23 +33,30 @@ import net.cellcloud.common.Base64;
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.stuff.PredicateStuff;
 import net.cellcloud.talk.stuff.SubjectStuff;
 
-/** 块数据方言。
+/*! 块数据方言。
  * 
- * @author Jiangwei Xu
- *
+ * \author Jiangwei Xu
  */
 public class ChunkDialect extends Dialect {
 
 	public final static String DIALECT_NAME = "ChunkDialect";
 	public final static int CHUNK_SIZE = 4096;
 
+	protected boolean ack = false;
+
 	protected String sign;
 	protected int chunkIndex;
 	protected int chunkNum;
 	protected byte[] data;
 	protected int length;
+	protected long totalLength;
+
+	// 用于标识该区块是否能写入缓存队列
+	// 如果为 true ，表示已经“污染”，不能进入队列，必须直接发送
+	protected boolean infectant = false;
 
 	private ChunkListener listener;
 
@@ -63,14 +70,22 @@ public class ChunkDialect extends Dialect {
 		super(ChunkDialect.DIALECT_NAME, tracker);
 	}
 
-	public ChunkDialect(String sign, int chunkIndex, int chunkNum, byte[] data, int length) {
+	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
 		super(ChunkDialect.DIALECT_NAME);
 		this.sign = sign;
+		this.totalLength = totalLength;
 		this.chunkIndex = chunkIndex;
 		this.chunkNum = chunkNum;
 		this.data = new byte[length];
 		System.arraycopy(data, 0, this.data, 0, length);
 		this.length = length;
+	}
+
+	protected void setAck(String sign, int chunkIndex, int chunkNum) {
+		this.sign = sign;
+		this.chunkIndex = chunkIndex;
+		this.chunkNum = chunkNum;
+		this.ack = true;
 	}
 
 	public void copyData(int chunkIndex, int chunkNum, byte[] data, int length) {
@@ -83,6 +98,10 @@ public class ChunkDialect extends Dialect {
 
 	public String getSign() {
 		return this.sign;
+	}
+
+	public long getTotalLength() {
+		return this.totalLength;
 	}
 
 	public int getChunkIndex() {
@@ -104,15 +123,25 @@ public class ChunkDialect extends Dialect {
 	@Override
 	public Primitive translate() {
 		Primitive primitive = new Primitive(this);
-		primitive.commit(new SubjectStuff(this.sign));
-		primitive.commit(new SubjectStuff(this.chunkIndex));
-		primitive.commit(new SubjectStuff(this.chunkNum));
-		primitive.commit(new SubjectStuff(Base64.encodeBytes(this.data)));
-		primitive.commit(new SubjectStuff(this.length));
+		primitive.commit(new PredicateStuff(this.ack));
 
-		if (null != this.listener) {
-			this.listener.onProgress(this.sign, this.chunkIndex, this.chunkNum, this.length);
-			this.listener = null;
+		if (this.ack) {
+			primitive.commit(new SubjectStuff(this.sign));
+			primitive.commit(new SubjectStuff(this.chunkIndex));
+			primitive.commit(new SubjectStuff(this.chunkNum));
+		}
+		else {
+			primitive.commit(new SubjectStuff(this.sign));
+			primitive.commit(new SubjectStuff(this.chunkIndex));
+			primitive.commit(new SubjectStuff(this.chunkNum));
+			primitive.commit(new SubjectStuff(Base64.encodeBytes(this.data)));
+			primitive.commit(new SubjectStuff(this.length));
+			primitive.commit(new SubjectStuff(this.totalLength));
+
+			if (null != this.listener) {
+				this.listener.onProgress(this.sign, this.totalLength, this.chunkIndex, this.chunkNum, this.length);
+				this.listener = null;
+			}
 		}
 
 		return primitive;
@@ -120,20 +149,31 @@ public class ChunkDialect extends Dialect {
 
 	@Override
 	public void build(Primitive primitive) {
-		List<SubjectStuff> list = primitive.subjects();
-		this.sign = list.get(0).getValueAsString();
-		this.chunkIndex = list.get(1).getValueAsInt();
-		this.chunkNum = list.get(2).getValueAsInt();
-		try {
-			this.data = Base64.decode(list.get(3).getValueAsString());
-		} catch (IOException e) {
-			Logger.log(ChunkDialect.class, e, LogLevel.ERROR);
-		}
-		this.length = list.get(4).getValueAsInt();
+		this.ack = primitive.predicates().get(0).getValueAsBool();
 
-		if (null != this.data) {
-			ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
-			fact.write(this);
+		if (this.ack) {
+			List<SubjectStuff> list = primitive.subjects();
+			this.sign = list.get(0).getValueAsString();
+			this.chunkIndex = list.get(1).getValueAsInt();
+			this.chunkNum = list.get(2).getValueAsInt();
+		}
+		else {
+			List<SubjectStuff> list = primitive.subjects();
+			this.sign = list.get(0).getValueAsString();
+			this.chunkIndex = list.get(1).getValueAsInt();
+			this.chunkNum = list.get(2).getValueAsInt();
+			try {
+				this.data = Base64.decode(list.get(3).getValueAsString());
+			} catch (IOException e) {
+				Logger.log(ChunkDialect.class, e, LogLevel.ERROR);
+			}
+			this.length = list.get(4).getValueAsInt();
+			this.totalLength = list.get(5).getValueAsLong();
+
+			if (null != this.data) {
+				ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
+				fact.write(this);
+			}
 		}
 	}
 
