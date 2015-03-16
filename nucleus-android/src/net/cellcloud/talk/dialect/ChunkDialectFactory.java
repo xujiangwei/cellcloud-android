@@ -74,24 +74,46 @@ public class ChunkDialectFactory extends DialectFactory {
 		this.cacheMemorySize = 0;
 	}
 
+	public int snapshootQueueSize(String sign) {
+		Queue queue = this.queueMap.get(sign);
+		if (null != queue) {
+			return queue.size();
+		}
+
+		return 0;
+	}
+
+	public long snapshootQueueRemainingChunkLength(String sign) {
+		Queue queue = this.queueMap.get(sign);
+		if (null != queue) {
+			return queue.remainingChunkLength();
+		}
+
+		return 0;
+	}
+
 	@Override
 	protected synchronized boolean onTalk(String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
-		if (chunk.getChunkIndex() == 0 || chunk.infectant) {
+		if (chunk.getChunkIndex() == 0 || chunk.infectant || chunk.ack) {
 			// 直接发送
+
+			// 回调已处理
+			chunk.fireProgress(identifier);
+
 			return true;
 		}
 		else {
 			Queue queue = this.queueMap.get(chunk.getSign());
 			if (null != queue) {
 				// 写入队列
-				queue.push(chunk);
+				queue.enqueue(chunk);
 				// 劫持，由队列发送
 				return false;
 			}
 			else {
 				queue = new Queue(identifier, chunk.getChunkNum());
-				queue.push(chunk);
+				queue.enqueue(chunk);
 				this.queueMap.put(chunk.getSign(), queue);
 				// 劫持，由队列发送
 				return false;
@@ -106,14 +128,14 @@ public class ChunkDialectFactory extends DialectFactory {
 		if (chunk.ack) {
 			// 收到 ACK ，发送下一个
 			String sign = chunk.getSign();
-			final Queue queue = this.queueMap.get(sign);
+			Queue queue = this.queueMap.get(sign);
 			if (null != queue) {
 				// 更新应答索引
 				queue.ackIndex = chunk.getChunkIndex();
 				// 发送下一条数据
-				ChunkDialect response = queue.pop();
+				ChunkDialect response = queue.dequeue();
 				if (null != response) {
-					TalkService.getInstance().talk(queue.identifier, response);
+					TalkService.getInstance().talk(queue.target, response);
 				}
 
 				// 检查
@@ -126,21 +148,29 @@ public class ChunkDialectFactory extends DialectFactory {
 			return false;
 		}
 		else {
-			// TODO
-		}
+			// 回送确认
+			String sign = chunk.getSign();
 
-		return true;
+			ChunkDialect ack = new ChunkDialect();
+			ack.setAck(sign, chunk.getChunkIndex(), chunk.getChunkNum());
+
+			// 回送 ACK
+			TalkService.getInstance().talk(identifier, ack);
+
+			// 不劫持
+			return true;
+		}
 	}
 
 	protected void write(ChunkDialect chunk) {
 		String tag = chunk.getOwnerTag();
 		if (this.cacheMap.containsKey(tag)) {
 			Cache cache = this.cacheMap.get(tag);
-			cache.push(chunk);
+			cache.offer(chunk);
 		}
 		else {
 			Cache cache = new Cache(tag);
-			cache.push(chunk);
+			cache.offer(chunk);
 			this.cacheMap.put(tag, cache);
 		}
 
@@ -238,21 +268,21 @@ public class ChunkDialectFactory extends DialectFactory {
 	 */
 	private class Cache {
 		protected String tag;
-		private ConcurrentHashMap<String, LinkedList<ChunkDialect>> data;
-		private LinkedList<String> signQueue;
-		private LinkedList<Long> signTimeQueue;
+		private ConcurrentHashMap<String, Vector<ChunkDialect>> data;
+		private Vector<String> signQueue;
+		private Vector<Long> signTimeQueue;
 		protected long dataSize;
 
 		private Cache(String tag) {
 			this.tag = tag;
-			this.data = new ConcurrentHashMap<String, LinkedList<ChunkDialect>>();
-			this.signQueue = new LinkedList<String>();
-			this.signTimeQueue = new LinkedList<Long>();
+			this.data = new ConcurrentHashMap<String, Vector<ChunkDialect>>();
+			this.signQueue = new Vector<String>();
+			this.signTimeQueue = new Vector<Long>();
 			this.dataSize = 0;
 		}
 
-		public void push(ChunkDialect dialect) {
-			LinkedList<ChunkDialect> list = this.data.get(dialect.sign);
+		public void offer(ChunkDialect dialect) {
+			Vector<ChunkDialect> list = this.data.get(dialect.sign);
 			if (null != list) {
 				synchronized (list) {
 					list.add(dialect);
@@ -261,7 +291,7 @@ public class ChunkDialectFactory extends DialectFactory {
 				}
 			}
 			else {
-				list = new LinkedList<ChunkDialect>();
+				list = new Vector<ChunkDialect>();
 				list.add(dialect);
 				// 更新数据大小
 				this.dataSize += dialect.length;
@@ -276,14 +306,14 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 
 		public ChunkDialect get(String sign, int index) {
-			LinkedList<ChunkDialect> list = this.data.get(sign);
+			Vector<ChunkDialect> list = this.data.get(sign);
 			synchronized (list) {
 				return list.get(index);
 			}
 		}
 
 		public boolean checkCompleted(String sign) {
-			LinkedList<ChunkDialect> list = this.data.get(sign);
+			Vector<ChunkDialect> list = this.data.get(sign);
 			if (null != list) {
 				ChunkDialect cd = list.get(0);
 				if (cd.chunkNum == list.size()) {
@@ -296,7 +326,7 @@ public class ChunkDialectFactory extends DialectFactory {
 
 		public long clear(String sign) {
 			long size = 0;
-			LinkedList<ChunkDialect> list = this.data.remove(sign);
+			Vector<ChunkDialect> list = this.data.remove(sign);
 			if (null != list) {
 				synchronized (list) {
 					for (ChunkDialect chunk : list) {
@@ -323,36 +353,36 @@ public class ChunkDialectFactory extends DialectFactory {
 
 		public long getFirstTime() {
 			synchronized (this.signQueue) {
-				return this.signTimeQueue.getFirst().longValue();
+				return this.signTimeQueue.get(0).longValue();
 			}
 		}
 
 		public long clearFirst() {
 			String sign = null;
 			synchronized (this.signQueue) {
-				sign = this.signQueue.getFirst();
+				sign = this.signQueue.get(0);
 			}
 			return this.clear(sign);
 		}
 	}
 
 	private class Queue {
-		private String identifier;
-		private long timestamp;
+		private String target;
+//		private long timestamp;
 		private Vector<ChunkDialect> queue;
 
 		protected int ackIndex = -1;
 
 		protected int chunkNum = 0;
 
-		private Queue(String identifier, int chunkNum) {
-			this.identifier = identifier;
+		private Queue(String target, int chunkNum) {
+			this.target = target;
 			this.chunkNum = chunkNum;
-			this.timestamp = System.currentTimeMillis();
+//			this.timestamp = System.currentTimeMillis();
 			this.queue = new Vector<ChunkDialect>();
 		}
 
-		protected void push(ChunkDialect chunk) {
+		protected void enqueue(ChunkDialect chunk) {
 			// 标识为已污染
 			chunk.infectant = true;
 
@@ -361,7 +391,7 @@ public class ChunkDialectFactory extends DialectFactory {
 			}
 		}
 
-		protected ChunkDialect pop() {
+		protected ChunkDialect dequeue() {
 			synchronized (this) {
 				if (this.queue.isEmpty()) {
 					return null;
@@ -372,6 +402,26 @@ public class ChunkDialectFactory extends DialectFactory {
 					this.queue.remove(0);
 				}
 				return first;
+			}
+		}
+
+		protected int size() {
+			synchronized (this) {
+				return this.queue.size();
+			}
+		}
+
+		protected long remainingChunkLength() {
+			if (this.queue.isEmpty()) {
+				return 0;
+			}
+
+			synchronized (this) {
+				long remaining = 0;
+				for (ChunkDialect chunk : this.queue) {
+					remaining += chunk.getLength();
+				}
+				return remaining;
 			}
 		}
 	}

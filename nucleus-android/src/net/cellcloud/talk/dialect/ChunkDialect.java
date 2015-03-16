@@ -70,6 +70,17 @@ public class ChunkDialect extends Dialect {
 		super(ChunkDialect.DIALECT_NAME, tracker);
 	}
 
+	public ChunkDialect(String tracker, String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
+		super(ChunkDialect.DIALECT_NAME, tracker);
+		this.sign = sign;
+		this.totalLength = totalLength;
+		this.chunkIndex = chunkIndex;
+		this.chunkNum = chunkNum;
+		this.data = new byte[length];
+		System.arraycopy(data, 0, this.data, 0, length);
+		this.length = length;
+	}
+
 	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
 		super(ChunkDialect.DIALECT_NAME);
 		this.sign = sign;
@@ -86,14 +97,6 @@ public class ChunkDialect extends Dialect {
 		this.chunkIndex = chunkIndex;
 		this.chunkNum = chunkNum;
 		this.ack = true;
-	}
-
-	public void copyData(int chunkIndex, int chunkNum, byte[] data, int length) {
-		this.chunkIndex = chunkIndex;
-		this.chunkNum = chunkNum;
-		this.data = new byte[length];
-		System.arraycopy(data, 0, this.data, 0, length);
-		this.length = length;
 	}
 
 	public String getSign() {
@@ -120,6 +123,13 @@ public class ChunkDialect extends Dialect {
 		this.listener = listener;
 	}
 
+	protected void fireProgress(String target) {
+		if (null != this.listener) {
+			this.listener.onProgress(target, this);
+			this.listener = null;
+		}
+	}
+
 	@Override
 	public Primitive translate() {
 		Primitive primitive = new Primitive(this);
@@ -137,11 +147,6 @@ public class ChunkDialect extends Dialect {
 			primitive.commit(new SubjectStuff(Base64.encodeBytes(this.data)));
 			primitive.commit(new SubjectStuff(this.length));
 			primitive.commit(new SubjectStuff(this.totalLength));
-
-			if (null != this.listener) {
-				this.listener.onProgress(this.sign, this.totalLength, this.chunkIndex, this.chunkNum, this.length);
-				this.listener = null;
-			}
 		}
 
 		return primitive;
