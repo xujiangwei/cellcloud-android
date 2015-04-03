@@ -41,15 +41,38 @@ public final class TalkServiceDaemon extends Thread {
 	private boolean spinning = false;
 	protected boolean running = false;
 	private long tickTime = 0;
+	private long interval = 0;
+	private int speakerHeartbeatMod = 0;
 
 	public TalkServiceDaemon() {
 		super("TalkServiceDaemon");
+		this.resetSleepInterval(2000);
 	}
 
 	/** 返回周期时间点。
 	 */
 	protected long getTickTime() {
 		return this.tickTime;
+	}
+
+	protected void resetSleepInterval(long interval) {
+		if (interval < 1000) {
+			return;
+		}
+
+		if (this.interval == interval) {
+			return;
+		}
+
+		this.interval = interval;
+
+		// 换算为 1 秒
+		int n = (int)interval / 1000;
+		if (n <= 0) {
+			n = 1;
+		}
+		// 计算模数
+		this.speakerHeartbeatMod = 120 / n;
 	}
 
 	@Override
@@ -67,12 +90,12 @@ public final class TalkServiceDaemon extends Thread {
 
 			// 心跳计数
 			++heartbeatCount;
-			if (heartbeatCount >= 6000) {
+			if (heartbeatCount > 100) {
 				heartbeatCount = 0;
 			}
 
 			// HTTP 客户端管理
-			if (heartbeatCount % 5 == 0) {
+//			if (heartbeatCount % 5 == 0) {
 				// 每 5 秒一次计数
 				// TODO
 //				if (null != service.httpSpeakers) {
@@ -80,15 +103,15 @@ public final class TalkServiceDaemon extends Thread {
 //						speaker.tick();
 //					}
 //				}
-			}
+//			}
 
 			// HTTP 服务器 Session 管理
 //			if (heartbeatCount % 60 == 0) {
 //				service.checkHttpSessionHeartbeat();
 //			}
 
-			if (heartbeatCount % 120 == 0) {
-				// 120 秒一次心跳
+			if (heartbeatCount % this.speakerHeartbeatMod == 0) {
+				// 2分钟一次心跳
 				if (null != service.speakers) {
 					for (Speaker speaker : service.speakers) {
 						speaker.heartbeat();
@@ -145,23 +168,15 @@ public final class TalkServiceDaemon extends Thread {
 			// 处理未识别 Session
 			service.processUnidentifiedSessions(this.tickTime);
 
-			// 1 分钟检查一次挂起状态下的会话器是否失效
-			if (heartbeatCount % 60 == 0) {
+			// 10 分钟检查一次挂起状态下的会话器是否失效
+//			if (heartbeatCount % 60 == 0) {
 				// 检查并删除挂起的会话
-				service.checkAndDeleteSuspendedTalk();
-			}
+//				service.checkAndDeleteSuspendedTalk();
+//			}
 
-			// 休眠 1 秒
+			// 休眠
 			try {
-				long dt = System.currentTimeMillis() - this.tickTime;
-				if (dt <= 1000) {
-					dt = 1000 - dt;
-				}
-				else {
-					dt = dt % 1000;
-				}
-
-				Thread.sleep(dt);
+				Thread.sleep(this.interval);
 			} catch (InterruptedException e) {
 				Logger.log(TalkServiceDaemon.class, e, LogLevel.ERROR);
 			}
@@ -177,14 +192,6 @@ public final class TalkServiceDaemon extends Thread {
 			}
 			service.speakers.clear();
 		}
-//		if (null != service.httpSpeakers) {
-//			Iterator<HttpSpeaker> iter = service.httpSpeakers.iterator();
-//			while (iter.hasNext()) {
-//				HttpSpeaker speaker = iter.next();
-//				speaker.hangUp();
-//			}
-//			service.httpSpeakers.clear();
-//		}
 
 		DialectEnumerator.getInstance().shutdownAll();
 

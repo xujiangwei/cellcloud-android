@@ -79,8 +79,12 @@ public final class LogManager {
 	 */
 	public void log(byte level, String tag, String log) {
 		synchronized (this) {
-			if (this.handles.isEmpty() || this.level > level) {
+			if (this.handles.isEmpty()) {
 				System.err.println("No log handler in logger manager.");
+				return;
+			}
+
+			if (this.level > level) {
 				return;
 			}
 
@@ -109,6 +113,16 @@ public final class LogManager {
 	 */
 	public void addHandle(LogHandle handle) {
 		synchronized (this) {
+			if (this.handles.contains(handle)) {
+				return;
+			}
+
+			for (LogHandle h : this.handles) {
+				if (handle.getName().equals(h.getName())) {
+					return;
+				}
+			}
+
 			this.handles.add(handle);
 		}
 	}
@@ -131,8 +145,15 @@ public final class LogManager {
 
 	/** 创建 Android 日志。
 	 */
-	public LogHandle createAndroidHandle() {
+	public static LogHandle createAndroidHandle() {
 		return new LogHandle() {
+
+			private String name = "CellAndroidLog";
+
+			@Override
+			public String getName() {
+				return this.name;
+			}
 
 			@Override
 			public void logDebug(String tag, String log) {

@@ -124,7 +124,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.block = 8192;
 
 			// 创建执行器
-			this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
+			this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
 
 			// 添加默认方言工厂
 			DialectEnumerator.getInstance().addFactory(new ActionDialectFactory());
@@ -277,6 +277,24 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 
 			this.daemon = null;
+		}
+	}
+
+	//! 进入睡眠模式。
+	/*!
+	 */
+	public void sleep() {
+		if (null != this.daemon) {
+			this.daemon.resetSleepInterval(30000);
+		}
+	}
+
+	//! 从睡眠模式唤醒。
+	/*!
+	 */
+	public void wakeup() {
+		if (null != this.daemon) {
+			this.daemon.resetSleepInterval(1000);
 		}
 	}
 

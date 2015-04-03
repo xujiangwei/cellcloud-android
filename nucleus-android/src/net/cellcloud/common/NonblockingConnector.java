@@ -95,11 +95,9 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		System.setProperty("java.net.preferIPv6Addresses", "false");
 
 		// 判断是否有网络连接
-		if (!Utils.isWifiConnected(this.androidContext)) {
-			if (!Utils.isMobileConnected(this.androidContext)) {
-				this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
-				return false;
-			}
+		if (!Utils.isNetworkConnected(this.androidContext)) {
+			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
+			return false;
 		}
 
 		if (this.running && null != this.channel) {

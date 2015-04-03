@@ -32,6 +32,12 @@ package net.cellcloud.common;
  */
 public interface LogHandle {
 
+	/**
+	 * 返回日志句柄名。
+	 * @return
+	 */
+	public String getName();
+
 	/** 记录 DEBUG 记录。
 	 */
 	public void logDebug(String tag, String log);
