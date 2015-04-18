@@ -44,7 +44,6 @@ public class ChunkDialectFactory extends DialectFactory {
 	private DialectMetaData metaData;
 
 	private ConcurrentHashMap<String, Cache> cacheMap;
-
 	private ConcurrentHashMap<String, Queue> queueMap;
 
 	private long cacheMemorySize = 0;
@@ -93,76 +92,81 @@ public class ChunkDialectFactory extends DialectFactory {
 	}
 
 	@Override
-	protected synchronized boolean onTalk(String identifier, Dialect dialect) {
+	protected boolean onTalk(String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
-		if (chunk.getChunkIndex() == 0 || chunk.infectant || chunk.ack) {
-			// 直接发送
 
-			// 回调已处理
-			chunk.fireProgress(identifier);
+		synchronized (this.metaData) {
+			if (chunk.getChunkIndex() == 0 || chunk.infectant || chunk.ack) {
+				// 直接发送
 
-			return true;
-		}
-		else {
-			Queue queue = this.queueMap.get(chunk.getSign());
-			if (null != queue) {
-				// 写入队列
-				queue.enqueue(chunk);
-				// 劫持，由队列发送
-				return false;
+				// 回调已处理
+				chunk.fireProgress(identifier);
+
+				return true;
 			}
 			else {
-				queue = new Queue(identifier, chunk.getChunkNum());
-				queue.enqueue(chunk);
-				this.queueMap.put(chunk.getSign(), queue);
-				// 劫持，由队列发送
-				return false;
+				Queue queue = this.queueMap.get(chunk.getSign());
+				if (null != queue) {
+					// 写入队列
+					queue.enqueue(chunk);
+					// 劫持，由队列发送
+					return false;
+				}
+				else {
+					queue = new Queue(identifier, chunk.getChunkNum());
+					queue.enqueue(chunk);
+					this.queueMap.put(chunk.getSign(), queue);
+					// 劫持，由队列发送
+					return false;
+				}
 			}
 		}
 	}
 
 	@Override
-	protected synchronized boolean onDialogue(String identifier, Dialect dialect) {
+	protected boolean onDialogue(String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
 
-		if (chunk.ack) {
-			// 收到 ACK ，发送下一个
-			String sign = chunk.getSign();
-			Queue queue = this.queueMap.get(sign);
-			if (null != queue) {
-				// 更新应答索引
-				queue.ackIndex = chunk.getChunkIndex();
-				// 发送下一条数据
-				ChunkDialect response = queue.dequeue();
-				if (null != response) {
-					TalkService.getInstance().talk(queue.target, response);
+		synchronized (this.metaData) {
+			if (chunk.ack) {
+				// 收到 ACK ，发送下一个
+				String sign = chunk.getSign();
+				Queue queue = this.queueMap.get(sign);
+				if (null != queue) {
+					// 更新应答索引
+					queue.ackIndex = chunk.getChunkIndex();
+					// 发送下一条数据
+					ChunkDialect response = queue.dequeue();
+					if (null != response) {
+						TalkService.getInstance().talk(queue.target, response);
+					}
+
+					// 检查
+					if (queue.ackIndex == chunk.getChunkNum() - 1) {
+						this.checkAndClearQueue();
+					}
 				}
 
-				// 检查
-				if (queue.ackIndex == chunk.getChunkNum() - 1) {
-					this.checkAndClearQueue();
-				}
+				// 应答包，劫持
+				return false;
 			}
+			else {
+				// 回送确认
+				String sign = chunk.getSign();
 
-			// 应答包，劫持
-			return false;
-		}
-		else {
-			// 回送确认
-			String sign = chunk.getSign();
+				ChunkDialect ack = new ChunkDialect();
+				ack.setAck(sign, chunk.getChunkIndex(), chunk.getChunkNum());
 
-			ChunkDialect ack = new ChunkDialect();
-			ack.setAck(sign, chunk.getChunkIndex(), chunk.getChunkNum());
+				// 回送 ACK
+				TalkService.getInstance().talk(identifier, ack);
 
-			// 回送 ACK
-			TalkService.getInstance().talk(identifier, ack);
-
-			// 不劫持
-			return true;
+				// 不劫持
+				return true;
+			}
 		}
 	}
 
-	protected void write(ChunkDialect chunk) {
+	protected synchronized void write(ChunkDialect chunk) {
 		String tag = chunk.getOwnerTag();
 		if (this.cacheMap.containsKey(tag)) {
 			Cache cache = this.cacheMap.get(tag);
@@ -194,7 +198,7 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 	}
 
-	protected int read(String tag, String sign, int index, byte[] out) {
+	protected synchronized int read(String tag, String sign, int index, byte[] out) {
 		if (index < 0) {
 			return -1;
 		}

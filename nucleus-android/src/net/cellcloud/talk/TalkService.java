@@ -563,22 +563,27 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 	//! 挂断 Cellet 会话服务。
 	/*!
-	 * \param identifier 指定需挂断的 Cellet 标识符。
+	 * \param identifiers 指定需挂断的 Cellet 标识符。
 	 * \note Client
 	 */
-	public void hangUp(String identifier) {
-		if (null != this.speakerMap && this.speakerMap.containsKey(identifier)) {
-			Speaker speaker = this.speakerMap.get(identifier);
-			speaker.hangUp();
+	public void hangUp(List<String> identifiers) {
+		if (null != this.speakerMap) {
+			for (String identifier : identifiers) {
+				if (this.speakerMap.containsKey(identifier)) {
+					Speaker speaker = this.speakerMap.get(identifier);
 
-			for (String celletIdentifier : speaker.getIdentifiers()) {
-				this.speakerMap.remove(celletIdentifier);
+					for (String celletIdentifier : speaker.getIdentifiers()) {
+						this.speakerMap.remove(celletIdentifier);
+					}
+
+					this.speakers.remove(speaker);
+
+					speaker.hangUp();
+				}
 			}
-
-			this.speakers.remove(speaker);
 		}
 
-		if (null != this.httpSpeakerMap && this.httpSpeakerMap.containsKey(identifier)) {
+//		if (null != this.httpSpeakerMap && this.httpSpeakerMap.containsKey(identifier)) {
 			// TODO HTTP 协议 Speaker
 //			HttpSpeaker speaker = this.httpSpeakerMap.get(identifier);
 //			speaker.hangUp();
@@ -588,7 +593,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 //			}
 //
 //			this.httpSpeakers.remove(speaker);
-		}
+//		}
 	}
 
 	/** 向指定 Cellet 发送原语。
