@@ -113,7 +113,7 @@ public class ChunkDialectFactory extends DialectFactory {
 					return false;
 				}
 				else {
-					queue = new Queue(identifier, chunk.getChunkNum());
+					queue = new Queue(identifier.toString(), chunk.getChunkNum());
 					queue.enqueue(chunk);
 					this.queueMap.put(chunk.getSign(), queue);
 					// 劫持，由队列发送
@@ -145,6 +145,9 @@ public class ChunkDialectFactory extends DialectFactory {
 					if (queue.ackIndex == chunk.getChunkNum() - 1) {
 						this.checkAndClearQueue();
 					}
+				}
+				else {
+					Logger.w(this.getClass(), "Can NOT find chunk: " + sign);
 				}
 
 				// 应答包，劫持
@@ -372,7 +375,6 @@ public class ChunkDialectFactory extends DialectFactory {
 
 	private class Queue {
 		private String target;
-//		private long timestamp;
 		private Vector<ChunkDialect> queue;
 
 		protected int ackIndex = -1;
@@ -382,7 +384,6 @@ public class ChunkDialectFactory extends DialectFactory {
 		private Queue(String target, int chunkNum) {
 			this.target = target;
 			this.chunkNum = chunkNum;
-//			this.timestamp = System.currentTimeMillis();
 			this.queue = new Vector<ChunkDialect>();
 		}
 
@@ -416,11 +417,11 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 
 		protected long remainingChunkLength() {
-			if (this.queue.isEmpty()) {
-				return 0;
-			}
-
 			synchronized (this) {
+				if (this.queue.isEmpty()) {
+					return 0;
+				}
+
 				long remaining = 0;
 				for (ChunkDialect chunk : this.queue) {
 					remaining += chunk.getLength();
