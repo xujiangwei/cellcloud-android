@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NonblockingAcceptor extends MessageService implements MessageAcceptor {
 
 	// 缓存数据块大小
-	protected int block = 8192;
+	protected int block = 16384;
 
 	private ServerSocketChannel channel;
 	private Selector selector;

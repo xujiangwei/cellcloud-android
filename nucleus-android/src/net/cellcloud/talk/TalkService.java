@@ -691,7 +691,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return false;
 	}
 
-	public ExecutorService getExecutorService() {
+	public ExecutorService getExecutor() {
 		return this.executor;
 	}
 

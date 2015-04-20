@@ -95,77 +95,78 @@ public class ChunkDialectFactory extends DialectFactory {
 	protected boolean onTalk(String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
 
-		synchronized (this.metaData) {
-			if (chunk.getChunkIndex() == 0 || chunk.infectant || chunk.ack) {
-				// 直接发送
+		if (chunk.getChunkIndex() == 0 || chunk.infectant || chunk.ack) {
+			// 直接发送
 
-				// 回调已处理
-				chunk.fireProgress(identifier);
+			// 回调已处理
+			chunk.fireProgress(identifier);
 
-				return true;
+			return true;
+		}
+		else {
+			Queue queue = this.queueMap.get(chunk.getSign());
+			if (null != queue) {
+				// 写入队列
+				queue.enqueue(chunk);
+				// 劫持，由队列发送
+				return false;
 			}
 			else {
-				Queue queue = this.queueMap.get(chunk.getSign());
-				if (null != queue) {
-					// 写入队列
-					queue.enqueue(chunk);
-					// 劫持，由队列发送
-					return false;
-				}
-				else {
-					queue = new Queue(identifier.toString(), chunk.getChunkNum());
-					queue.enqueue(chunk);
-					this.queueMap.put(chunk.getSign(), queue);
-					// 劫持，由队列发送
-					return false;
-				}
+				queue = new Queue(identifier.toString(), chunk.getChunkNum());
+				queue.enqueue(chunk);
+				this.queueMap.put(chunk.getSign(), queue);
+				// 劫持，由队列发送
+				return false;
 			}
 		}
 	}
 
 	@Override
-	protected boolean onDialogue(String identifier, Dialect dialect) {
+	protected boolean onDialogue(final String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
 
-		synchronized (this.metaData) {
-			if (chunk.ack) {
-				// 收到 ACK ，发送下一个
-				String sign = chunk.getSign();
-				Queue queue = this.queueMap.get(sign);
-				if (null != queue) {
-					// 更新应答索引
-					queue.ackIndex = chunk.getChunkIndex();
-					// 发送下一条数据
-					ChunkDialect response = queue.dequeue();
-					if (null != response) {
-						TalkService.getInstance().talk(queue.target, response);
-					}
-
-					// 检查
-					if (queue.ackIndex == chunk.getChunkNum() - 1) {
-						this.checkAndClearQueue();
-					}
-				}
-				else {
-					Logger.w(this.getClass(), "Can NOT find chunk: " + sign);
+		if (chunk.ack) {
+			// 收到 ACK ，发送下一个
+			String sign = chunk.getSign();
+			Queue queue = this.queueMap.get(sign);
+			if (null != queue) {
+				// 更新应答索引
+				queue.ackIndex = chunk.getChunkIndex();
+				// 发送下一条数据
+				ChunkDialect response = queue.dequeue();
+				if (null != response) {
+					TalkService.getInstance().talk(queue.target, response);
 				}
 
-				// 应答包，劫持
-				return false;
+				// 检查
+				if (queue.ackIndex == chunk.getChunkNum() - 1) {
+					this.checkAndClearQueue();
+				}
 			}
 			else {
-				// 回送确认
-				String sign = chunk.getSign();
-
-				ChunkDialect ack = new ChunkDialect();
-				ack.setAck(sign, chunk.getChunkIndex(), chunk.getChunkNum());
-
-				// 回送 ACK
-				TalkService.getInstance().talk(identifier, ack);
-
-				// 不劫持
-				return true;
+				Logger.w(this.getClass(), "Can NOT find chunk: " + sign);
 			}
+
+			// 应答包，劫持
+			return false;
+		}
+		else {
+			// 回送确认
+			String sign = chunk.getSign();
+
+			final ChunkDialect ack = new ChunkDialect();
+			ack.setAck(sign, chunk.getChunkIndex(), chunk.getChunkNum());
+
+			TalkService.getInstance().getExecutor().execute(new Runnable() {
+				@Override
+				public void run() {
+					// 回送 ACK
+					TalkService.getInstance().talk(identifier, ack);
+				}
+			});
+
+			// 不劫持
+			return true;
 		}
 	}
 
