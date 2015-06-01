@@ -51,6 +51,8 @@ public final class ActionDialectFactory extends DialectFactory {
 		this.threadCount = new AtomicInteger(0);
 		this.dialects = new LinkedList<ActionDialect>();
 		this.delegates = new LinkedList<ActionDelegate>();
+
+		this.executor = Executors.newCachedThreadPool();
 	}
 
 	@Override
@@ -89,10 +91,6 @@ public final class ActionDialectFactory extends DialectFactory {
 	/** 执行动作。
 	 */
 	protected void doAction(final ActionDialect dialect, final ActionDelegate delegate) {
-		if (null == this.executor) {
-			this.executor = Executors.newCachedThreadPool();
-		}
-
 		synchronized (this.metaData) {
 			this.dialects.add(dialect);
 			this.delegates.add(delegate);

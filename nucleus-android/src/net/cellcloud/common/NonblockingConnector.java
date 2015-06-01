@@ -70,6 +70,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private Context androidContext;
 
+	private long threadSleepInterval = 100;
+
 	public NonblockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
 		this.connectTimeout = 15000;
@@ -339,6 +341,14 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		// Nothing
 	}
 
+	/**
+	 * 重置休眠间隔。
+	 * @param value
+	 */
+	public void resetSleepInterval(long value) {
+		this.threadSleepInterval = value;
+	}
+
 	private void fireSessionCreated() {
 		if (null != this.handler) {
 			this.handler.sessionCreated(this.session);
@@ -377,7 +387,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		while (this.spinning) {
 			if (!this.selector.isOpen()) {
 				try {
-					Thread.sleep(1);
+					Thread.sleep(10);
 				} catch (InterruptedException e) {
 					Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 				}
@@ -415,10 +425,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				}
 
 				Thread.yield();
-//				try {
-//					Thread.sleep(1);
-//				} catch (InterruptedException e) {
-//				}
+
+				try {
+					Thread.sleep(this.threadSleepInterval);
+				} catch (InterruptedException e) {
+				}
 			}
 		} // # while
 

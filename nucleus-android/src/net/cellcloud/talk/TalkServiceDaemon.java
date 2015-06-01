@@ -46,7 +46,7 @@ public final class TalkServiceDaemon extends Thread {
 
 	public TalkServiceDaemon() {
 		super("TalkServiceDaemon");
-		this.resetSleepInterval(2000);
+		this.resetSleepInterval(30000);
 	}
 
 	/** 返回周期时间点。
@@ -67,12 +67,14 @@ public final class TalkServiceDaemon extends Thread {
 		this.interval = interval;
 
 		// 换算为 1 秒
-		int n = (int)interval / 1000;
+		int n = Math.round((float)interval / 1000.0f);
 		if (n <= 0) {
 			n = 1;
 		}
 		// 计算模数
-		this.speakerHeartbeatMod = 120 / n;
+		this.speakerHeartbeatMod = Math.round(120.0f / (float)n);
+
+		Logger.d(this.getClass(), "Reset heartbeat mod: " + this.speakerHeartbeatMod);
 	}
 
 	@Override

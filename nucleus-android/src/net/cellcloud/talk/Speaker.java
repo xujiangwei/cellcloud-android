@@ -273,6 +273,18 @@ public class Speaker implements Speakable {
 		return this.state == SpeakerState.SUSPENDED;
 	}
 
+	protected void sleep() {
+		if (null != this.connector) {
+			this.connector.resetSleepInterval(5000);
+		}
+	}
+
+	protected void wakeup() {
+		if (null != this.connector) {
+			this.connector.resetSleepInterval(1000);
+		}
+	}
+
 	/**
 	 * 重置状态数据。
 	 */

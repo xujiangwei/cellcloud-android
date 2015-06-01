@@ -285,7 +285,13 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 */
 	public void sleep() {
 		if (null != this.daemon) {
-			this.daemon.resetSleepInterval(30000);
+			this.daemon.resetSleepInterval(60000);
+		}
+
+		if (null != this.speakers) {
+			for (Speaker s : this.speakers) {
+				s.sleep();
+			}
 		}
 	}
 
@@ -293,8 +299,14 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/*!
 	 */
 	public void wakeup() {
+		if (null != this.speakers) {
+			for (Speaker s : this.speakers) {
+				s.wakeup();
+			}
+		}
+
 		if (null != this.daemon) {
-			this.daemon.resetSleepInterval(1000);
+			this.daemon.resetSleepInterval(30000);
 		}
 	}
 
