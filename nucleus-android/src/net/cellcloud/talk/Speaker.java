@@ -31,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.Logger;
@@ -70,6 +71,8 @@ public class Speaker implements Speakable {
 	protected long retryTimestamp = 0;
 	protected int retryCounts = 0;
 	protected boolean retryEnd = false;
+
+	private Timer timer = null;
 
 	/** 构造函数。
 	 */
@@ -222,7 +225,18 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public synchronized void hangUp() {
+		if (null != this.timer) {
+			try {
+				this.timer.cancel();
+			} catch (Exception e) {
+				// Nothing
+			}
+
+			this.timer = null;
+		}
+
 		if (null != this.connector) {
+			this.connector.resetSleepInterval(500);
 			this.connector.disconnect();
 		}
 
@@ -256,6 +270,9 @@ public class Speaker implements Speakable {
 		Message message = new Message(data);
 		this.connector.write(message);
 
+		// 智能修改睡眠时间
+//		this.smartSleepInterval();
+
 		return true;
 	}
 
@@ -275,13 +292,13 @@ public class Speaker implements Speakable {
 
 	protected void sleep() {
 		if (null != this.connector) {
-			this.connector.resetSleepInterval(5000);
+			this.connector.resetSleepInterval(2000);
 		}
 	}
 
 	protected void wakeup() {
 		if (null != this.connector) {
-			this.connector.resetSleepInterval(1000);
+			this.connector.resetSleepInterval(500);
 		}
 	}
 
@@ -579,4 +596,28 @@ public class Speaker implements Speakable {
 			this.connector.write(message);
 		}
 	}
+
+	/*private void smartSleepInterval() {
+		if (null != this.timer) {
+			return;
+		}
+
+		this.timer = new Timer();
+		this.timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if (null != connector) {
+					connector.resetSleepInterval(1000);
+				}
+
+				if (Logger.isDebugLevel()) {
+					Logger.d(Speaker.class, "Reset sleep interval: 1000");
+				}
+
+				timer = null;
+			}
+		}, 60000);
+
+		this.connector.resetSleepInterval(500);
+	}*/
 }

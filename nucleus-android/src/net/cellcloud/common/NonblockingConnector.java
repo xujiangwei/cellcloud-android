@@ -70,7 +70,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private Context androidContext;
 
-	private long threadSleepInterval = 100;
+	private long sleepInterval = 200;
 
 	public NonblockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
@@ -271,12 +271,12 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		int count = 0;
 		while (this.running) {
 			try {
-				Thread.sleep(10);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 
-			if (++count >= 300) {
+			if (++count >= 30) {
 				this.handleThread.interrupt();
 				this.running = false;
 			}
@@ -346,7 +346,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	 * @param value
 	 */
 	public void resetSleepInterval(long value) {
-		this.threadSleepInterval = value;
+		this.sleepInterval = value;
 	}
 
 	private void fireSessionCreated() {
@@ -427,7 +427,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				Thread.yield();
 
 				try {
-					Thread.sleep(this.threadSleepInterval);
+					Thread.sleep(this.sleepInterval);
 				} catch (InterruptedException e) {
 				}
 			}
