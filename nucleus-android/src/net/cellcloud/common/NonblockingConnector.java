@@ -70,7 +70,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private Context androidContext;
 
-	private long sleepInterval = 200;
+	private volatile long sleepInterval = 200;
 
 	public NonblockingConnector(Context androidContext) {
 		this.androidContext = androidContext;

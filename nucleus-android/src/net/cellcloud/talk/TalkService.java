@@ -703,6 +703,22 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return false;
 	}
 
+	public boolean resetSpeakerInterval(long interval) {
+		if (interval < 10 || interval > 5000) {
+			return false;
+		}
+
+		if (null != this.speakers) {
+			for (Speaker speaker : this.speakers) {
+				speaker.resetSleepInterval(interval);
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	public ExecutorService getExecutor() {
 		return this.executor;
 	}

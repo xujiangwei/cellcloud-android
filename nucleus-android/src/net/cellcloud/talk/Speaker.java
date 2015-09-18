@@ -302,6 +302,16 @@ public class Speaker implements Speakable {
 		}
 	}
 
+	protected boolean resetSleepInterval(long interval) {
+		if (null != this.connector) {
+			this.connector.resetSleepInterval(interval);
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
 	/**
 	 * 重置状态数据。
 	 */
