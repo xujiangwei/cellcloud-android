@@ -352,8 +352,7 @@ public class Speaker implements Speakable {
 
 		// 判断是否为异常网络中断
 		if (SpeakerState.CALLING == this.state) {
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED
-					, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED, this.getClass());
 			failure.setSourceDescription("No network device");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
@@ -362,9 +361,17 @@ public class Speaker implements Speakable {
 			this.lost = true;
 		}
 		else if (SpeakerState.CALLED == this.state) {
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST
-					, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass());
 			failure.setSourceDescription("Network fault, connection closed");
+			failure.setSourceCelletIdentifiers(this.identifierList);
+			this.fireFailed(failure);
+
+			// 标记为丢失
+			this.lost = true;
+		}
+		else {
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
+			failure.setSourceDescription("Network not available.");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
 
@@ -411,6 +418,12 @@ public class Speaker implements Speakable {
 
 	protected void fireRetryEnd() {
 		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.RETRY_END, this.getClass());
+		failure.setSourceCelletIdentifiers(this.identifierList);
+		this.fireFailed(failure);
+	}
+
+	protected void fireRetryError() {
+		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
 		failure.setSourceCelletIdentifiers(this.identifierList);
 		this.fireFailed(failure);
 	}

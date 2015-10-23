@@ -38,10 +38,13 @@ public enum TalkFailureCode {
 	NOTFOUND_CELLET(1000),
 
 	/** Call 请求失败。 */
-	CALL_FAILED(2000),
+	CALL_FAILED(1100),
 
 	/** 会话连接被断开。 */
-	TALK_LOST(3000),
+	TALK_LOST(2000),
+
+	/** 会话网络断开。*/
+	NETWORK_NOT_AVAILABLE(2100),
 
 	/** 重试次数达到上限，重试结束。
 	 * @note 此错误不触发自动重连。
@@ -51,7 +54,7 @@ public enum TalkFailureCode {
 	/** 无网络。
 	 * @note 此错误不触发自动重连。
 	 */
-	NO_NETWORK(7000);
+	NO_NETWORK(4100);
 
 	private int code;
 

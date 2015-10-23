@@ -27,8 +27,8 @@ THE SOFTWARE.
 package net.cellcloud.talk;
 
 import java.util.Iterator;
+import java.util.TimerTask;
 
-import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.talk.dialect.DialectEnumerator;
 
@@ -36,17 +36,15 @@ import net.cellcloud.talk.dialect.DialectEnumerator;
  * 
  * @author Jiangwei Xu
  */
-public final class TalkServiceDaemon extends Thread {
+public final class TalkServiceDaemon extends TimerTask {
 
-	private boolean spinning = false;
 	protected boolean running = false;
 	private long tickTime = 0;
-	private long interval = 0;
 	private int speakerHeartbeatMod = 0;
+	private int heartbeatCount = 0;
 
-	public TalkServiceDaemon() {
-		super("TalkServiceDaemon");
-		this.resetSleepInterval(30000);
+	public TalkServiceDaemon(int intervalInSeconds) {
+		this.speakerHeartbeatMod = Math.round(180.0f / (float)intervalInSeconds);
 	}
 
 	/** 返回周期时间点。
@@ -55,144 +53,122 @@ public final class TalkServiceDaemon extends Thread {
 		return this.tickTime;
 	}
 
-	protected void resetSleepInterval(long interval) {
-		if (interval < 1000) {
-			return;
-		}
-
-		if (this.interval == interval) {
-			return;
-		}
-
-		this.interval = interval;
-
-		// 换算为 1 秒
-		int n = Math.round((float)interval / 1000.0f);
-		if (n <= 0) {
-			n = 1;
-		}
-		// 计算模数
-		this.speakerHeartbeatMod = Math.round(120.0f / (float)n);
-
-		Logger.d(this.getClass(), "Reset heartbeat mod: " + this.speakerHeartbeatMod);
-	}
+//	protected void resetSleepInterval(long interval) {
+//		if (interval < 1000) {
+//			return;
+//		}
+//
+//		if (this.interval == interval) {
+//			return;
+//		}
+//
+//		this.interval = interval;
+//
+//		// 换算为 1 秒
+//		int n = Math.round((float)interval / 1000.0f);
+//		if (n <= 0) {
+//			n = 1;
+//		}
+//		// 计算模数
+//		this.speakerHeartbeatMod = Math.round(120.0f / (float)n);
+//
+//		Logger.d(this.getClass(), "Reset heartbeat mod: " + this.speakerHeartbeatMod);
+//	}
 
 	@Override
 	public void run() {
 		this.running = true;
-		this.spinning = true;
+
+		// 当前时间
+		this.tickTime = System.currentTimeMillis();
+
+		// 心跳计数
+		++this.heartbeatCount;
+		if (this.heartbeatCount > 100) {
+			this.heartbeatCount = 0;
+		}
 
 		TalkService service = TalkService.getInstance();
 
-		int heartbeatCount = 0;
-
-		do {
-			// 当前时间
-			this.tickTime = System.currentTimeMillis();
-
-			// 心跳计数
-			++heartbeatCount;
-			if (heartbeatCount > 100) {
-				heartbeatCount = 0;
-			}
-
-			// HTTP 客户端管理
-//			if (heartbeatCount % 5 == 0) {
-				// 每 5 秒一次计数
-				// TODO
-//				if (null != service.httpSpeakers) {
-//					for (HttpSpeaker speaker : service.httpSpeakers) {
-//						speaker.tick();
-//					}
-//				}
-//			}
-
-			// HTTP 服务器 Session 管理
-//			if (heartbeatCount % 60 == 0) {
-//				service.checkHttpSessionHeartbeat();
-//			}
-
-			if (heartbeatCount % this.speakerHeartbeatMod == 0) {
-				// 2分钟一次心跳
-				if (null != service.speakers) {
-					for (Speaker speaker : service.speakers) {
-						speaker.heartbeat();
-					}
-				}
-			}
-
-			// 检查丢失连接的 Speaker
+		if (this.heartbeatCount % this.speakerHeartbeatMod == 0) {
+			// 3分钟一次心跳
 			if (null != service.speakers) {
-				Iterator<Speaker> iter = service.speakers.iterator();
-				while (iter.hasNext()) {
-					Speaker speaker = iter.next();
-					if (speaker.lost
-						&& null != speaker.capacity
-						&& speaker.capacity.retryAttempts > 0) {
-						if (speaker.retryTimestamp == 0) {
-							// 建立时间戳
-							speaker.retryTimestamp = this.tickTime;
-							continue;
-						}
+				for (Speaker speaker : service.speakers) {
+					speaker.heartbeat();
+				}
+			}
+		}
 
-						// 判断是否达到最大重试次数
-						if (speaker.retryCounts >= speaker.capacity.retryAttempts) {
-							if (!speaker.retryEnd) {
-								speaker.retryEnd = true;
-								speaker.fireRetryEnd();
-							}
-							continue;
-						}
+		// 检查丢失连接的 Speaker
+		if (null != service.speakers) {
+			Iterator<Speaker> iter = service.speakers.iterator();
+			while (iter.hasNext()) {
+				Speaker speaker = iter.next();
+				if (speaker.lost
+					&& null != speaker.capacity
+					&& speaker.capacity.retryAttempts > 0) {
+					if (speaker.retryTimestamp == 0) {
+						// 建立时间戳
+						speaker.retryTimestamp = this.tickTime;
+						continue;
+					}
 
-						if (this.tickTime - speaker.retryTimestamp >= speaker.capacity.retryDelay) {
-							// 重连
-							speaker.retryTimestamp = this.tickTime;
-							speaker.retryCounts++;
-							// 执行 call
-							if (speaker.call(null)) {
-								StringBuilder buf = new StringBuilder();
-								buf.append("Retry call cellet '");
-								buf.append(speaker.getRemoteTag());
-								buf.append("' at ");
-								buf.append(speaker.getAddress().getAddress().getHostAddress());
-								buf.append(":");
-								buf.append(speaker.getAddress().getPort());
-								Logger.i(TalkServiceDaemon.class, buf.toString());
-								buf = null;
-							}
-							else {
-								StringBuilder buf = new StringBuilder();
-								buf.append("Failed retry call cellet '");
-								buf.append(speaker.getRemoteTag());
-								buf.append("' at ");
-								buf.append(speaker.getAddress().getAddress().getHostAddress());
-								buf.append(":");
-								buf.append(speaker.getAddress().getPort());
-								Logger.w(TalkServiceDaemon.class, buf.toString());
-								buf = null;
-							}
+					// 判断是否达到最大重试次数
+					if (speaker.retryCounts >= speaker.capacity.retryAttempts) {
+						if (!speaker.retryEnd) {
+							speaker.retryEnd = true;
+							speaker.fireRetryEnd();
+						}
+						continue;
+					}
+
+					if (this.tickTime - speaker.retryTimestamp >= speaker.capacity.retryDelay) {
+						// 重连
+						speaker.retryTimestamp = this.tickTime;
+						speaker.retryCounts++;
+						// 执行 call
+						if (speaker.call(null)) {
+							StringBuilder buf = new StringBuilder();
+							buf.append("Retry call cellet '");
+							buf.append(speaker.getRemoteTag());
+							buf.append("' at ");
+							buf.append(speaker.getAddress().getAddress().getHostAddress());
+							buf.append(":");
+							buf.append(speaker.getAddress().getPort());
+							Logger.i(TalkServiceDaemon.class, buf.toString());
+							buf = null;
+						}
+						else {
+							StringBuilder buf = new StringBuilder();
+							buf.append("Failed retry call cellet '");
+							buf.append(speaker.getRemoteTag());
+							buf.append("' at ");
+							buf.append(speaker.getAddress().getAddress().getHostAddress());
+							buf.append(":");
+							buf.append(speaker.getAddress().getPort());
+							Logger.w(TalkServiceDaemon.class, buf.toString());
+							buf = null;
+
+							// 回调重试结束
+							speaker.fireRetryError();
 						}
 					}
 				}
 			}
+		}
 
-			// 处理未识别 Session
-			service.processUnidentifiedSessions(this.tickTime);
+		// 处理未识别 Session
+		service.processUnidentifiedSessions(this.tickTime);
 
 			// 10 分钟检查一次挂起状态下的会话器是否失效
 //			if (heartbeatCount % 60 == 0) {
 				// 检查并删除挂起的会话
 //				service.checkAndDeleteSuspendedTalk();
 //			}
+	}
 
-			// 休眠
-			try {
-				Thread.sleep(this.interval);
-			} catch (InterruptedException e) {
-				Logger.log(TalkServiceDaemon.class, e, LogLevel.ERROR);
-			}
-
-		} while (this.spinning);
+	public void stop() {
+		TalkService service = TalkService.getInstance();
 
 		// 关闭所有 Speaker
 		if (null != service.speakers) {
@@ -206,11 +182,7 @@ public final class TalkServiceDaemon extends Thread {
 
 		DialectEnumerator.getInstance().shutdownAll();
 
-		Logger.i(this.getClass(), "Talk service daemon quit.");
+		Logger.i(this.getClass(), "Talk service daemon stop.");
 		this.running = false;
-	}
-
-	public void stopSpinning() {
-		this.spinning = false;
 	}
 }

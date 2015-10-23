@@ -219,7 +219,7 @@ public final class Nucleus {
 			}
 
 			// 启动守护线程
-			this.talkService.startDaemon();
+			this.talkService.startDaemon(5);
 		}
 
 		return true;

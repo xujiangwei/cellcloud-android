@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Timer;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -104,6 +105,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 	private ConcurrentHashMap<String, Speakable> httpSpeakerMap = null;
 
+	private Timer daemonTimer;
 	private TalkServiceDaemon daemon;
 	private ArrayList<TalkListener> listeners;
 
@@ -187,7 +189,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		boolean succeeded = this.acceptor.bind(this.port);
 		if (succeeded) {
-			startDaemon();
+			startDaemon(5);
 		}
 
 		return succeeded;
@@ -251,31 +253,34 @@ public final class TalkService implements Service, SpeakerDelegate {
 	//! 启动任务守护线程。
 	/*!
 	 */
-	public void startDaemon() {
-		if (null == this.daemon) {
-			this.daemon = new TalkServiceDaemon();
+	public void startDaemon(int periodInSeconds) {
+		if (null == this.daemonTimer) {
+			this.daemonTimer = new Timer();
+		}
+		else {
+			this.daemonTimer.cancel();
+			this.daemonTimer.purge();
 		}
 
-		if (!this.daemon.running)
-			this.daemon.start();
+		if (null == this.daemon) {
+			this.daemon = new TalkServiceDaemon(periodInSeconds);
+		}
+
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 1000, periodInSeconds * 1000);
 	}
 
 	//! 关闭任务守护线程。
 	/*!
 	 */
 	public void stopDaemon() {
+		if (null != this.daemonTimer) {
+			this.daemonTimer.cancel();
+			this.daemonTimer.purge();
+			this.daemonTimer = null;
+		}
+
 		if (null != this.daemon) {
-			this.daemon.stopSpinning();
-
-			// 阻塞等待线程退出
-			while (this.daemon.running) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
-					Logger.log(TalkService.class, e, LogLevel.DEBUG);
-				}
-			}
-
+			this.daemon.stop();
 			this.daemon = null;
 		}
 	}
@@ -285,7 +290,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 */
 	public void sleep() {
 		if (null != this.daemon) {
-			this.daemon.resetSleepInterval(60000);
+			this.stopDaemon();
+			this.startDaemon(60);
 		}
 
 		if (null != this.speakers) {
@@ -306,7 +312,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		if (null != this.daemon) {
-			this.daemon.resetSleepInterval(30000);
+			this.stopDaemon();
+			this.startDaemon(5);
 		}
 	}
 
