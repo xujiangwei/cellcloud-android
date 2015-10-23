@@ -290,9 +290,19 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 */
 	public void sleep() {
 		if (null != this.daemon) {
-			this.stopDaemon();
-			this.startDaemon(60);
+			this.daemon.cancel();
+			this.daemon = null;
 		}
+
+		if (null != this.daemonTimer) {
+			this.daemonTimer.cancel();
+			this.daemonTimer.purge();
+			this.daemonTimer = null;
+		}
+
+		this.daemon = new TalkServiceDaemon(60);
+		this.daemonTimer = new Timer();
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 60000);
 
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
@@ -304,7 +314,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	//! 从睡眠模式唤醒。
 	/*!
 	 */
-	public void wakeup() {
+	public void wakeup() throws RuntimeException {
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
 				s.wakeup();
@@ -312,8 +322,34 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		if (null != this.daemon) {
-			this.stopDaemon();
-			this.startDaemon(5);
+			this.daemon.cancel();
+			this.daemon = null;
+		}
+
+		if (null != this.daemonTimer) {
+			this.daemonTimer.cancel();
+			this.daemonTimer.purge();
+			this.daemonTimer = null;
+		}
+
+		this.daemon = new TalkServiceDaemon(5);
+		this.daemonTimer = new Timer();
+
+		try {
+			this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 5000);
+		} catch (Exception e) {
+			(new Thread() {
+				@Override
+				public void run() {
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException e) {
+						Logger.log(TalkService.class, e, LogLevel.WARNING);
+					}
+
+					daemonTimer.scheduleAtFixedRate(daemon, 5000, 5000);
+				}
+			}).start();
 		}
 	}
 
