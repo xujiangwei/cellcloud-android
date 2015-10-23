@@ -28,6 +28,7 @@ package net.cellcloud.talk;
 
 import java.util.Iterator;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.cellcloud.common.Logger;
 import net.cellcloud.talk.dialect.DialectEnumerator;
@@ -38,7 +39,7 @@ import net.cellcloud.talk.dialect.DialectEnumerator;
  */
 public final class TalkServiceDaemon extends TimerTask {
 
-	protected boolean running = false;
+	private AtomicBoolean running = new AtomicBoolean(false);
 	private long tickTime = 0;
 	private int speakerHeartbeatMod = 0;
 	private int heartbeatCount = 0;
@@ -71,7 +72,11 @@ public final class TalkServiceDaemon extends TimerTask {
 
 	@Override
 	public void run() {
-		this.running = true;
+		if (this.running.get()) {
+			return;
+		}
+
+		this.running.set(true);
 
 		// 当前时间
 		this.tickTime = System.currentTimeMillis();
@@ -163,6 +168,8 @@ public final class TalkServiceDaemon extends TimerTask {
 				// 检查并删除挂起的会话
 //				service.checkAndDeleteSuspendedTalk();
 //			}
+
+		this.running.set(false);
 	}
 
 	public void stop() {
@@ -181,6 +188,5 @@ public final class TalkServiceDaemon extends TimerTask {
 		DialectEnumerator.getInstance().shutdownAll();
 
 		Logger.i(this.getClass(), "Talk service daemon stop.");
-		this.running = false;
 	}
 }
