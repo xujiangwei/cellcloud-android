@@ -62,7 +62,7 @@ import android.widget.EditText;
 
 public class MainActivity extends Activity implements TalkListener {
 
-	private final String address = "192.168.2.3";
+	private final String address = "192.168.0.198";
 	private final int port = 7000;
 	private final String identifier = "Dummy";
 
@@ -197,10 +197,11 @@ public class MainActivity extends Activity implements TalkListener {
 //		TalkCapacity capacity = new TalkCapacity(3, 6000);
 		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port));
 		if (ret) {
-			this.txtLog.append("Calling cellet 'Dummy' ...\n");
+			this.txtLog.append("Calling cellet '"+ this.identifier +"' ...\n");
 		}
 		else {
-			this.txtLog.append("Call cellet 'Dummy' Failed.\n");
+			this.txtLog.append("Call cellet '" + this.identifier + "' Failed.\n");
+			talkService.hangUp(new String[]{this.identifier});
 		}
 
 		return ret;
@@ -215,7 +216,7 @@ public class MainActivity extends Activity implements TalkListener {
 
 		this.counts.set(0);
 
-		final int num = 30;
+		final int num = 1;
 
 		// 创建测试用原语
 		final ArrayList<Primitive> primList = new ArrayList<Primitive>(num);
@@ -282,11 +283,13 @@ public class MainActivity extends Activity implements TalkListener {
 				while (running) {
 					if (!primList.isEmpty()) {
 						Primitive primitive = primList.remove(0);
-						TalkService.getInstance().talk(identifier, primitive);
+						if (!TalkService.getInstance().talk(identifier, primitive)) {
+							Logger.e(MainActivity.class, "Talk error");
+						}
 					}
 
 					try {
-						Thread.sleep(Utils.randomInt(200, 300));
+						Thread.sleep(Utils.randomInt(1000, 1500));
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -297,14 +300,14 @@ public class MainActivity extends Activity implements TalkListener {
 					}
 
 					try {
-						Thread.sleep(Utils.randomInt(200, 300));
+						Thread.sleep(Utils.randomInt(1000, 1500));
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 
 					if (primList.isEmpty() && dialectList.isEmpty()) {
 						try {
-							Thread.sleep(Utils.randomInt(500, 800));
+							Thread.sleep(Utils.randomInt(1000, 2000));
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
@@ -384,8 +387,16 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	@Override
-	public void quitted(String identifier, String tag) {
+	public void quitted(final String identifier, String tag) {
 		Logger.i(MainActivity.class, "quitted @" + identifier);
+
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				txtLog.append("contacted @" + identifier + "\n");
+				btnStart.setEnabled(false);
+			}
+		});
 	}
 
 	@Override

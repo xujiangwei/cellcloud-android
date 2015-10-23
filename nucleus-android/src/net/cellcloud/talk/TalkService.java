@@ -332,11 +332,11 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.daemonTimer = null;
 		}
 
-		this.daemon = new TalkServiceDaemon(5);
+		this.daemon = new TalkServiceDaemon(2);
 		this.daemonTimer = new Timer();
 
 		try {
-			this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 5000);
+			this.daemonTimer.scheduleAtFixedRate(this.daemon, 2000, 2000);
 		} catch (Exception e) {
 			(new Thread() {
 				@Override
@@ -347,7 +347,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 						Logger.log(TalkService.class, e, LogLevel.WARNING);
 					}
 
-					daemonTimer.scheduleAtFixedRate(daemon, 5000, 5000);
+					daemonTimer.scheduleAtFixedRate(daemon, 2000, 2000);
 				}
 			}).start();
 		}
@@ -614,6 +614,15 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null != speaker) {
 			speaker.resume(startTime);
 		}
+	}
+
+	public void hangUp(String[] identifiers) {
+		ArrayList<String> list = new ArrayList<String>(identifiers.length);
+		for (String id : identifiers) {
+			list.add(id);
+		}
+
+		this.hangUp(list);
 	}
 
 	//! 挂断 Cellet 会话服务。
@@ -1013,7 +1022,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		this.unidentifiedSessions.remove(sid);
 
 		TalkSessionContext ctx = new TalkSessionContext(session, tag, session.getAddress());
-		ctx.tickTime = this.getTickTime();
+		ctx.tickTime = System.currentTimeMillis();
 		this.sessionContexts.put(session, ctx);
 	}
 
@@ -1128,7 +1137,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	protected void processDialogue(Session session, String speakerTag, String targetIdentifier, Primitive primitive) {
 		TalkSessionContext ctx = this.sessionContexts.get(session);
 		if (null != ctx) {
-			ctx.tickTime = this.getTickTime();
+			ctx.tickTime = System.currentTimeMillis();
 
 			TalkTracker tracker = ctx.getTracker();
 			Cellet cellet = tracker.getCellet(targetIdentifier);
@@ -1311,19 +1320,13 @@ public final class TalkService implements Service, SpeakerDelegate {
 	protected void updateSessionTickTime(Session session) {
 		TalkSessionContext ctx = this.sessionContexts.get(session);
 		if (null != ctx) {
-			ctx.tickTime = this.daemon.getTickTime();
+			ctx.tickTime = System.currentTimeMillis();
 
 			if (Logger.isDebugLevel()) {
 				Logger.d(this.getClass(), "Talk service heartbeat from " + session.getAddress().getAddress().getHostAddress()
 						+ ":" + session.getAddress().getPort());
 			}
 		}
-	}
-
-	/** 返回时间点。
-	 */
-	protected long getTickTime() {
-		return this.daemon.getTickTime();
 	}
 
 	/** 检查并删除挂起的会话。

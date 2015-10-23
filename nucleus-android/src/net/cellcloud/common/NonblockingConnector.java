@@ -333,6 +333,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	@Override
 	public void write(Session session, Message message) {
+		if (null == this.channel || false == this.channel.isConnected()) {
+			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+			return;
+		}
+
 		this.messages.add(message);
 	}
 

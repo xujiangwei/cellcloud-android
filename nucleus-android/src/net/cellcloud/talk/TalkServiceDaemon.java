@@ -47,12 +47,6 @@ public final class TalkServiceDaemon extends TimerTask {
 		this.speakerHeartbeatMod = Math.round(180.0f / (float)intervalInSeconds);
 	}
 
-	/** 返回周期时间点。
-	 */
-	protected long getTickTime() {
-		return this.tickTime;
-	}
-
 //	protected void resetSleepInterval(long interval) {
 //		if (interval < 1000) {
 //			return;
@@ -84,7 +78,7 @@ public final class TalkServiceDaemon extends TimerTask {
 
 		// 心跳计数
 		++this.heartbeatCount;
-		if (this.heartbeatCount > 100) {
+		if (this.heartbeatCount >= Integer.MAX_VALUE) {
 			this.heartbeatCount = 0;
 		}
 
@@ -94,7 +88,11 @@ public final class TalkServiceDaemon extends TimerTask {
 			// 3分钟一次心跳
 			if (null != service.speakers) {
 				for (Speaker speaker : service.speakers) {
-					speaker.heartbeat();
+					if (speaker.heartbeat()) {
+						Logger.i(TalkServiceDaemon.class,
+								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostName()
+								+ ":" + speaker.getAddress().getPort());
+					}
 				}
 			}
 		}
