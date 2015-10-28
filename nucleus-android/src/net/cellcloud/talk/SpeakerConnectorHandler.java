@@ -124,13 +124,11 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 		else if (errorCode == MessageErrorCode.NO_NETWORK) {
 			// 无网络错误
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NO_NETWORK, this.getClass());
-			failure.setSourceDescription("No network found in device.");
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
 		}
 		else {
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
-			failure.setSourceDescription("Network not available.");
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
 
