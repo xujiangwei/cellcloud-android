@@ -474,22 +474,6 @@ public class Speaker implements Speakable {
 			return;
 		}
 
-		// 进行对比
-//		if (null != this.capacity) {
-//			if (newCapacity.autoSuspend != this.capacity.autoSuspend
-//				|| newCapacity.suspendDuration != this.capacity.suspendDuration) {
-//				StringBuilder buf = new StringBuilder();
-//				buf.append("Talk capacity has changed from '");
-//				buf.append(this.remoteTag);
-//				buf.append("' : AutoSuspend=");
-//				buf.append(newCapacity.autoSuspend);
-//				buf.append(" SuspendDuration=");
-//				buf.append(newCapacity.suspendDuration);
-//				Logger.w(Speaker.class, buf.toString());
-//				buf = null;
-//			}
-//		}
-
 		// 设置新值
 		this.capacity = newCapacity;
 
