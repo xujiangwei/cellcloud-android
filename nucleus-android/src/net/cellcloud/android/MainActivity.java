@@ -30,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.cellcloud.Version;
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.core.Nucleus;
@@ -41,6 +42,7 @@ import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkServiceFailure;
 import net.cellcloud.talk.dialect.ActionDialect;
+import net.cellcloud.talk.dialect.ChunkDialect;
 import net.cellcloud.talk.stuff.AttributiveStuff;
 import net.cellcloud.talk.stuff.ObjectiveStuff;
 import net.cellcloud.talk.stuff.PredicateStuff;
@@ -84,6 +86,8 @@ public class MainActivity extends Activity implements TalkListener {
 		this.configView();
 
 		this.startup();
+
+		this.txtLog.append("Nucleus version " + Version.getNumbers() + "\n");
 	}
 
 	@Override
@@ -174,7 +178,9 @@ public class MainActivity extends Activity implements TalkListener {
 			public void onClick(View v) {
 				btnStop.setEnabled(true);
 				btnStart.setEnabled(false);
-				startDemo();
+
+				startChunkDemo();
+//				startDemo();
 			}
 		});
 
@@ -207,7 +213,26 @@ public class MainActivity extends Activity implements TalkListener {
 		return ret;
 	}
 
-	private void startDemo() {
+	protected void startChunkDemo() {
+		if (this.running) {
+			return;
+		}
+
+		this.txtLog.append("Start chunk demo ...\n");
+
+		int num = 3;
+
+		for (int i = 0; i < num; ++i) {
+			byte[] data = new byte[50];
+			for (int n = 0; n < data.length; ++n) {
+				data[n] = (byte) Utils.randomInt();
+			}
+			ChunkDialect chunk = new ChunkDialect("demo", "Chunk007", num * data.length, i, num, data, data.length);
+			TalkService.getInstance().talk(this.identifier, chunk);
+		}
+	}
+
+	protected void startDemo() {
 		if (this.running) {
 			return;
 		}
@@ -363,8 +388,14 @@ public class MainActivity extends Activity implements TalkListener {
 			@Override
 			public void run() {
 				if (primitive.isDialectal()) {
-					ActionDialect ad = (ActionDialect) primitive.getDialect();
-					txtLog.append("dialogue - [" + c + "] " + ad.getAction() + " - " + ad.getParamAsString("data").length() + "\n");
+					if (primitive.getDialect() instanceof ActionDialect) {
+						ActionDialect ad = (ActionDialect) primitive.getDialect();
+						txtLog.append("dialogue - [" + c + "] " + ad.getAction() + " - " + ad.getParamAsString("data").length() + "\n");
+					}
+					else if (primitive.getDialect() instanceof ChunkDialect) {
+						ChunkDialect cd = (ChunkDialect) primitive.getDialect();
+						txtLog.append("dialogue - [" + c + "] " + cd.getSign() + " - " + cd.getChunkIndex() + "/" + cd.getChunkNum() + "\n");
+					}
 				}
 				else {
 					txtLog.append("dialogue - [" + c + "] " + primitive.subjects().get(0).getValueAsString() + "\n");
