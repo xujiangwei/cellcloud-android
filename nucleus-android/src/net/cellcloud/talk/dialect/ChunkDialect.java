@@ -62,16 +62,12 @@ public class ChunkDialect extends Dialect {
 
 	private int readIndex = 0;
 
-	public ChunkDialect() {
-		super(ChunkDialect.DIALECT_NAME);
-	}
-
 	public ChunkDialect(String tracker) {
 		super(ChunkDialect.DIALECT_NAME, tracker);
 	}
 
-	public ChunkDialect(String tracker, String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
-		super(ChunkDialect.DIALECT_NAME, tracker);
+	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
+		super(ChunkDialect.DIALECT_NAME);
 		this.sign = sign;
 		this.totalLength = totalLength;
 		this.chunkIndex = chunkIndex;
@@ -81,8 +77,8 @@ public class ChunkDialect extends Dialect {
 		this.length = length;
 	}
 
-	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
-		super(ChunkDialect.DIALECT_NAME);
+	public ChunkDialect(String tracker, String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
+		super(ChunkDialect.DIALECT_NAME, tracker);
 		this.sign = sign;
 		this.totalLength = totalLength;
 		this.chunkIndex = chunkIndex;
@@ -176,6 +172,7 @@ public class ChunkDialect extends Dialect {
 			this.totalLength = list.get(5).getValueAsLong();
 
 			if (null != this.data) {
+				// 数据直接写入
 				ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
 				fact.write(this);
 			}

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,13 @@ THE SOFTWARE.
 
 package net.cellcloud.talk;
 
-import java.net.InetSocketAddress;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.cellcloud.common.Session;
+import net.cellcloud.core.Endpoint;
+import net.cellcloud.core.NucleusConfig;
 
 /** Talk 会话上下文。
  * 
@@ -36,26 +40,104 @@ import net.cellcloud.common.Session;
  */
 public final class TalkSessionContext {
 
-	private Session session;
+	private LinkedList<Session> sessions;
+	private ConcurrentHashMap<Long, Long> sessionHeartbeats;
 
 	private String tag;
 
+	private Endpoint endpoint;
+
 	private TalkTracker tracker;
 
-	public long tickTime = 0;
+	protected long dialogueTickTime = 0;
 
 	/** 构造函数。
 	 */
-	public TalkSessionContext(Session session, String tag, InetSocketAddress address) {
-		this.session = session;
+	public TalkSessionContext(String tag, Session session) {
 		this.tag = tag;
-		this.tracker = new TalkTracker(tag, address);
+
+		this.sessions = new LinkedList<Session>();
+		this.sessions.add(session);
+
+		this.sessionHeartbeats = new ConcurrentHashMap<Long, Long>();
+		this.sessionHeartbeats.put(session.getId(), System.currentTimeMillis());
+
+		this.endpoint = new Endpoint(tag, NucleusConfig.Role.CONSUMER, session.getAddress());
+		this.tracker = new TalkTracker();
 	}
 
 	/** 返回上下文对应的 Session 。
 	 */
-	public Session getSession() {
-		return this.session;
+	public Session getLastSession() {
+		synchronized (this.sessions) {
+			if (this.sessions.isEmpty()) {
+				return null;
+			}
+
+			return this.sessions.getLast();
+		}
+	}
+
+	/** 返回 Session 会话列表。
+	 * @return
+	 */
+	public List<Session> getSessions() {
+		synchronized (this.sessions) {
+			return this.sessions;
+		}
+	}
+
+	public long getSessionHeartbeat(Session session) {
+		synchronized (this.sessions) {
+			Long v = this.sessionHeartbeats.get(session.getId());
+			if (null == v) {
+				return 0;
+			}
+			return v.longValue();
+		}
+	}
+
+	public void addSession(Session session) {
+		synchronized (this.sessions) {
+			if (this.sessions.contains(session)) {
+				return;
+			}
+
+			this.sessions.add(session);
+			this.sessionHeartbeats.put(session.getId(), System.currentTimeMillis());
+		}
+	}
+
+	public void removeSession(Session session) {
+		synchronized (this.sessions) {
+			this.sessions.remove(session);
+			this.sessionHeartbeats.remove(session.getId());
+		}
+	}
+
+	public int numSessions() {
+		synchronized (this.sessions) {
+			return this.sessions.size();
+		}
+	}
+
+	public void updateSessionHeartbeat(Session session, long time) {
+		synchronized (this.sessions) {
+			if (this.sessions.isEmpty()) {
+				return;
+			}
+
+			// 先删除
+			this.sessionHeartbeats.remove(session.getId());
+
+			// 更新
+			this.sessionHeartbeats.put(session.getId(), time);
+
+			// 将心跳的 Session 放到队尾
+			if (this.sessions.remove(session)) {
+				this.sessions.offer(session);
+			}
+		}
 	}
 
 	/**
@@ -66,6 +148,12 @@ public final class TalkSessionContext {
 		return this.tag;
 	}
 
+	/** 返回终端。
+	 */
+	public Endpoint getEndpoint() {
+		return this.endpoint;
+	}
+
 	/**
 	 * 返回追踪器。
 	 * @return
@@ -73,34 +161,4 @@ public final class TalkSessionContext {
 	public TalkTracker getTracker() {
 		return this.tracker;
 	}
-
-	/** 返回所有 Tracker 。
-	 */
-//	public Map<String, TalkTracker> getTrackers() {
-//		return this.trackers;
-//	}
-
-	/** 返回指定 Tag 的 Tracker 。
-	 */
-//	public TalkTracker getTracker(final String tag) {
-//		return this.trackers.get(tag);
-//	}
-
-	/** 添加 Tracker 。
-	 */
-//	public TalkTracker addTracker(final String tag, final InetSocketAddress address) {
-//		if (this.trackers.containsKey(tag)) {
-//			this.trackers.remove(tag);
-//		}
-//
-//		TalkTracker tracker = new TalkTracker(tag, address);
-//		this.trackers.put(tag, tracker);
-//		return tracker;
-//	}
-
-	/** 删除 Tracker 。
-	 */
-//	public void removeTracker(final String tag) {
-//		this.trackers.remove(tag);
-//	}
 }

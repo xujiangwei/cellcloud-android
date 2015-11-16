@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.cellcloud.core.Cellet;
+
 /** 动作方言工厂。
  * 
  * @author Jiangwei Xu
@@ -85,6 +87,16 @@ public final class ActionDialectFactory extends DialectFactory {
 
 	@Override
 	protected boolean onDialogue(String identifier, Dialect dialect) {
+		return true;
+	}
+
+	@Override
+	protected boolean onTalk(Cellet cellet, String targetTag, Dialect dialect) {
+		return true;
+	}
+
+	@Override
+	protected boolean onDialogue(Cellet cellet, String sourceTag, Dialect dialect) {
 		return true;
 	}
 

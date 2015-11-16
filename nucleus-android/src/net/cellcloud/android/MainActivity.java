@@ -400,18 +400,6 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	@Override
-	public void suspended(String tag, long timestamp,
-			int mode) {
-		Logger.i(MainActivity.class, "suspended");
-	}
-
-	@Override
-	public void resumed(String tag, long timestamp,
-			Primitive primitive) {
-		Logger.i(MainActivity.class, "resumed");
-	}
-
-	@Override
 	public void failed(String tag, final TalkServiceFailure failure) {
 		Logger.w(MainActivity.class, "failed");
 		if (failure.getCode() == TalkFailureCode.CALL_FAILED) {

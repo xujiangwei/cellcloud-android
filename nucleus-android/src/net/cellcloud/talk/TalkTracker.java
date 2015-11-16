@@ -26,14 +26,11 @@ THE SOFTWARE.
 
 package net.cellcloud.talk;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 import net.cellcloud.core.Cellet;
-import net.cellcloud.core.Endpoint;
-import net.cellcloud.core.NucleusConfig;
 
 /** Talk 追踪器。
  * 
@@ -41,89 +38,59 @@ import net.cellcloud.core.NucleusConfig;
  */
 public final class TalkTracker {
 
-	private String tag;
-	private Endpoint endpoint;
+	private TalkCapacity capacity = null;
+	private LinkedList<Cellet> cellets = null;
 
-	private boolean autoSuspend = false;
-	private long suspendDuration = 5000;
-
-	private Vector<Cellet> cellets = null;
-
-	protected TalkTracker(String tag, InetSocketAddress address) {
-		this.tag = tag;
-		this.endpoint = new Endpoint(tag, NucleusConfig.Role.CONSUMER, address);
-		this.cellets = new Vector<Cellet>();
+	protected TalkTracker() {
+		this.cellets = new LinkedList<Cellet>();
 	}
 
-	/** 返回标签。
-	 */
-	public String getTag() {
-		return this.tag;
+	public void setCapacity(TalkCapacity capacity) {
+		this.capacity = capacity;
 	}
 
-	/** 返回终端。
-	 */
-	public Endpoint getEndpoint() {
-		return this.endpoint;
-	}
-
-	/** 返回是否进行自动挂起。
-	 */
-	public boolean isAutoSuspend() {
-		return this.autoSuspend;
-	}
-
-	/** 设置是否支持自动挂起。
-	 */
-	protected void setAutoSuspend(boolean value) {
-		this.autoSuspend = value;
-	}
-
-	/** 返回挂起时长。
-	 */
-	public long getSuspendDuration() {
-		return this.suspendDuration;
-	}
-
-	/** 设置挂起时长。
-	 */
-	protected long setSuspendDuration(long duration) {
-		if (duration < 5000)
-			this.suspendDuration = 5000;
-		else
-			this.suspendDuration = duration;
-
-		return this.suspendDuration;
+	public TalkCapacity getTalkCapacity() {
+		return this.capacity;
 	}
 
 	protected void addCellet(Cellet cellet) {
-		if (this.cellets.contains(cellet)) {
-			return;
-		}
+		synchronized (this.cellets) {
+			if (this.cellets.contains(cellet)) {
+				return;
+			}
 
-		this.cellets.add(cellet);
+			this.cellets.add(cellet);
+		}
 	}
 
 	protected void removeCellet(Cellet cellet) {
-		this.cellets.remove(cellet);
+		synchronized (this.cellets) {
+			this.cellets.remove(cellet);
+		}
 	}
 
 	protected Cellet getCellet(String identifier) {
-		for (Cellet cellet : this.cellets) {
-			if (cellet.getFeature().getIdentifier().equals(identifier)) {
-				return cellet;
+		synchronized (this.cellets) {
+			for (Cellet cellet : this.cellets) {
+				if (cellet.getFeature().getIdentifier().equals(identifier)) {
+					return cellet;
+				}
 			}
 		}
 		return null;
 	}
 
 	protected boolean hasCellet(Cellet cellet) {
-		return this.cellets.contains(cellet);
+		synchronized (this.cellets) {
+			return this.cellets.contains(cellet);
+		}
 	}
 	protected boolean hasCellet(String identifier) {
-		for (Cellet cellet : this.cellets) {
-			if (cellet.getFeature().getIdentifier().equals(identifier)) {
-				return true;
+		synchronized (this.cellets) {
+			for (Cellet cellet : this.cellets) {
+				if (cellet.getFeature().getIdentifier().equals(identifier)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -131,7 +98,9 @@ public final class TalkTracker {
 
 	protected List<Cellet> getCelletList() {
 		ArrayList<Cellet> list = new ArrayList<Cellet>();
-		list.addAll(this.cellets);
+		synchronized (this.cellets) {
+			list.addAll(this.cellets);
+		}
 		return list;
 	}
 }

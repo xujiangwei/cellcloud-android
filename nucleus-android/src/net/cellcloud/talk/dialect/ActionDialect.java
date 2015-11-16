@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2014 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.stuff.LiteralBase;
 import net.cellcloud.talk.stuff.ObjectiveStuff;
 import net.cellcloud.talk.stuff.PredicateStuff;
 import net.cellcloud.talk.stuff.SubjectStuff;
@@ -172,6 +173,22 @@ public class ActionDialect extends Dialect {
 	}
 	/** 添加动作参数键值对。
 	 */
+	public void appendParam(final String name, final float value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+	/** 添加动作参数键值对。
+	 */
+	public void appendParam(final String name, final double value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+	/** 添加动作参数键值对。
+	 */
 	public void appendParam(final String name, final boolean value) {
 		synchronized (this) {
 			this.nameList.add(name);
@@ -222,6 +239,28 @@ public class ActionDialect extends Dialect {
 	}
 	/** 返回指定名称的参数值。
 	 */
+	public float getParamAsFloat(final String name) {
+		synchronized (this) {
+			int index = this.nameList.indexOf(name);
+			if (index >= 0)
+				return this.valueList.get(index).getValueAsFloat();
+		}
+
+		return 0;
+	}
+	/** 返回指定名称的参数值。
+	 */
+	public double getParamAsDouble(final String name) {
+		synchronized (this) {
+			int index = this.nameList.indexOf(name);
+			if (index >= 0)
+				return this.valueList.get(index).getValueAsDouble();
+		}
+
+		return 0;
+	}
+	/** 返回指定名称的参数值。
+	 */
 	public boolean getParamAsBoolean(final String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
@@ -256,6 +295,49 @@ public class ActionDialect extends Dialect {
 	 */
 	public List<String> getParamNames() {
 		return this.nameList;
+	}
+
+	/**
+	 * 返回指定参数的数值字面义。
+	 * @param name
+	 * @return
+	 */
+	public LiteralBase getParamLiteralBase(String name) {
+		synchronized (this) {
+			int index = this.nameList.indexOf(name);
+			if (index >= 0) {
+				return this.valueList.get(index).getLiteralBase();
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * 创建数据副本。
+	 * @return
+	 */
+	public ActionDialect copy() {
+		ActionDialect copy = new ActionDialect();
+		synchronized (this) {
+			copy.tracker = this.tracker;
+			copy.tag = this.tag;
+			copy.celletIdentifier = this.celletIdentifier;
+			copy.cellet = this.cellet;
+
+			copy.action = this.action;
+
+			for (String name : this.nameList) {
+				copy.nameList.add(name);
+			}
+
+			for (ObjectiveStuff value : this.valueList) {
+				copy.valueList.add(value);
+			}
+
+			copy.customContext = this.customContext;
+		}
+		return copy;
 	}
 
 	/** 执行动作委派（异步）。

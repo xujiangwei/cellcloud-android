@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,29 @@ THE SOFTWARE.
 
 package net.cellcloud.talk;
 
-import net.cellcloud.common.Packet;
-import net.cellcloud.common.Session;
-import net.cellcloud.util.Utils;
+import net.cellcloud.core.Cellet;
+import net.cellcloud.talk.dialect.Dialect;
 
-/** Resume Command
- * 
+/**
  * @author Jiangwei Xu
  */
-public final class ServerResumeCommand extends ServerCommand {
+public interface CelletCallbackListener {
 
-	public ServerResumeCommand(TalkService service, Session session,
-			Packet packet) {
-		super(service, session, packet);
-	}
+	/**
+	 * 
+	 * @param cellet
+	 * @param targetTag
+	 * @param dialect
+	 * @return
+	 */
+	public boolean doTalk(Cellet cellet, String targetTag, Dialect dialect);
 
-	@Override
-	public void execute() {
-		// 包格式：内核标签|需要回复的原语起始时间戳
-
-		String tag = Utils.bytes2String(this.packet.getSubsegment(0));
-		long startTime = Long.parseLong(Utils.bytes2String(this.packet.getSubsegment(1)));
-
-		this.service.processResume(this.session, tag, startTime);
-	}
+	/**
+	 * 
+	 * @param cellet
+	 * @param sourceTag
+	 * @param dialect
+	 * @return
+	 */
+	public boolean doDialogue(Cellet cellet, String sourceTag, Dialect dialect);
 }

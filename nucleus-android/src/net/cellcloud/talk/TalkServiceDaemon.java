@@ -48,28 +48,6 @@ public final class TalkServiceDaemon extends TimerTask {
 		this.speakerHeartbeatMod = Math.round(180.0f / (float)intervalInSeconds);
 	}
 
-//	protected void resetSleepInterval(long interval) {
-//		if (interval < 1000) {
-//			return;
-//		}
-//
-//		if (this.interval == interval) {
-//			return;
-//		}
-//
-//		this.interval = interval;
-//
-//		// 换算为 1 秒
-//		int n = Math.round((float)interval / 1000.0f);
-//		if (n <= 0) {
-//			n = 1;
-//		}
-//		// 计算模数
-//		this.speakerHeartbeatMod = Math.round(120.0f / (float)n);
-//
-//		Logger.d(this.getClass(), "Reset heartbeat mod: " + this.speakerHeartbeatMod);
-//	}
-
 	@Override
 	public void run() {
 		if (this.running.get()) {
@@ -133,7 +111,7 @@ public final class TalkServiceDaemon extends TimerTask {
 						if (speaker.call(null)) {
 							StringBuilder buf = new StringBuilder();
 							buf.append("Retry call cellet '");
-							buf.append(speaker.getRemoteTag());
+							buf.append(speaker.getIdentifiers().get(0));
 							buf.append("' at ");
 							buf.append(speaker.getAddress().getAddress().getHostAddress());
 							buf.append(":");
@@ -144,7 +122,7 @@ public final class TalkServiceDaemon extends TimerTask {
 						else {
 							StringBuilder buf = new StringBuilder();
 							buf.append("Failed retry call cellet '");
-							buf.append(speaker.getRemoteTag());
+							buf.append(speaker.getIdentifiers().get(0));
 							buf.append("' at ");
 							buf.append(speaker.getAddress().getAddress().getHostAddress());
 							buf.append(":");
@@ -162,12 +140,6 @@ public final class TalkServiceDaemon extends TimerTask {
 
 		// 处理未识别 Session
 		service.processUnidentifiedSessions(this.tickTime);
-
-			// 10 分钟检查一次挂起状态下的会话器是否失效
-//			if (heartbeatCount % 60 == 0) {
-				// 检查并删除挂起的会话
-//				service.checkAndDeleteSuspendedTalk();
-//			}
 
 		this.running.set(false);
 	}
@@ -187,6 +159,6 @@ public final class TalkServiceDaemon extends TimerTask {
 
 		DialectEnumerator.getInstance().shutdownAll();
 
-		Logger.i(this.getClass(), "Talk service daemon stop.");
+		Logger.i(this.getClass(), "Talk service daemon quit.");
 	}
 }

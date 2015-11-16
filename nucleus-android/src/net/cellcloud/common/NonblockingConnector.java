@@ -48,7 +48,7 @@ import android.content.Context;
 public class NonblockingConnector extends MessageService implements MessageConnector {
 
 	// 缓冲块大小
-	private int block = 16384;
+	private int block = 32768;//16384;
 
 	private InetSocketAddress address;
 	private long connectTimeout;
