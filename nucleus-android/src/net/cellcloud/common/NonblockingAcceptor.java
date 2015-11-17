@@ -427,10 +427,10 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 						if (key.isAcceptable()) {
 							accept(key);
 						}
-						if (key.isReadable()) {
+						if (key.isValid() && key.isReadable()) {
 							receive(key);
 						}
-						if (key.isWritable()) {
+						if (key.isValid() && key.isWritable()) {
 							send(key);
 						}
 					}
