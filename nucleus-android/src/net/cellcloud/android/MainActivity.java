@@ -37,6 +37,7 @@ import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusConfig;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.Primitive;
+import net.cellcloud.talk.TalkCapacity;
 import net.cellcloud.talk.TalkFailureCode;
 import net.cellcloud.talk.TalkListener;
 import net.cellcloud.talk.TalkService;
@@ -179,8 +180,8 @@ public class MainActivity extends Activity implements TalkListener {
 				btnStop.setEnabled(true);
 				btnStart.setEnabled(false);
 
-				startChunkDemo();
-//				startDemo();
+//				startChunkDemo();
+				startDemo();
 			}
 		});
 
@@ -200,8 +201,8 @@ public class MainActivity extends Activity implements TalkListener {
 			talkService.addListener(this);
 		}
 
-//		TalkCapacity capacity = new TalkCapacity(3, 6000);
-		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port));
+		TalkCapacity capacity = new TalkCapacity(true, 3, 6000);
+		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port), capacity);
 		if (ret) {
 			this.txtLog.append("Calling cellet '"+ this.identifier +"' ...\n");
 		}
@@ -241,20 +242,20 @@ public class MainActivity extends Activity implements TalkListener {
 
 		this.counts.set(0);
 
-		final int num = 1;
+		final int num = 5;
 
 		// 创建测试用原语
 		final ArrayList<Primitive> primList = new ArrayList<Primitive>(num);
 
 		for (int i = 0; i < num; ++i) {
 			Primitive primitive = new Primitive();
-			primitive.commit(new SubjectStuff(Utils.randomInt()));
+			primitive.commit(new SubjectStuff(i));
 			primitive.commit(new PredicateStuff(Utils.randomString(1024)));
 			primitive.commit(new ObjectiveStuff(Utils.randomInt() % 2 == 0 ? true : false));
 
 			JSONObject json = new JSONObject();
 			try {
-				json.put("name", "Xu Jiangwei");
+				json.put("name", "徐江威");
 				json.put("timestamp", System.currentTimeMillis());
 
 				JSONObject phone = new JSONObject();
@@ -264,7 +265,7 @@ public class MainActivity extends Activity implements TalkListener {
 
 				JSONObject c1 = new JSONObject();
 				c1.put("name", "ThinkPad");
-				c1.put("vendor", "Lenovo");
+				c1.put("vendor", "Lenovo 联想");
 
 				JSONObject c2 = new JSONObject();
 				c2.put("name", "MacBook Pro");
@@ -398,7 +399,7 @@ public class MainActivity extends Activity implements TalkListener {
 					}
 				}
 				else {
-					txtLog.append("dialogue - [" + c + "] " + primitive.subjects().get(0).getValueAsString() + "\n");
+					txtLog.append("dialogue (primitive) - [" + c + "] " + primitive.subjects().get(0).getValueAsString() + "\n");
 				}
 			}
 		});

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -539,6 +539,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 				for (int i = 0, len = this.messages.size(); i < len; ++i) {
 					message = this.messages.remove(0);
 
+					byte[] skey = this.session.getSecretKey();
+					if (null != skey) {
+						this.encryptMessage(message, skey);
+					}
+
 					if (this.existDataMark()) {
 						byte[] data = message.get();
 						byte[] head = this.getHeadMark();
@@ -583,6 +588,12 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			if (!out.isEmpty()) {
 				for (byte[] bytes : out) {
 					Message message = new Message(bytes);
+
+					byte[] skey = this.session.getSecretKey();
+					if (null != skey) {
+						this.decryptMessage(message, skey);
+					}
+
 					if (null != this.handler) {
 						this.handler.messageReceived(this.session, message);
 					}
@@ -594,6 +605,12 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		}
 		else {
 			Message message = new Message(data);
+
+			byte[] skey = this.session.getSecretKey();
+			if (null != skey) {
+				this.decryptMessage(message, skey);
+			}
+
 			if (null != this.handler) {
 				this.handler.messageReceived(this.session, message);
 			}
@@ -776,5 +793,17 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			}
 		}
 		return true;
+	}
+
+	private void encryptMessage(Message message, byte[] key) {
+		byte[] plaintext = message.get();
+		byte[] ciphertext = Cryptology.getInstance().simpleEncrypt(plaintext, key);
+		message.set(ciphertext);
+	}
+
+	private void decryptMessage(Message message, byte[] key) {
+		byte[] ciphertext = message.get();
+		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
+		message.set(plaintext);
 	}
 }

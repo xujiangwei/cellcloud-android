@@ -32,6 +32,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
+import java.util.TimerTask;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.Logger;
@@ -61,6 +62,8 @@ public class Speaker implements Speakable {
 
 	protected TalkCapacity capacity;
 
+	private byte[] secretKey = null;
+
 	protected String remoteTag;
 
 	private boolean authenticated = false;
@@ -72,7 +75,7 @@ public class Speaker implements Speakable {
 	protected int retryCounts = 0;
 	protected boolean retryEnd = false;
 
-	private Timer timer = null;
+	private Timer contactedTimer = null;
 
 	/** 构造函数。
 	 */
@@ -138,7 +141,7 @@ public class Speaker implements Speakable {
 		}
 
 		if (null == this.connector) {
-			this.connector = new NonblockingConnector(Nucleus.getInstance().getApplication());
+			this.connector = new NonblockingConnector(Nucleus.getInstance().getAppContext());
 			this.connector.setBlockSize(this.block);
 
 			byte[] headMark = {0x20, 0x10, 0x11, 0x10};
@@ -227,15 +230,9 @@ public class Speaker implements Speakable {
 	public synchronized void hangUp() {
 		this.state = SpeakerState.HANGUP;
 
-		if (null != this.timer) {
-			try {
-				this.timer.cancel();
-				this.timer.purge();
-			} catch (Exception e) {
-				// Nothing
-			}
-
-			this.timer = null;
+		if (null != this.contactedTimer) {
+			this.contactedTimer.cancel();
+			this.contactedTimer = null;
 		}
 
 		if (null != this.connector) {
@@ -392,11 +389,50 @@ public class Speaker implements Speakable {
 	}
 
 	private void fireContacted(String celletIdentifier) {
-		this.delegate.onContacted(this, celletIdentifier);
+		if (null == this.contactedTimer) {
+			this.contactedTimer = new Timer();
+		}
+		else {
+			this.contactedTimer.cancel();
+			this.contactedTimer.purge();
+			this.contactedTimer = null;
+			this.contactedTimer = new Timer();
+		}
+
+		this.contactedTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				for (String cid : identifierList) {
+					delegate.onContacted(Speaker.this, cid);
+				}
+				contactedTimer = null;
+
+				// 请求成功，激活链路加密
+				if (capacity.secure) {
+					if (!connector.getSession().isSecure()) {
+						boolean ret = connector.getSession().activeSecretKey(secretKey);
+						if (ret) {
+							Logger.i(Speaker.class, "Active secret key for server: " + address.getAddress().getHostAddress() + ":" + address.getPort());
+						}
+					}
+				}
+				else {
+					connector.getSession().deactiveSecretKey();
+				}
+			}
+		}, 100);
 	}
 
 	private void fireQuitted(String celletIdentifier) {
+		if (null != this.contactedTimer) {
+			this.contactedTimer.cancel();
+			this.contactedTimer = null;
+		}
+
 		this.delegate.onQuitted(this, celletIdentifier);
+
+		// 吊销密钥
+		this.connector.getSession().deactiveSecretKey();
 	}
 
 //	private void fireSuspended(long timestamp, int mode) {
@@ -433,6 +469,10 @@ public class Speaker implements Speakable {
 		byte[] ciphertext = packet.getSubsegment(0);
 		byte[] key = packet.getSubsegment(1);
 
+		// 写密钥
+		this.secretKey = new byte[key.length];
+		System.arraycopy(key, 0, this.secretKey, 0, key.length);
+
 		// 解密
 		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
 
@@ -444,6 +484,24 @@ public class Speaker implements Speakable {
 		byte[] data = Packet.pack(response);
 		Message message = new Message(data);
 		session.write(message);
+	}
+
+	protected void requestConsult() {
+		// 协商能力
+		if (null == this.capacity) {
+			this.capacity = new TalkCapacity();
+		}
+
+		// 包格式：源标签|能力描述序列化数据
+		Packet packet = new Packet(TalkDefinition.TPT_CONSULT, 4, 1, 0);
+		packet.appendSubsegment(Utils.string2Bytes(Nucleus.getInstance().getTagAsString()));
+		packet.appendSubsegment(TalkCapacity.serialize(this.capacity));
+
+		byte[] data = Packet.pack(packet);
+		if (null != data) {
+			Message message = new Message(data);
+			this.connector.write(message);
+		}
 	}
 
 	protected void requestCellets(Session session) {
@@ -474,8 +532,15 @@ public class Speaker implements Speakable {
 			return;
 		}
 
-		// 设置新值
-		this.capacity = newCapacity;
+		// 更新能力
+		if (null == this.capacity) {
+			this.capacity = newCapacity;
+		}
+		else {
+			this.capacity.secure = newCapacity.secure;
+			this.capacity.retryAttempts = newCapacity.retryAttempts;
+			this.capacity.retryDelay = newCapacity.retryDelay;
+		}
 
 		if (Logger.isDebugLevel() && null != this.capacity) {
 			StringBuilder buf = new StringBuilder();
@@ -494,7 +559,7 @@ public class Speaker implements Speakable {
 		}
 	}
 
-	protected void doReply(Packet packet, Session session) {
+	protected void doRequest(Packet packet, Session session) {
 		// 包格式：
 		// 成功：请求方标签|成功码|Cellet识别串|Cellet版本
 		// 失败：请求方标签|失败码
@@ -533,11 +598,6 @@ public class Speaker implements Speakable {
 			this.fireFailed(failure);
 
 			this.connector.disconnect();
-		}
-
-		// 如果调用成功，则开始协商能力
-		if (SpeakerState.CALLED == this.state && null != this.capacity) {
-			this.consult(this.capacity);
 		}
 	}
 
@@ -588,22 +648,6 @@ public class Speaker implements Speakable {
 //
 //		this.fireResumed(timestamp, primitive);
 //	}
-
-	/** 向 Cellet 协商能力
-	 */
-	private void consult(TalkCapacity capacity) {
-		// 包格式：源标签|能力描述序列化数据
-
-		Packet packet = new Packet(TalkDefinition.TPT_CONSULT, 4, 1, 0);
-		packet.appendSubsegment(Utils.string2Bytes(Nucleus.getInstance().getTagAsString()));
-		packet.appendSubsegment(TalkCapacity.serialize(capacity));
-
-		byte[] data = Packet.pack(packet);
-		if (null != data) {
-			Message message = new Message(data);
-			this.connector.write(message);
-		}
-	}
 
 	/*private void smartSleepInterval() {
 		if (null != this.timer) {

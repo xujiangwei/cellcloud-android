@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,8 @@ public class Session {
 	private MessageService service;
 	private InetSocketAddress address;
 
+	private byte[] secretKey;
+
 	protected byte[] cache;
 	protected int cacheSize;
 	protected int cacheCursor;
@@ -48,6 +50,7 @@ public class Session {
 		this.id = Math.abs(Utils.randomLong());
 		this.service = service;
 		this.address = address;
+		this.secretKey = null;
 
 		this.cacheSize = 1024;
 		this.cache = new byte[this.cacheSize];
@@ -58,6 +61,7 @@ public class Session {
 		this.id = id;
 		this.service = service;
 		this.address = address;
+		this.secretKey = null;
 
 		this.cacheSize = 1024;
 		this.cache = new byte[this.cacheSize];
@@ -80,6 +84,49 @@ public class Session {
 	 */
 	public InetSocketAddress getAddress() {
 		return this.address;
+	}
+
+	/**
+	 * 返回是否是安全连接。
+	 * @return
+	 */
+	public boolean isSecure() {
+		return (null != this.secretKey);
+	}
+
+	/**
+	 * 激活密钥。
+	 * @param key
+	 * @return
+	 */
+	public boolean activeSecretKey(byte[] key) {
+		if (null == key) {
+			this.secretKey = null;
+			return false;
+		}
+
+		if (key.length < 8) {
+			return false;
+		}
+
+		this.secretKey = new byte[8];
+		System.arraycopy(key, 0, this.secretKey, 0, 8);
+		return true;
+	}
+
+	/**
+	 * 吊销密钥。
+	 */
+	public void deactiveSecretKey() {
+		this.secretKey = null;
+	}
+
+	/**
+	 * 返回安全密钥。
+	 * @return
+	 */
+	public byte[] getSecretKey() {
+		return this.secretKey;
 	}
 
 	/** 向该会话写消息。

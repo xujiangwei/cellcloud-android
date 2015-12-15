@@ -68,7 +68,7 @@ public final class ClusterConnector extends Observable implements MessageHandler
 	public ClusterConnector(InetSocketAddress address, Long hashCode) {
 		this.address = address;
 		this.hashCode = hashCode;
-		this.connector = new NonblockingConnector(Nucleus.getInstance().getApplication());
+		this.connector = new NonblockingConnector(Nucleus.getInstance().getAppContext());
 		this.buffer = ByteBuffer.allocate(this.bufferSize);
 		this.connector.setHandler(this);
 		this.protocolQueue = new LinkedList<ClusterProtocol>();

@@ -45,7 +45,7 @@ import net.cellcloud.common.Logger;
 import net.cellcloud.exception.CelletSandboxException;
 import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.TalkService;
-import android.app.Application;
+import android.content.Context;
 
 /** Cell Cloud 软件栈内核类。
  * 
@@ -59,7 +59,7 @@ public final class Nucleus {
 	private NucleusConfig config = null;
 	private NucleusContext context = null;
 
-	private Application application = null;
+	private Context appContext = null;
 
 	// 集群网络控制
 	private ClusterController clusterController = null;
@@ -74,14 +74,14 @@ public final class Nucleus {
 
 	/** 构造函数。
 	 */
-	private Nucleus(NucleusConfig config, Application application)
+	private Nucleus(NucleusConfig config, Context appContext)
 			throws SingletonException {
 		if (null == Nucleus.instance) {
 			Nucleus.instance = this;
 			// 设置配置
 			this.config = config;
 			// 设置 Android 上下文
-			this.application = application;
+			this.appContext = appContext;
 
 			// 生成标签
 			if (null != config.tag) {
@@ -107,9 +107,9 @@ public final class Nucleus {
 	 * @return
 	 * @throws SingletonException
 	 */
-	public synchronized static Nucleus createInstance(NucleusConfig config, Application application)
+	public synchronized static Nucleus createInstance(NucleusConfig config, Context appContext)
 			throws SingletonException {
-		return new Nucleus(config, application);
+		return new Nucleus(config, appContext);
 	}
 
 	/** 返回单例。 */
@@ -119,8 +119,8 @@ public final class Nucleus {
 
 	/** 返回 Android 全局上下文。
 	 */
-	public Application getApplication() {
-		return this.application;
+	public Context getAppContext() {
+		return this.appContext;
 	}
 
 	/** 返回内核标签。 */
