@@ -402,11 +402,6 @@ public class Speaker implements Speakable {
 		this.contactedTimer.schedule(new TimerTask() {
 			@Override
 			public void run() {
-				for (String cid : identifierList) {
-					delegate.onContacted(Speaker.this, cid);
-				}
-				contactedTimer = null;
-
 				// 请求成功，激活链路加密
 				if (capacity.secure) {
 					if (!connector.getSession().isSecure()) {
@@ -419,6 +414,11 @@ public class Speaker implements Speakable {
 				else {
 					connector.getSession().deactiveSecretKey();
 				}
+
+				for (String cid : identifierList) {
+					delegate.onContacted(Speaker.this, cid);
+				}
+				contactedTimer = null;
 			}
 		}, 100);
 	}
