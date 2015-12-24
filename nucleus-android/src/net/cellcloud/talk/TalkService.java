@@ -765,14 +765,14 @@ public final class TalkService implements Service, SpeakerDelegate {
 //		return false;
 //	}
 
-	public boolean resetSpeakerInterval(long interval) {
+	public boolean resetInterval(long interval) {
 		if (interval < 10) {
 			return false;
 		}
 
 		if (null != this.speakers) {
 			for (Speaker speaker : this.speakers) {
-				speaker.resetSleepInterval(interval);
+				speaker.resetInterval(interval);
 			}
 
 			return true;
