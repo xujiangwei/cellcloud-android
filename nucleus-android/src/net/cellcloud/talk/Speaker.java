@@ -144,6 +144,10 @@ public class Speaker implements Speakable {
 			this.connector = new NonblockingConnector(Nucleus.getInstance().getAppContext());
 			this.connector.setBlockSize(this.block);
 
+			if (null != this.capacity) {
+				this.connector.setConnectTimeout(this.capacity.connectTimeout);
+			}
+
 			byte[] headMark = {0x20, 0x10, 0x11, 0x10};
 			byte[] tailMark = {0x19, 0x78, 0x10, 0x04};
 			this.connector.defineDataMark(headMark, tailMark);

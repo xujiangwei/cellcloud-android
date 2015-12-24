@@ -42,6 +42,9 @@ public final class TalkCapacity {
 	/// 两次连接中间隔时间，单位毫秒
 	protected long retryDelay = 5000;
 
+	/// 连接超时，单位：毫秒
+	protected long connectTimeout = 10000;
+
 	public TalkCapacity() {
 	}
 
@@ -68,6 +71,10 @@ public final class TalkCapacity {
 		if (this.retryAttempts == Integer.MAX_VALUE) {
 			this.retryAttempts -= 1;
 		}
+	}
+
+	public void setConnectTimeout(long connectTimeout) {
+		this.connectTimeout = connectTimeout;
 	}
 
 	public final static byte[] serialize(TalkCapacity capacity) {
