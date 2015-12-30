@@ -471,7 +471,7 @@ public final class NonblockingAcceptorWorker extends Thread {
 			headPos = index;
 			// 判断是否有尾标签
 			while (index < len) {
-				if (real[index] == tailMark[0]) {
+//				if (real[index] == tailMark[0]) {
 					if (compareBytes(tailMark, 0, real, index, tailMark.length)) {
 						// 找到尾标签
 						tailPos = index;
@@ -480,10 +480,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 					else {
 						++index;
 					}
-				}
-				else {
-					++index;
-				}
+//				}
+//				else {
+//					++index;
+//				}
 			}
 
 			if (headPos > 0 && tailPos > 0) {
@@ -522,6 +522,11 @@ public final class NonblockingAcceptorWorker extends Thread {
 
 	private boolean compareBytes(byte[] b1, int offsetB1, byte[] b2, int offsetB2, int length) {
 		for (int i = 0; i < length; ++i) {
+			// FIXME XJW 2015-12-30 判断数组越界
+			if (offsetB1 + i >= b1.length || offsetB2 + i >= b2.length) {
+				return false;
+			}
+
 			if (b1[offsetB1 + i] != b2[offsetB2 + i]) {
 				return false;
 			}

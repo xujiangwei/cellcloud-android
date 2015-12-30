@@ -73,7 +73,7 @@ public final class TalkServiceDaemon extends TimerTask {
 				for (Speaker speaker : service.speakers) {
 					if (speaker.heartbeat()) {
 						Logger.i(TalkServiceDaemon.class,
-								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostName()
+								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress()
 								+ ":" + speaker.getAddress().getPort());
 					}
 				}

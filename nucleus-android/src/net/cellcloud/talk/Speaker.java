@@ -288,7 +288,7 @@ public class Speaker implements Speakable {
 
 	protected void sleep() {
 		if (null != this.connector) {
-			this.connector.resetInterval(2000);
+			this.connector.resetInterval(6000);
 		}
 	}
 

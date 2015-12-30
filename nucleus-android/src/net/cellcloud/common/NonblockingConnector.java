@@ -61,7 +61,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private Timer handleTimer = null;
 	private Runnable endingCallback = null;
-	private long timerInterval = 200;
+	private long timerInterval = 500;
 	private volatile boolean running = false;
 
 	private ByteBuffer readBuffer;
@@ -142,8 +142,8 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			// 设置 Socket 参数
 			this.channel.socket().setSoTimeout((int)(this.connectTimeout));
 			this.channel.socket().setKeepAlive(true);
-			this.channel.socket().setReceiveBufferSize(this.block + 512);
-			this.channel.socket().setSendBufferSize(this.block + 512);
+			this.channel.socket().setReceiveBufferSize(this.block + 64);
+			this.channel.socket().setSendBufferSize(this.block + 64);
 
 			this.selector = Selector.open();//SelectorProvider.provider().openSelector();
 
@@ -546,8 +546,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			// 处理数据
 			try {
 				this.process(array);
+			} catch (ArrayIndexOutOfBoundsException e) {
+				this.session.cacheCursor = 0;
+				Logger.log(NonblockingConnector.class, e, LogLevel.WARNING);
 			} catch (Exception e) {
-				// Nothing
+				Logger.log(NonblockingConnector.class, e, LogLevel.WARNING);
 			}
 
 			this.readBuffer.clear();
@@ -772,7 +775,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			headPos = index;
 			// 判断是否有尾标签
 			while (index < len) {
-				if (real[index] == tailMark[0]) {
+//				if (real[index] == tailMark[0]) {
 					if (compareBytes(tailMark, 0, real, index, tailMark.length)) {
 						// 找到尾标签
 						tailPos = index;
@@ -781,10 +784,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					else {
 						++index;
 					}
-				}
-				else {
-					++index;
-				}
+//				}
+//				else {
+//					++index;
+//				}
 			}
 
 			if (headPos > 0 && tailPos > 0) {
@@ -823,6 +826,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private boolean compareBytes(byte[] b1, int offsetB1, byte[] b2, int offsetB2, int length) {
 		for (int i = 0; i < length; ++i) {
+			// FIXME XJW 2015-12-30 判断数组越界
+			if (offsetB1 + i >= b1.length || offsetB2 + i >= b2.length) {
+				return false;
+			}
+
 			if (b1[offsetB1 + i] != b2[offsetB2 + i]) {
 				return false;
 			}
