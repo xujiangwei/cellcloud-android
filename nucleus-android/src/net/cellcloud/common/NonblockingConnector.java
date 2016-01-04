@@ -141,10 +141,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			this.channel.configureBlocking(false);
 
 			// 设置 Socket 参数
-			this.channel.socket().setSoTimeout((int)(this.connectTimeout));
+			this.channel.socket().setSoTimeout(5000);
 			this.channel.socket().setKeepAlive(true);
-			this.channel.socket().setReceiveBufferSize(this.block + 64);
-			this.channel.socket().setSendBufferSize(this.block + 64);
+			this.channel.socket().setReceiveBufferSize(this.block);
+			this.channel.socket().setSendBufferSize(this.block);
 
 			this.selector = Selector.open();//SelectorProvider.provider().openSelector();
 

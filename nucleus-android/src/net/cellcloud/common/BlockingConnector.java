@@ -32,7 +32,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
+import java.net.SocketTimeoutException;
 import java.util.LinkedList;
 
 import net.cellcloud.util.Utils;
@@ -57,7 +57,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private boolean spinning = false;
 	private boolean running = false;
 
-	private ByteBuffer readBuffer;
+	private InputStream inputStream;
 
 	private Session session;
 
@@ -65,7 +65,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	public BlockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
-		this.readBuffer = ByteBuffer.allocate(this.block);
 	}
 
 	/**
@@ -102,13 +101,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		try {
 			this.socket.setTcpNoDelay(true);
 			this.socket.setKeepAlive(true);
+			this.socket.setSoTimeout(10000);
 			this.socket.setSendBufferSize(this.block);
 			this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
-
-		this.readBuffer.clear();
 
 		this.session = new Session(this, address);
 
@@ -119,21 +117,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 				try {
 					socket.connect(address, (int)timeout);
+
+					inputStream = socket.getInputStream();
 				} catch (IOException e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
-					running = false;
-					socket = null;
-					return;
-				}
-
-				if (!socket.isConnected()) {
-					try {
-						socket.close();
-					} catch (IOException e) {
-						// Nothing
-					}
-					fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
 					running = false;
 					socket = null;
 					return;
@@ -150,6 +138,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				try {
 					loopDispatch();
 				} catch (Exception e) {
+					spinning = false;
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 				}
 
@@ -184,7 +173,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public boolean isConnected() {
-		return this.socket.isConnected();
+		return (null != this.socket && this.socket.isConnected());
 	}
 
 	@Override
@@ -199,8 +188,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 
 		this.block = size;
-		this.readBuffer = null;
-		this.readBuffer = ByteBuffer.allocate(this.block);
 	}
 
 	@Override
@@ -214,19 +201,50 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void write(Session session, Message message) {
+		if (null == this.socket) {
+			return;
+		}
+
+		if (this.socket.isClosed() || !this.socket.isConnected()) {
+			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+			return;
+		}
+
 		// 判断是否进行加密
 		byte[] skey = session.getSecretKey();
 		if (null != skey) {
 			this.encryptMessage(message, skey);
 		}
 
-		OutputStream stream = null;
 		try {
-			stream = this.socket.getOutputStream();
-			stream.write(message.get());
-			stream.flush();
+			OutputStream os = this.socket.getOutputStream();
+
+			if (this.existDataMark()) {
+				byte[] data = message.get();
+				byte[] head = this.getHeadMark();
+				byte[] tail = this.getTailMark();
+				byte[] pd = new byte[data.length + head.length + tail.length];
+				System.arraycopy(head, 0, pd, 0, head.length);
+				System.arraycopy(data, 0, pd, head.length, data.length);
+				System.arraycopy(tail, 0, pd, head.length + data.length, tail.length);
+
+				os.write(pd);
+				os.flush();
+
+				if (null != this.handler) {
+					this.handler.messageSent(this.session, message);
+				}
+			}
+			else {
+				os.write(message.get());
+				os.flush();
+
+				if (null != this.handler) {
+					this.handler.messageSent(this.session, message);
+				}
+			}
 		} catch (IOException e) {
-			Logger.log(this.getClass(), e, LogLevel.WARNING);
+			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 		}
 	}
 
@@ -269,28 +287,54 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private void loopDispatch() throws Exception {
 		// 自旋
 		this.spinning = true;
+		long time = System.currentTimeMillis();
 
 		while (this.spinning) {
-			if (!this.socket.isConnected()) {
+			if (null == this.socket || this.socket.isClosed()) {
 				break;
+			}
+
+			if (!this.socket.isConnected()) {
+				if (System.currentTimeMillis() - time > this.timeout) {
+					break;
+				}
+				else {
+					Thread.sleep(100);
+					continue;
+				}
 			}
 
 			byte[] buf = new byte[this.block];
 
-			InputStream in = this.socket.getInputStream();
-			int len = 0;
-			while ((len = in.read(buf)) > 0) {
-				this.readBuffer.put(buf, 0, len);
+			// 读取数据
+			int length = -1;
+			try {
+				time = System.currentTimeMillis();
+				length = inputStream.read(buf);
+			} catch (SocketTimeoutException e) {
+				// Nothing
 			}
 
-			this.readBuffer.flip();
+			if (length < 0) {
+				buf = null;
 
-			byte[] data = new byte[this.readBuffer.limit()];
-			this.readBuffer.get(data);
+				if (System.currentTimeMillis() - time <= 500) {
+					break;
+				}
+
+				try {
+					Thread.sleep(100);
+				} catch (Exception e) {
+					// Nothing;
+				}
+
+				continue;
+			}
+
+			byte[] data = new byte[length];
+			System.arraycopy(buf, 0, data, 0, length);
 
 			this.process(data);
-
-			this.readBuffer.clear();
 
 			data = null;
 			buf = null;
