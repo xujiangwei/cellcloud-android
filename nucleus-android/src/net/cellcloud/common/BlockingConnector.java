@@ -28,10 +28,12 @@ package net.cellcloud.common;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
 
 import net.cellcloud.util.Utils;
 import android.content.Context;
@@ -44,19 +46,18 @@ import android.content.Context;
 public class BlockingConnector extends MessageService implements MessageConnector {
 
 	// 缓冲块大小
-	private int block = 8192;
+	private int block = 65536;
 
 	// 超时时间
 	private long timeout = 15000;
 
-	private Socket socket;
+	private Socket socket = null;
 
 	private Thread handleThread;
 	private boolean spinning = false;
 	private boolean running = false;
 
 	private ByteBuffer readBuffer;
-	private ByteBuffer writeBuffer;
 
 	private Session session;
 
@@ -64,7 +65,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	public BlockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
-		this.socket = new Socket();
+		this.readBuffer = ByteBuffer.allocate(this.block);
 	}
 
 	/**
@@ -72,20 +73,19 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @return
 	 */
 	public InetSocketAddress getAddress() {
-		return (InetSocketAddress) this.socket.getRemoteSocketAddress();
+		return (null != this.session) ? this.session.getAddress() : null;//(InetSocketAddress) this.socket.getRemoteSocketAddress();
 	}
 
 	@Override
 	public boolean connect(final InetSocketAddress address) {
-		if (this.socket.isConnected()) {
-			Logger.w(BlockingConnector.class, "Connector has connected to " + address.getAddress().getHostAddress());
+		if (null != this.socket || this.running) {
 			return false;
 		}
 
-		// TODO 完善逻辑
-		if (this.running) {
-			this.spinning = false;
-		}
+//		if (this.socket.isConnected()) {
+//			Logger.w(BlockingConnector.class, "Connector has connected to " + address.getAddress().getHostAddress());
+//			return false;
+//		}
 
 		// For Android 2.2
 		System.setProperty("java.net.preferIPv6Addresses", "false");
@@ -95,12 +95,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
 			return false;
 		}
-//		if (!Utils.isWifiConnected(this.androidContext)) {
-//			if (!Utils.isMobileConnected(this.androidContext)) {
-//				this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
-//				return false;
-//			}
-//		}
+
+		// 创建新 Socket
+		this.socket = new Socket();
 
 		try {
 			this.socket.setTcpNoDelay(true);
@@ -111,39 +108,36 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
 
-		// 初始化 Buffer
-		if (null == this.readBuffer)
-			this.readBuffer = ByteBuffer.allocate(this.block);
-		else
-			this.readBuffer.reset();
-
-		if (null == this.writeBuffer)
-			this.writeBuffer = ByteBuffer.allocate(this.block);
-		else
-			this.writeBuffer.reset();
+		this.readBuffer.clear();
 
 		this.session = new Session(this, address);
-
-		try {
-			this.socket.connect(address, (int)this.timeout);
-		} catch (IOException e) {
-			Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
-		}
-
-		if (!this.socket.isConnected()) {
-			try {
-				this.socket.close();
-			} catch (IOException e) {
-				// Nothing
-			}
-			this.fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
-			return false;
-		}
 
 		this.handleThread = new Thread() {
 			@Override
 			public void run() {
 				running = true;
+
+				try {
+					socket.connect(address, (int)timeout);
+				} catch (IOException e) {
+					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
+					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+					running = false;
+					socket = null;
+					return;
+				}
+
+				if (!socket.isConnected()) {
+					try {
+						socket.close();
+					} catch (IOException e) {
+						// Nothing
+					}
+					fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
+					running = false;
+					socket = null;
+					return;
+				}
 
 				if (Logger.isDebugLevel()) {
 					Logger.d(BlockingConnector.class, this.getName());
@@ -175,6 +169,17 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void disconnect() {
+		this.spinning = false;
+
+		if (null != this.socket) {
+			try {
+				this.socket.close();
+			} catch (IOException e) {
+				Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
+			}
+
+			this.socket = null;
+		}
 	}
 
 	@Override
@@ -189,7 +194,13 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void setBlockSize(int size) {
+		if (this.block == size) {
+			return;
+		}
+
 		this.block = size;
+		this.readBuffer = null;
+		this.readBuffer = ByteBuffer.allocate(this.block);
 	}
 
 	@Override
@@ -203,10 +214,25 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void write(Session session, Message message) {
+		// 判断是否进行加密
+		byte[] skey = session.getSecretKey();
+		if (null != skey) {
+			this.encryptMessage(message, skey);
+		}
+
+		OutputStream stream = null;
+		try {
+			stream = this.socket.getOutputStream();
+			stream.write(message.get());
+			stream.flush();
+		} catch (IOException e) {
+			Logger.log(this.getClass(), e, LogLevel.WARNING);
+		}
 	}
 
 	@Override
 	public void read(Message message, Session session) {
+		// Nothing
 	}
 
 	private void fireSessionCreated() {
@@ -228,6 +254,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		if (null != this.handler) {
 			this.handler.sessionDestroyed(this.session);
 		}
+
+		if (null != this.socket) {
+			this.socket = null;
+		}
 	}
 	private void fireErrorOccurred(int errorCode) {
 		if (null != this.handler) {
@@ -240,13 +270,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		// 自旋
 		this.spinning = true;
 
-		byte[] buf = new byte[this.block];
-
 		while (this.spinning) {
 			if (!this.socket.isConnected()) {
-				Thread.sleep(100);
-				continue;
+				break;
 			}
+
+			byte[] buf = new byte[this.block];
 
 			InputStream in = this.socket.getInputStream();
 			int len = 0;
@@ -264,89 +293,157 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.readBuffer.clear();
 
 			data = null;
+			buf = null;
 		}
+
+		this.spinning = false;
 	}
 
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
-			byte[] headMark = this.getHeadMark();
-			byte[] tailMark = this.getTailMark();
+			LinkedList<byte[]> out = new LinkedList<byte[]>();
+			// 数据递归提取
+			this.extract(out, data);
 
-			int cursor = 0;
-			int length = data.length;
-			boolean head = false;
-			boolean tail = false;
-			byte[] buf = new byte[this.block];
-			int bufIndex = 0;
+			if (!out.isEmpty()) {
+				for (byte[] bytes : out) {
+					Message message = new Message(bytes);
 
-			while (cursor < length) {
-				head = true;
-				tail = true;
-
-				byte b = data[cursor];
-
-				// 判断是否是头标识
-				if (b == headMark[0]) {
-					for (int i = 1, len = headMark.length; i < len; ++i) {
-						if (data[cursor + i] != headMark[i]) {
-							head = false;
-							break;
-						}
+					byte[] skey = this.session.getSecretKey();
+					if (null != skey) {
+						this.decryptMessage(message, skey);
 					}
-				}
-				else {
-					head = false;
-				}
 
-				// 判断是否是尾标识
-				if (b == tailMark[0]) {
-					for (int i = 1, len = tailMark.length; i < len; ++i) {
-						if (data[cursor + i] != tailMark[i]) {
-							tail = false;
-							break;
-						}
-					}
-				}
-				else {
-					tail = false;
-				}
-
-				if (head) {
-					// 遇到头标识，开始记录数据
-					cursor += headMark.length;
-					bufIndex = 0;
-					buf[bufIndex] = data[cursor];
-				}
-				else if (tail) {
-					// 遇到尾标识，提取 buf 内数据
-					byte[] pdata = new byte[bufIndex + 1];
-					System.arraycopy(buf, 0, pdata, 0, bufIndex + 1);
-					Message message = new Message(pdata);
 					if (null != this.handler) {
 						this.handler.messageReceived(this.session, message);
 					}
-
-					cursor += tailMark.length;
-					// 后面要移动到下一个字节因此这里先减1
-					cursor -= 1;
-				}
-				else {
-					++bufIndex;
-					buf[bufIndex] = b;
 				}
 
-				// 下一个字节
-				++cursor;
+				out.clear();
 			}
-
-			buf = null;
+			out = null;
 		}
 		else {
 			Message message = new Message(data);
+
+			byte[] skey = this.session.getSecretKey();
+			if (null != skey) {
+				this.decryptMessage(message, skey);
+			}
+
 			if (null != this.handler) {
 				this.handler.messageReceived(this.session, message);
 			}
 		}
+	}
+
+	/**
+	 * 数据提取并输出。
+	 */
+	private void extract(final LinkedList<byte[]> out, final byte[] data) {
+		final byte[] headMark = this.getHeadMark();
+		final byte[] tailMark = this.getTailMark();
+
+		// 当数据小于标签长度时直接缓存
+		if (data.length < headMark.length) {
+			System.arraycopy(data, 0, this.session.cache, this.session.cacheCursor, data.length);
+			this.session.cacheCursor += data.length;
+			return;
+		}
+
+		byte[] real = data;
+		if (this.session.cacheCursor > 0) {
+			real = new byte[this.session.cacheCursor + data.length];
+			System.arraycopy(this.session.cache, 0, real, 0, this.session.cacheCursor);
+			System.arraycopy(data, 0, real, this.session.cacheCursor, data.length);
+			this.session.cacheCursor = 0;
+		}
+
+		int index = 0;
+		int len = real.length;
+		int headPos = -1;
+		int tailPos = -1;
+
+		if (compareBytes(headMark, 0, real, index, headMark.length)) {
+			// 有头标签
+			index += headMark.length;
+			// 记录数据位置头
+			headPos = index;
+			// 判断是否有尾标签
+			while (index < len) {
+//				if (real[index] == tailMark[0]) {
+					if (compareBytes(tailMark, 0, real, index, tailMark.length)) {
+						// 找到尾标签
+						tailPos = index;
+						break;
+					}
+					else {
+						++index;
+					}
+//				}
+//				else {
+//					++index;
+//				}
+			}
+
+			if (headPos > 0 && tailPos > 0) {
+				byte[] outBytes = new byte[tailPos - headPos];
+				System.arraycopy(real, headPos, outBytes, 0, tailPos - headPos);
+				out.add(outBytes);
+
+				int newLen = len - tailPos - tailMark.length;
+				if (newLen > 0) {
+					byte[] newBytes = new byte[newLen];
+					System.arraycopy(real, tailPos + tailMark.length, newBytes, 0, newLen);
+
+					// 递归
+					extract(out, newBytes);
+				}
+			}
+			else {
+				// 没有尾标签
+				// 仅进行缓存
+				if (len + this.session.cacheCursor > this.session.cacheSize) {
+					// 缓存扩容
+					this.session.resetCacheSize(len + this.session.cacheCursor);
+				}
+
+				System.arraycopy(real, 0, this.session.cache, this.session.cacheCursor, len);
+				this.session.cacheCursor += len;
+			}
+
+			return;
+		}
+
+		byte[] newBytes = new byte[len - headMark.length];
+		System.arraycopy(real, headMark.length, newBytes, 0, newBytes.length);
+		extract(out, newBytes);
+	}
+
+	private boolean compareBytes(byte[] b1, int offsetB1, byte[] b2, int offsetB2, int length) {
+		for (int i = 0; i < length; ++i) {
+			// FIXME XJW 2015-12-30 判断数组越界
+			if (offsetB1 + i >= b1.length || offsetB2 + i >= b2.length) {
+				return false;
+			}
+
+			if (b1[offsetB1 + i] != b2[offsetB2 + i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private void encryptMessage(Message message, byte[] key) {
+		byte[] plaintext = message.get();
+		byte[] ciphertext = Cryptology.getInstance().simpleEncrypt(plaintext, key);
+		message.set(ciphertext);
+	}
+
+	private void decryptMessage(Message message, byte[] key) {
+		byte[] ciphertext = message.get();
+		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
+		message.set(plaintext);
 	}
 }

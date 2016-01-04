@@ -45,6 +45,9 @@ public final class TalkCapacity {
 	/// 连接超时，单位：毫秒
 	protected long connectTimeout = 10000;
 
+	/// 是否使用阻塞连接器
+	protected boolean blocking = false;
+
 	public TalkCapacity() {
 	}
 
@@ -75,6 +78,10 @@ public final class TalkCapacity {
 
 	public void setConnectTimeout(long connectTimeout) {
 		this.connectTimeout = connectTimeout;
+	}
+
+	public void setBlocking(boolean blocking) {
+		this.blocking = blocking;
 	}
 
 	public final static byte[] serialize(TalkCapacity capacity) {

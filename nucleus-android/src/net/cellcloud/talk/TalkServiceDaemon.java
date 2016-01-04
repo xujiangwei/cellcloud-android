@@ -28,10 +28,8 @@ package net.cellcloud.talk;
 
 import java.util.Iterator;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.cellcloud.common.Logger;
-import net.cellcloud.talk.dialect.DialectEnumerator;
 
 /** Talk Service 守护线程。
  * 
@@ -39,7 +37,6 @@ import net.cellcloud.talk.dialect.DialectEnumerator;
  */
 public final class TalkServiceDaemon extends TimerTask {
 
-	private AtomicBoolean running = new AtomicBoolean(false);
 	private long tickTime = 0;
 	private int speakerHeartbeatMod = 0;
 	private int heartbeatCount = 0;
@@ -50,12 +47,6 @@ public final class TalkServiceDaemon extends TimerTask {
 
 	@Override
 	public void run() {
-		if (this.running.get()) {
-			return;
-		}
-
-		this.running.set(true);
-
 		// 当前时间
 		this.tickTime = System.currentTimeMillis();
 
@@ -85,7 +76,7 @@ public final class TalkServiceDaemon extends TimerTask {
 			Iterator<Speaker> iter = service.speakers.iterator();
 			while (iter.hasNext()) {
 				Speaker speaker = iter.next();
-				if (speaker.lost
+				if (speaker.isLost()
 					&& null != speaker.capacity
 					&& speaker.capacity.retryAttempts > 0) {
 					if (speaker.retryTimestamp == 0) {
@@ -139,26 +130,6 @@ public final class TalkServiceDaemon extends TimerTask {
 		}
 
 		// 处理未识别 Session
-		service.processUnidentifiedSessions(this.tickTime);
-
-		this.running.set(false);
-	}
-
-	public void stop() {
-		TalkService service = TalkService.getInstance();
-
-		// 关闭所有 Speaker
-		if (null != service.speakers) {
-			Iterator<Speaker> iter = service.speakers.iterator();
-			while (iter.hasNext()) {
-				Speaker speaker = iter.next();
-				speaker.hangUp();
-			}
-			service.speakers.clear();
-		}
-
-		DialectEnumerator.getInstance().shutdownAll();
-
-		Logger.i(this.getClass(), "Talk service daemon quit.");
+//		service.processUnidentifiedSessions(this.tickTime);
 	}
 }

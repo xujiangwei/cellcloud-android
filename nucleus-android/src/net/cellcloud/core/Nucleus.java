@@ -26,18 +26,9 @@ THE SOFTWARE.
 
 package net.cellcloud.core;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import net.cellcloud.cluster.ClusterController;
 import net.cellcloud.common.LogLevel;
@@ -154,6 +145,8 @@ public final class Nucleus {
 	public boolean startup() {
 		Logger.i(Nucleus.class, "*-*-* Cell Initializing *-*-*");
 
+		// FIXME XJW 2015-12-31 关闭 NODE 角色服务的代码
+		/*
 		// 角色：节点
 		if ((this.config.role & NucleusConfig.Role.NODE) != 0) {
 			if (null == this.clusterController) {
@@ -205,7 +198,7 @@ public final class Nucleus {
 
 			// 启动 Cellet
 			this.activateCellets();
-		}
+		}*/
 
 		// 角色：消费者
 		if ((this.config.role & NucleusConfig.Role.CONSUMER) != 0) {
@@ -219,16 +212,20 @@ public final class Nucleus {
 			}
 
 			// 启动守护线程
-			this.talkService.startDaemon(5);
+			this.talkService.startDaemon();
+
+			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	/** 关停内核。 */
 	public void shutdown() {
 		Logger.i(Nucleus.class, "*-*-* Cell Finalizing *-*-*");
 
+		// FIXME XJW 2015-12-31
+		/*
 		// 角色：节点
 		if ((this.config.role & NucleusConfig.Role.NODE) != 0) {
 			// 关闭集群服务
@@ -243,12 +240,13 @@ public final class Nucleus {
 			if (null != this.talkService) {
 				this.talkService.shutdown();
 			}
-
-		}
+		}*/
 
 		// 角色：消费者
 		if ((this.config.role & NucleusConfig.Role.CONSUMER) != 0) {
-			this.talkService.stopDaemon();
+			if (null != this.talkService) {
+				this.talkService.stopDaemon();
+			}
 		}
 	}
 
@@ -354,7 +352,7 @@ public final class Nucleus {
 
 	/** 加载外部 Jar 文件。
 	 */
-	private void loadExternalJar() {
+	/*private void loadExternalJar() {
 		if (null == this.celletJarClasses) {
 			return;
 		}
@@ -457,11 +455,11 @@ public final class Nucleus {
 				// Nothing
 			}
 		}
-	}
+	}*/
 
 	/** 启动所有 Cellets
 	 */
-	private void activateCellets() {
+	/*private void activateCellets() {
 		if (null != this.cellets && !this.cellets.isEmpty()) {
 			Iterator<Cellet> iter = this.cellets.values().iterator();
 			while (iter.hasNext()) {
@@ -472,16 +470,16 @@ public final class Nucleus {
 				cellet.activate();
 			}
 		}
-	}
+	}*/
 
 	/** 停止所有 Cellets
 	 */
-	private void deactivateCellets() {
+	/*private void deactivateCellets() {
 		if (null != this.cellets && !this.cellets.isEmpty()) {
 			Iterator<Cellet> iter = this.cellets.values().iterator();
 			while (iter.hasNext()) {
 				iter.next().deactivate();
 			}
 		}
-	}
+	}*/
 }

@@ -50,7 +50,7 @@ import android.content.Context;
 public class NonblockingConnector extends MessageService implements MessageConnector {
 
 	// 缓冲块大小
-	private int block = 32768;//16384;
+	private int block = 32768;
 
 	private InetSocketAddress address;
 	private long connectTimeout;
@@ -122,6 +122,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			while (this.running) {
 				try {
 					Thread.sleep(10);
+					Thread.yield();
 				} catch (InterruptedException e) {
 					Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 					break;
@@ -230,11 +231,16 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private void cleanup() {
 		try {
-			if (null != selector)
+			if (null != selector) {
 				this.selector.close();
+			}
 
-			if (null != this.channel)
+			if (null != this.channel) {
+				this.channel.socket().shutdownInput();
+				this.channel.socket().shutdownOutput();
+				this.channel.socket().close();
 				this.channel.close();
+			}
 		} catch (IOException e) {
 			// Nothing
 		}
@@ -251,15 +257,17 @@ public class NonblockingConnector extends MessageService implements MessageConne
 			}
 
 			try {
-				if (this.channel.isOpen()) {
-					this.channel.close();
-				}
+				this.channel.socket().shutdownInput();
+				this.channel.socket().shutdownOutput();
+				this.channel.socket().close();
 			} catch (Exception e) {
 				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
 
 			try {
-				this.channel.socket().close();
+				if (this.channel.isOpen()) {
+					this.channel.close();
+				}
 			} catch (Exception e) {
 				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}
@@ -539,7 +547,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 			this.readBuffer.flip();
 
-			// TODO 优化数据读取
+			// 数据读取
 			byte[] array = new byte[read];
 			this.readBuffer.get(array);
 

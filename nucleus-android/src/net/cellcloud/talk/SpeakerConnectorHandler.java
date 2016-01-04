@@ -122,9 +122,6 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			failure.setSourceDescription("Attempt to connect to host timed out");
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
-
-			// 标记为丢失
-			this.speaker.lost = true;
 		}
 		else if (errorCode == MessageErrorCode.NO_NETWORK) {
 			// 无网络错误
@@ -136,9 +133,6 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
-
-			// 标记为丢失
-			this.speaker.lost = true;
 		}
 	}
 

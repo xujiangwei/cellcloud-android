@@ -277,6 +277,7 @@ public final class PrimitiveSerializer {
 			}
 
 			stream.flush();
+			buf = null;
 		} catch (IOException e) {
 			Logger.log(PrimitiveSerializer.class, e, LogLevel.ERROR);
 		}
@@ -430,7 +431,7 @@ public final class PrimitiveSerializer {
 			}
 
 			buf.clear();
-
+			buf = null;
 		} catch (IOException e) {
 			Logger.log(PrimitiveSerializer.class, e, LogLevel.ERROR);
 		}

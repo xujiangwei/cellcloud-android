@@ -202,6 +202,7 @@ public class MainActivity extends Activity implements TalkListener {
 		}
 
 		TalkCapacity capacity = new TalkCapacity(true, 3, 6000);
+		capacity.setBlocking(true);
 		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port), capacity);
 		if (ret) {
 			this.txtLog.append("Calling cellet '"+ this.identifier +"' ...\n");

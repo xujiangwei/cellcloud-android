@@ -39,6 +39,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.LogLevel;
@@ -59,7 +60,6 @@ import net.cellcloud.talk.dialect.ChunkDialectFactory;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
 import net.cellcloud.talk.stuff.PrimitiveSerializer;
-import net.cellcloud.util.CachedQueueExecutor;
 import net.cellcloud.util.Utils;
 
 import org.json.JSONException;
@@ -86,7 +86,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	private TalkAcceptorHandler talkHandler;
 
 	// 线程执行器
-	protected ExecutorService executor;
+	protected ExecutorService executor = null;
 
 	/// 待检验 Session
 	private ConcurrentHashMap<Long, Certificate> unidentifiedSessions;
@@ -130,11 +130,11 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.sessionTimeout = 15 * 60 * 1000;
 
 			// 创建执行器
-			this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
+			this.executor = Executors.newCachedThreadPool();
 
 			// 添加默认方言工厂
-			DialectEnumerator.getInstance().addFactory(new ActionDialectFactory());
-			DialectEnumerator.getInstance().addFactory(new ChunkDialectFactory());
+			DialectEnumerator.getInstance().addFactory(new ActionDialectFactory(this.executor));
+			DialectEnumerator.getInstance().addFactory(new ChunkDialectFactory(this.executor));
 
 			this.callbackListener = DialectEnumerator.getInstance();
 			this.delegate = DialectEnumerator.getInstance();
@@ -191,7 +191,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		boolean succeeded = this.acceptor.bind(this.port);
 		if (succeeded) {
-			startDaemon(5);
+			this.startDaemon();
 		}
 
 		return succeeded;
@@ -210,15 +210,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		if (null != this.executor) {
 			this.executor.shutdown();
-		}
-		if (null != this.speakers) {
-			for (Speaker speaker : this.speakers) {
-				speaker.hangUp();
-			}
-			this.speakers.clear();
-		}
-		if (null != this.speakerMap) {
-			this.speakerMap.clear();
+			this.executor = null;
 		}
 	}
 
@@ -255,20 +247,23 @@ public final class TalkService implements Service, SpeakerDelegate {
 	//! 启动任务守护线程。
 	/*!
 	 */
-	public void startDaemon(int periodInSeconds) {
+	public void startDaemon() {
 		if (null == this.daemonTimer) {
 			this.daemonTimer = new Timer();
 		}
 		else {
 			this.daemonTimer.cancel();
 			this.daemonTimer.purge();
+			this.daemonTimer = null;
 		}
+
+		int periodInSeconds = 15;
 
 		if (null == this.daemon) {
 			this.daemon = new TalkServiceDaemon(periodInSeconds);
 		}
 
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 1000, periodInSeconds * 1000);
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000, periodInSeconds * 1000);
 	}
 
 	//! 关闭任务守护线程。
@@ -282,29 +277,42 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		if (null != this.daemon) {
-			this.daemon.stop();
 			this.daemon = null;
 		}
+
+		// 关闭所有 Speaker
+		if (null != this.speakers) {
+			Iterator<Speaker> iter = this.speakers.iterator();
+			while (iter.hasNext()) {
+				Speaker speaker = iter.next();
+				speaker.hangUp();
+			}
+			this.speakers.clear();
+		}
+
+		if (null != this.speakerMap) {
+			this.speakerMap.clear();
+		}
+
+		// 关闭所有方言工厂
+		DialectEnumerator.getInstance().shutdownAll();
 	}
 
 	//! 进入睡眠模式。
 	/*!
 	 */
 	public void sleep() {
-		if (null != this.daemon) {
-			this.daemon.cancel();
-			this.daemon = null;
-		}
-
 		if (null != this.daemonTimer) {
 			this.daemonTimer.cancel();
 			this.daemonTimer.purge();
 			this.daemonTimer = null;
 		}
 
+		this.daemon = null;
+
 		this.daemon = new TalkServiceDaemon(60);
 		this.daemonTimer = new Timer();
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 60000);
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000, 60000);
 
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
@@ -323,36 +331,17 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 		}
 
-		if (null != this.daemon) {
-			this.daemon.cancel();
-			this.daemon = null;
-		}
-
 		if (null != this.daemonTimer) {
 			this.daemonTimer.cancel();
 			this.daemonTimer.purge();
 			this.daemonTimer = null;
 		}
 
-		this.daemon = new TalkServiceDaemon(5);
+		this.daemon = null;
+
+		this.daemon = new TalkServiceDaemon(15);
 		this.daemonTimer = new Timer();
-
-		try {
-			this.daemonTimer.scheduleAtFixedRate(this.daemon, 2000, 5000);
-		} catch (Exception e) {
-			(new Thread() {
-				@Override
-				public void run() {
-					try {
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						Logger.log(TalkService.class, e, LogLevel.WARNING);
-					}
-
-					daemonTimer.scheduleAtFixedRate(daemon, 2000, 5000);
-				}
-			}).start();
-		}
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 15000);
 	}
 
 	//! 添加会话监听器。
@@ -711,7 +700,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 		}
 
+		// 方言转为原语
 		Primitive primitive = dialect.translate();
+
 		if (null != primitive) {
 			boolean ret = this.talk(identifier, primitive);
 
@@ -779,10 +770,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		return false;
-	}
-
-	public ExecutorService getExecutor() {
-		return this.executor;
 	}
 
 	/**
