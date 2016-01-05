@@ -180,8 +180,8 @@ public class MainActivity extends Activity implements TalkListener {
 				btnStop.setEnabled(true);
 				btnStart.setEnabled(false);
 
-				startChunkDemo();
-//				startDemo();
+//				startChunkDemo();
+				startDemo();
 			}
 		});
 
@@ -202,7 +202,7 @@ public class MainActivity extends Activity implements TalkListener {
 		}
 
 		TalkCapacity capacity = new TalkCapacity(true, 3, 6000);
-		capacity.setBlocking(true);
+//		capacity.setBlocking(true);
 		boolean ret = talkService.call(new String[]{this.identifier}, new InetSocketAddress(this.address, this.port), capacity);
 		if (ret) {
 			this.txtLog.append("Calling cellet '"+ this.identifier +"' ...\n");
