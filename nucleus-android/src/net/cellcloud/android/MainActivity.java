@@ -180,8 +180,8 @@ public class MainActivity extends Activity implements TalkListener {
 				btnStop.setEnabled(true);
 				btnStart.setEnabled(false);
 
-//				startChunkDemo();
-				startDemo();
+				startChunkDemo();
+//				startDemo();
 			}
 		});
 
