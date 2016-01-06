@@ -49,7 +49,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private int block = 65536;
 
 	// 超时时间
-	private long timeout = 15000;
+	private int soTimeout = 3000;
+	private long connTimeout = 15000;
+
+	private long timerInterval = 1000;
 
 	private Socket socket = null;
 
@@ -101,7 +104,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		try {
 			this.socket.setTcpNoDelay(true);
 			this.socket.setKeepAlive(true);
-			this.socket.setSoTimeout(10000);
+			this.socket.setSoTimeout(this.soTimeout);
 			this.socket.setSendBufferSize(this.block);
 			this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
@@ -116,7 +119,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				running = true;
 
 				try {
-					socket.connect(address, (int)timeout);
+					socket.connect(address, (int)connTimeout);
 
 					inputStream = socket.getInputStream();
 				} catch (IOException e) {
@@ -178,7 +181,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void setConnectTimeout(long timeout) {
-		this.timeout = timeout;
+		this.connTimeout = timeout;
 	}
 
 	@Override
@@ -253,6 +256,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		// Nothing
 	}
 
+	public void resetInterval(long value) {
+		if (this.timerInterval == value) {
+			return;
+		}
+
+		this.timerInterval = value;
+	}
+
 	private void fireSessionCreated() {
 		if (null != this.handler) {
 			this.handler.sessionCreated(this.session);
@@ -295,7 +306,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			}
 
 			if (!this.socket.isConnected()) {
-				if (System.currentTimeMillis() - time > this.timeout) {
+				if (System.currentTimeMillis() - time > this.connTimeout) {
 					break;
 				}
 				else {
@@ -315,7 +326,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				// Nothing
 			}
 
-			if (length < 0) {
+			if (length <= 0) {
 				buf = null;
 
 				if (System.currentTimeMillis() - time <= 500) {
@@ -323,10 +334,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				}
 
 				try {
-					Thread.sleep(100);
+					Thread.sleep(this.timerInterval);
 				} catch (Exception e) {
 					// Nothing;
 				}
+
+				Thread.yield();
 
 				continue;
 			}

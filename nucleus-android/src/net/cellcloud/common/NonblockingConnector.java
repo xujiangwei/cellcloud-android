@@ -357,6 +357,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	 * @param value
 	 */
 	public void resetInterval(long value) {
+		if (this.timerInterval == value) {
+			return;
+		}
+
 		this.timerInterval = value;
 
 		if (null != this.handleTimer) {

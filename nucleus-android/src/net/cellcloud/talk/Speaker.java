@@ -326,17 +326,27 @@ public class Speaker implements Speakable {
 		if (null != this.nonblockingConnector) {
 			this.nonblockingConnector.resetInterval(6000);
 		}
+		else if (null != this.blockingConnector) {
+			this.blockingConnector.resetInterval(6000);
+		}
 	}
 
 	protected void wakeup() {
 		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(500);
+			this.nonblockingConnector.resetInterval(1000);
+		}
+		else if (null != this.blockingConnector) {
+			this.blockingConnector.resetInterval(1000);
 		}
 	}
 
 	protected boolean resetInterval(long interval) {
 		if (null != this.nonblockingConnector) {
 			this.nonblockingConnector.resetInterval(interval);
+			return true;
+		}
+		else if (null != this.blockingConnector) {
+			this.blockingConnector.resetInterval(interval);
 			return true;
 		}
 		else {

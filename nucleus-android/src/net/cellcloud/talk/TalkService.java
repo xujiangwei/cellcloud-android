@@ -324,13 +324,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	//! 从睡眠模式唤醒。
 	/*!
 	 */
-	public void wakeup() throws RuntimeException {
-		if (null != this.speakers) {
-			for (Speaker s : this.speakers) {
-				s.wakeup();
-			}
-		}
-
+	public void wakeup() {
 		if (null != this.daemonTimer) {
 			this.daemonTimer.cancel();
 			this.daemonTimer.purge();
@@ -342,6 +336,12 @@ public final class TalkService implements Service, SpeakerDelegate {
 		this.daemon = new TalkServiceDaemon(15);
 		this.daemonTimer = new Timer();
 		this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 15000);
+
+		if (null != this.speakers) {
+			for (Speaker s : this.speakers) {
+				s.wakeup();
+			}
+		}
 	}
 
 	//! 添加会话监听器。
@@ -757,7 +757,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 //	}
 
 	public boolean resetInterval(long interval) {
-		if (interval < 10) {
+		if (interval < 20) {
 			return false;
 		}
 

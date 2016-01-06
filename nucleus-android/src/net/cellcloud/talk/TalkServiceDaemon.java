@@ -42,7 +42,7 @@ public final class TalkServiceDaemon extends TimerTask {
 	private int heartbeatCount = 0;
 
 	public TalkServiceDaemon(int intervalInSeconds) {
-		this.speakerHeartbeatMod = Math.round(180.0f / (float)intervalInSeconds);
+		this.speakerHeartbeatMod = Math.round(300.0f / (float)intervalInSeconds);
 	}
 
 	@Override
@@ -59,7 +59,7 @@ public final class TalkServiceDaemon extends TimerTask {
 		TalkService service = TalkService.getInstance();
 
 		if (this.heartbeatCount % this.speakerHeartbeatMod == 0) {
-			// 3分钟一次心跳
+			// 5分钟一次心跳
 			if (null != service.speakers) {
 				for (Speaker speaker : service.speakers) {
 					if (speaker.heartbeat()) {
