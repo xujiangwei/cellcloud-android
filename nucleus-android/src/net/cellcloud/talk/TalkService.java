@@ -788,8 +788,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		if (null != this.listeners) {
 			synchronized (this.listeners) {
-				for (TalkListener listener : this.listeners) {
-					listener.dialogue(identifier, primitive);
+				for (int i = 0; i < this.listeners.size(); ++i) {
+					this.listeners.get(i).dialogue(identifier, primitive);
 				}
 			}
 		}
@@ -810,8 +810,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (TalkListener listener : this.listeners) {
-				listener.contacted(identifier, tag);
+			for (int i = 0; i < this.listeners.size(); ++i) {
+				this.listeners.get(i).contacted(identifier, tag);
 			}
 		}
 	}
@@ -827,8 +827,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (TalkListener listener : this.listeners) {
-				listener.quitted(identifier, tag);
+			for (int i = 0; i < this.listeners.size(); ++i) {
+				this.listeners.get(i).quitted(identifier, tag);
 			}
 		}
 	}
@@ -878,8 +878,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (TalkListener listener : this.listeners) {
-				listener.failed(tag, failure);
+			for (int i = 0; i < this.listeners.size(); ++i) {
+				this.listeners.get(i).failed(tag, failure);
 			}
 		}
 	}

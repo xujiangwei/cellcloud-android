@@ -128,6 +128,9 @@ public class Speaker implements Speakable {
 			return false;
 		}
 
+		// 将状态置为 Calling
+		this.state = SpeakerState.CALLING;
+
 		if (null != identifiers) {
 			for (String identifier : identifiers) {
 				if (this.identifierList.contains(identifier)) {
@@ -140,6 +143,8 @@ public class Speaker implements Speakable {
 
 		if (this.identifierList.isEmpty()) {
 			Logger.w(Speaker.class, "Can not find any cellets to call in param 'identifiers'.");
+			// 重置状态
+			this.state = SpeakerState.HANGUP;
 			return false;
 		}
 
@@ -184,7 +189,6 @@ public class Speaker implements Speakable {
 		}
 
 		// 设置状态
-		this.state = SpeakerState.HANGUP;
 		this.authenticated = false;
 
 		(new Thread(new Runnable() {
@@ -198,6 +202,12 @@ public class Speaker implements Speakable {
 					state = SpeakerState.CALLING;
 					lost = false;
 					retryTimestamp = 0;
+				}
+				else {
+					// 设置为挂断状态
+					state = SpeakerState.HANGUP;
+					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, Speaker.class);
+					delegate.onFailed(Speaker.this, failure);
 				}
 			}
 		})).start();

@@ -152,8 +152,18 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				running = false;
 			}
 		};
-		this.handleThread.setName(new StringBuilder("BlockingConnector[").append(this.handleThread).append("]@")
-				.append(address.getAddress().getHostAddress()).append(":").append(address.getPort()).toString());
+
+		try {
+			// Wifi 网络连接正常，但无法获得正确的网络路由信息时 getHostAddress() 会出错
+			this.handleThread.setName(new StringBuilder("BlockingConnector[").append(this.handleThread).append("]@")
+					.append(address.getAddress().getHostAddress()).append(":").append(address.getPort()).toString());
+		} catch (Exception e) {
+			Logger.log(BlockingConnector.class, e, LogLevel.INFO);
+			this.socket = null;
+			this.handleThread = null;
+			return false;
+		}
+
 		this.handleThread.start();
 
 		return true;

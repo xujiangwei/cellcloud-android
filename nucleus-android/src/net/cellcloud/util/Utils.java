@@ -185,8 +185,7 @@ public final class Utils {
 	/** 是否有网络连接。
 	 */
 	public static boolean isNetworkConnected(Context context) {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 		if (null != networkInfo) {
 			return networkInfo.isAvailable();
@@ -198,8 +197,7 @@ public final class Utils {
 	/** 是否有 WIFI 网络连接。
 	 */
 	public static boolean isWifiConnected(Context context) {
-		ConnectivityManager connectivityManager = (ConnectivityManager) context
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
+		ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 		if (null != networkInfo) {
 			return networkInfo.isAvailable();
