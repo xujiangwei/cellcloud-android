@@ -250,6 +250,14 @@ public final class Nucleus {
 		}
 	}
 
+	/**
+	 * 判断内核是否就绪。
+	 * @return
+	 */
+	public boolean isReady() {
+		return (null != this.talkService && this.talkService.daemonRunning());
+	}
+
 	/** 返回注册在该内核上的指定的 Cellet 。
 	 */
 	public Cellet getCellet(final String identifier, final NucleusContext context) {

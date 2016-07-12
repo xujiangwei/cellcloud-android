@@ -3,8 +3,10 @@
 
     <string name="app_name">Nucleus Android</string>
     <string name="menu_settings">Settings</string>
-    <string name="btn_ready">Ready</string>
-    <string name="btn_start">Start</string>
-    <string name="btn_stop">Stop</string>
+    <string name="btn_ready">准备</string>
+    <string name="btn_start">开始</string>
+    <string name="btn_stop">结束</string>
+    <string name="btn_receiver">启动接收端</string>
+    <string name="btn_sender">启动发送端</string>
 
 </resources>

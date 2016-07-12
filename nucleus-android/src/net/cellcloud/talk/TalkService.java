@@ -116,8 +116,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/*!
 	 * \throws SingletonException 
 	 */
-	public TalkService(NucleusContext nucleusContext)
-			throws SingletonException {
+	public TalkService(NucleusContext nucleusContext) throws SingletonException {
 		if (null == TalkService.instance) {
 			TalkService.instance = this;
 
@@ -296,6 +295,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		// 关闭所有方言工厂
 		DialectEnumerator.getInstance().shutdownAll();
+	}
+
+	public boolean daemonRunning() {
+		return (null != this.daemon);
 	}
 
 	//! 进入睡眠模式。
