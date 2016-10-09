@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
 
 import net.cellcloud.common.BlockingConnector;
 import net.cellcloud.common.Cryptology;
@@ -80,24 +81,28 @@ public class Speaker implements Speakable {
 
 	private Timer contactedTimer = null;
 
+	private ExecutorService executor;
+
 	/** 构造函数。
 	 */
-	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block) {
+	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, ExecutorService executor) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
+		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
 	}
 
 	/** 构造函数。
 	 */
-	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, TalkCapacity capacity) {
+	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, TalkCapacity capacity, ExecutorService executor) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
 		this.capacity = capacity;
+		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
 	}
 
@@ -150,7 +155,7 @@ public class Speaker implements Speakable {
 
 		if (null != this.capacity && this.capacity.blocking) {
 			if (null == this.blockingConnector) {
-				this.blockingConnector = new BlockingConnector(Nucleus.getInstance().getAppContext());
+				this.blockingConnector = new BlockingConnector(Nucleus.getInstance().getAppContext(), this.executor);
 				this.blockingConnector.setBlockSize(this.block);
 				this.blockingConnector.setConnectTimeout(this.capacity.connectTimeout);
 
@@ -270,6 +275,7 @@ public class Speaker implements Speakable {
 
 		if (null != this.contactedTimer) {
 			this.contactedTimer.cancel();
+			this.contactedTimer.purge();
 			this.contactedTimer = null;
 		}
 
@@ -487,7 +493,17 @@ public class Speaker implements Speakable {
 				for (String cid : identifierList) {
 					delegate.onContacted(Speaker.this, cid);
 				}
-				contactedTimer = null;
+
+				(new Thread(new Runnable() {
+					@Override
+					public void run() {
+						if (null != contactedTimer) {
+							contactedTimer.cancel();
+							contactedTimer.purge();
+							contactedTimer = null;
+						}
+					}
+				})).start();
 			}
 		}, 300);
 	}
@@ -495,6 +511,7 @@ public class Speaker implements Speakable {
 	private void fireQuitted(String celletIdentifier) {
 		if (null != this.contactedTimer) {
 			this.contactedTimer.cancel();
+			this.contactedTimer.purge();
 			this.contactedTimer = null;
 		}
 

@@ -86,7 +86,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	private TalkAcceptorHandler talkHandler;
 
 	// 线程执行器
-	protected ExecutorService executor = null;
+	protected ExecutorService executor;
 
 	/// 待检验 Session
 	private ConcurrentHashMap<Long, Certificate> unidentifiedSessions;
@@ -209,7 +209,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		if (null != this.executor) {
 			this.executor.shutdown();
-			this.executor = null;
 		}
 	}
 
@@ -565,7 +564,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 
 			// 创建新的 Speaker
-			Speaker speaker = new Speaker(address, this, this.block, capacity);
+			Speaker speaker = new Speaker(address, this, this.block, capacity, this.executor);
 			this.speakers.add(speaker);
 
 			// FIXME 28/11/14 原先在 call 检查 Speaker 是否是 Lost 状态，如果 lost 是 true，则置为 false

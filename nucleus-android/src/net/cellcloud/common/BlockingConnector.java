@@ -34,6 +34,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.cellcloud.util.Utils;
 import android.content.Context;
@@ -66,8 +68,15 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	private Context androidContext;
 
-	public BlockingConnector(Context androidContext) {
+	private ExecutorService executor;
+	private AtomicBoolean writing;
+	private LinkedList<Message> messageQueue;
+
+	public BlockingConnector(Context androidContext, ExecutorService executor) {
 		this.androidContext = androidContext;
+		this.executor = executor;
+		this.writing = new AtomicBoolean(false);
+		this.messageQueue = new LinkedList<Message>();
 	}
 
 	/**
@@ -229,6 +238,33 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.encryptMessage(message, skey);
 		}
 
+		synchronized (this.messageQueue) {
+			this.messageQueue.add(message);
+		}
+
+		if (!this.writing.get()) {
+			this.writing.set(true);
+
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					flushMessage();
+				}
+			});
+		}
+	}
+
+	private void flushMessage() {
+		Message message = null;
+		synchronized (this.messageQueue) {
+			if (this.messageQueue.isEmpty()) {
+				this.writing.set(false);
+				return;
+			}
+
+			message = this.messageQueue.removeFirst();
+		}
+
 		try {
 			OutputStream os = this.socket.getOutputStream();
 
@@ -259,6 +295,21 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		} catch (IOException e) {
 			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 		}
+
+		synchronized (this.messageQueue) {
+			if (this.messageQueue.isEmpty()) {
+				this.writing.set(false);
+				return;
+			}
+		}
+
+		this.writing.set(true);
+		this.executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				flushMessage();
+			}
+		});
 	}
 
 	@Override
