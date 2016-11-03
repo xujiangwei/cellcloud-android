@@ -33,11 +33,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.cellcloud.util.Utils;
 import android.content.Context;
 
 /** 阻塞式网络连接器。
@@ -52,9 +52,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	// 超时时间
 	private int soTimeout = 3000;
-	private long connTimeout = 15000;
+	private long connTimeout = 15000L;
 
-	private long timerInterval = 1000;
+	private long timerInterval = 1000L;
 
 	private Socket socket = null;
 
@@ -62,18 +62,16 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private boolean spinning = false;
 	private boolean running = false;
 
-	private InputStream inputStream;
-
 	private Session session;
 
-	private Context androidContext;
+//	private Context androidContext;
 
 	private ExecutorService executor;
 	private AtomicBoolean writing;
 	private LinkedList<Message> messageQueue;
 
 	public BlockingConnector(Context androidContext, ExecutorService executor) {
-		this.androidContext = androidContext;
+//		this.androidContext = androidContext;
 		this.executor = executor;
 		this.writing = new AtomicBoolean(false);
 		this.messageQueue = new LinkedList<Message>();
@@ -102,10 +100,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		System.setProperty("java.net.preferIPv6Addresses", "false");
 
 		// 判断是否有网络连接
-		if (!Utils.isNetworkConnected(this.androidContext)) {
-			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
-			return false;
-		}
+		// FIXME 1.3.37 取消调用该方法
+//		if (!Utils.isNetworkConnected(this.androidContext)) {
+//			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
+//			return false;
+//		}
 
 		// 创建新 Socket
 		this.socket = new Socket();
@@ -114,8 +113,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.socket.setTcpNoDelay(true);
 			this.socket.setKeepAlive(true);
 			this.socket.setSoTimeout(this.soTimeout);
-			this.socket.setSendBufferSize(this.block);
-			this.socket.setReceiveBufferSize(this.block);
+//			this.socket.setSendBufferSize(this.block);
+//			this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
@@ -129,8 +128,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 				try {
 					socket.connect(address, (int)connTimeout);
-
-					inputStream = socket.getInputStream();
 				} catch (IOException e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
@@ -167,13 +164,30 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.handleThread.setName(new StringBuilder("BlockingConnector[").append(this.handleThread).append("]@")
 					.append(address.getAddress().getHostAddress()).append(":").append(address.getPort()).toString());
 		} catch (Exception e) {
-			Logger.log(BlockingConnector.class, e, LogLevel.INFO);
-			this.socket = null;
-			this.handleThread = null;
-			return false;
+			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
+			this.handleThread.setName("BlockingConnector[" + this.handleThread + "]");
 		}
 
+		// 启动线程
 		this.handleThread.start();
+
+		// 判断是否连接成功
+		long duration = 0;
+		while (!this.socket.isConnected()) {
+			try {
+				Thread.sleep(10L);
+			} catch (InterruptedException e) {
+				// Nothing
+			}
+
+			duration += 10L;
+			if (duration >= this.connTimeout) {
+				Logger.w(this.getClass(), "Connect " + address.toString() + " timeout.");
+				fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
+				this.disconnect();
+				return false;
+			}
+		}
 
 		return true;
 	}
@@ -200,7 +214,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	@Override
 	public void setConnectTimeout(long timeout) {
-		this.connTimeout = timeout;
+		this.connTimeout = (int)timeout;
 	}
 
 	@Override
@@ -359,40 +373,71 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private void loopDispatch() throws Exception {
 		// 自旋
 		this.spinning = true;
-		long time = System.currentTimeMillis();
+		final long time = System.currentTimeMillis();
+
+		InputStream inputStream = this.socket.getInputStream();
 
 		while (this.spinning) {
-			if (null == this.socket || this.socket.isClosed()) {
+			if (null == this.socket) {
+				this.spinning = false;
 				break;
 			}
 
-			if (!this.socket.isConnected()) {
-				if (System.currentTimeMillis() - time > this.connTimeout) {
-					break;
+			if (this.socket.isClosed()) {
+				if (System.currentTimeMillis() - time < this.connTimeout) {
+					try {
+						Thread.sleep(100L);
+					} catch (Exception e) {
+						// Nothing
+					}
+
+					continue;
 				}
 				else {
-					Thread.sleep(100);
-					continue;
+					// 超时未连通
+					this.spinning = false;
+					break;
 				}
 			}
 
-			byte[] buf = new byte[this.block];
+			if (!this.socket.isConnected()) {
+				try {
+					Thread.sleep(100L);
+				} catch (Exception e) {
+					// Nothing
+				}
+
+				continue;
+			}
+
+			ByteBuffer bytes = ByteBuffer.allocate(this.block);
+			byte[] buf = new byte[8192];
 
 			// 读取数据
 			int length = -1;
+			int total = 0;
 			try {
-				time = System.currentTimeMillis();
 				length = inputStream.read(buf);
+				if (length > 0) {
+					bytes.put(buf, 0, length);
+					total += length;
+				}
+
+				while (inputStream.available() > 0) {
+					length = inputStream.read(buf);
+					if (length > 0) {
+						bytes.put(buf, 0, length);
+						total += length;
+					}
+				}
 			} catch (SocketTimeoutException e) {
 				// Nothing
 			}
 
-			if (length <= 0) {
+			if (total == 0) {
+				// 超时未读取到数据
+				bytes = null;
 				buf = null;
-
-				if (System.currentTimeMillis() - time <= 500) {
-					break;
-				}
 
 				try {
 					Thread.sleep(this.timerInterval);
@@ -405,11 +450,16 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				continue;
 			}
 
-			byte[] data = new byte[length];
-			System.arraycopy(buf, 0, data, 0, length);
+			// 缓存就绪
+			bytes.flip();
+
+			byte[] data = new byte[total];
+			System.arraycopy(bytes.array(), 0, data, 0, total);
 
 			this.process(data);
 
+			bytes.clear();
+			bytes = null;
 			data = null;
 			buf = null;
 		}

@@ -117,7 +117,7 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 
 		if (errorCode == MessageErrorCode.CONNECT_TIMEOUT
 			|| errorCode == MessageErrorCode.CONNECT_FAILED) {
-
+			// 一般性连接错误
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED, this.getClass());
 			failure.setSourceDescription("Attempt to connect to host timed out");
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
@@ -130,7 +130,9 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			this.speaker.fireFailed(failure);
 		}
 		else {
+			// 其他错误
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
+			failure.setSourceDescription("Network is not available, error : " + errorCode);
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
 		}

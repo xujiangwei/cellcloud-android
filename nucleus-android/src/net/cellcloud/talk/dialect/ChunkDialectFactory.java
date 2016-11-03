@@ -448,7 +448,7 @@ public class ChunkDialectFactory extends DialectFactory {
 			this.chunkNum = chunkNum;
 			this.quota = quota;
 			this.cellet = cellet;
-			this.list = new ArrayList<ChunkDialect>();
+			this.list = new ArrayList<ChunkDialect>(chunkNum);
 			this.index = new AtomicInteger(-1);
 			this.running = new AtomicBoolean(false);
 			this.remaining = new AtomicLong(this.quota);
@@ -643,11 +643,10 @@ public class ChunkDialectFactory extends DialectFactory {
 
 			if (null != selected) {
 				long size = selected.clear();
+				cacheMap.remove(selected.sign);
 
 				// 更新内存大小记录
 				cacheMemorySize.set(cacheMemorySize.get() - size);
-
-				cacheMap.remove(selected.sign);
 			}
 
 			clearRunning.set(false);

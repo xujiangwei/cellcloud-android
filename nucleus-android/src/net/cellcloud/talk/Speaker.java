@@ -195,23 +195,26 @@ public class Speaker implements Speakable {
 
 		// 设置状态
 		this.authenticated = false;
+		this.lost = false;
 
 		(new Thread(new Runnable() {
 			@Override
 			public void run() {
+				retryTimestamp = 0;
+
 				// 进行连接
 				MessageConnector connector = (null != nonblockingConnector) ? nonblockingConnector : blockingConnector;
 				boolean ret = connector.connect(address);
 				if (ret) {
 					// 开始进行调用
 					state = SpeakerState.CALLING;
-					lost = false;
-					retryTimestamp = 0;
 				}
 				else {
+					lost = true;
 					// 设置为挂断状态
 					state = SpeakerState.HANGUP;
 					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, Speaker.class);
+					failure.setSourceDescription("Connector failed");
 					delegate.onFailed(Speaker.this, failure);
 				}
 			}
@@ -441,7 +444,7 @@ public class Speaker implements Speakable {
 		}
 		else {
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
-			failure.setSourceDescription("Network not available.");
+			failure.setSourceDescription("Session has closed");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
 
