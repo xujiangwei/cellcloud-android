@@ -347,11 +347,6 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		this.messages.add(message);
 	}
 
-	@Override
-	public void read(Message message, Session session) {
-		// Nothing
-	}
-
 	/**
 	 * 重置休眠间隔。
 	 * @param value

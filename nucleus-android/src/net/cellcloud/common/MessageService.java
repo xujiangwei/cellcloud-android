@@ -111,6 +111,4 @@ public abstract class MessageService {
 	/** 写入消息数据。 */
 	public abstract void write(Session session, Message message);
 
-	/** 读取消息数据。 */
-	public abstract void read(Message message, Session session);
 }

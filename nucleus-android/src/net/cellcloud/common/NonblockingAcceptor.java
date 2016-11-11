@@ -276,11 +276,6 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		}
 	}
 
-	@Override
-	public void read(Message message, Session session) {
-		// Nothing
-	}
-
 	/**
 	 * 适配器句柄线程是否正在运行。
 	 * @return

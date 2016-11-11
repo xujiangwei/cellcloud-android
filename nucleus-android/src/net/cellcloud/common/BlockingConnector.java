@@ -38,6 +38,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.cellcloud.util.Utils;
 import android.content.Context;
 
 /** 阻塞式网络连接器。
@@ -61,17 +62,18 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private Thread handleThread;
 	private boolean spinning = false;
 	private boolean running = false;
+	private boolean activeClose = false;
 
 	private Session session;
 
-//	private Context androidContext;
+	private Context androidContext;
 
 	private ExecutorService executor;
 	private AtomicBoolean writing;
 	private LinkedList<Message> messageQueue;
 
 	public BlockingConnector(Context androidContext, ExecutorService executor) {
-//		this.androidContext = androidContext;
+		this.androidContext = androidContext;
 		this.executor = executor;
 		this.writing = new AtomicBoolean(false);
 		this.messageQueue = new LinkedList<Message>();
@@ -82,7 +84,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @return
 	 */
 	public InetSocketAddress getAddress() {
-		return (null != this.session) ? this.session.getAddress() : null;//(InetSocketAddress) this.socket.getRemoteSocketAddress();
+		return (null != this.session) ? this.session.getAddress() : null;
 	}
 
 	@Override
@@ -99,12 +101,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		// For Android 2.2
 		System.setProperty("java.net.preferIPv6Addresses", "false");
 
+		// 重置主动关闭
+		this.activeClose = false;
+
 		// 判断是否有网络连接
-		// FIXME 1.3.37 取消调用该方法
-//		if (!Utils.isNetworkConnected(this.androidContext)) {
-//			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
-//			return false;
-//		}
+		if (!Utils.isNetworkConnected(this.androidContext)) {
+			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
+			return false;
+		}
 
 		// 创建新 Socket
 		this.socket = new Socket();
@@ -173,7 +177,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		// 判断是否连接成功
 		long duration = 0;
-		while (!this.socket.isConnected()) {
+		while (null != this.socket && !this.socket.isConnected()) {
 			try {
 				Thread.sleep(10L);
 			} catch (InterruptedException e) {
@@ -189,12 +193,22 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			}
 		}
 
+		if (null == this.socket) {
+			return false;
+		}
+
 		return true;
 	}
 
 	@Override
 	public void disconnect() {
+		this.activeClose = true;
+
 		this.spinning = false;
+
+		synchronized (this.messageQueue) {
+			this.messageQueue.clear();
+		}
 
 		if (null != this.socket) {
 			try {
@@ -269,6 +283,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	private void flushMessage() {
+		if (null == this.socket) {
+			this.writing.set(false);
+			return;
+		}
+
 		Message message = null;
 		synchronized (this.messageQueue) {
 			if (this.messageQueue.isEmpty()) {
@@ -326,11 +345,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		});
 	}
 
-	@Override
-	public void read(Message message, Session session) {
-		// Nothing
-	}
-
 	public void resetInterval(long value) {
 		if (this.timerInterval == value) {
 			return;
@@ -364,6 +378,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 	}
 	private void fireErrorOccurred(int errorCode) {
+		if (this.activeClose) {
+			// 主动关闭时，不回调错误
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.errorOccurred(errorCode, this.session);
 		}
