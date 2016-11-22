@@ -43,7 +43,6 @@ public class Session {
 	private byte[] secretKey;
 
 	protected byte[] cache;
-	protected int cacheSize;
 	protected int cacheCursor;
 
 	public Session(MessageService service, InetSocketAddress address) {
@@ -52,8 +51,7 @@ public class Session {
 		this.address = address;
 		this.secretKey = null;
 
-		this.cacheSize = 1024;
-		this.cache = new byte[this.cacheSize];
+		this.cache = new byte[2048];
 		this.cacheCursor = 0;
 	}
 
@@ -63,8 +61,7 @@ public class Session {
 		this.address = address;
 		this.secretKey = null;
 
-		this.cacheSize = 1024;
-		this.cache = new byte[this.cacheSize];
+		this.cache = new byte[2048];
 		this.cacheCursor = 0;
 	}
 
@@ -135,18 +132,21 @@ public class Session {
 		this.service.write(this, message);
 	}
 
+	protected int getCacheSize() {
+		return this.cache.length;
+	}
+
 	protected void resetCacheSize(int newSize) {
-		if (newSize <= this.cacheSize) {
+		if (newSize <= this.cache.length) {
 			return;
 		}
-
-		this.cacheSize = newSize;
 
 		if (this.cacheCursor > 0) {
 			byte[] cur = new byte[this.cacheCursor];
 			System.arraycopy(this.cache, 0, cur, 0, this.cacheCursor);
 			this.cache = new byte[newSize];
 			System.arraycopy(cur, 0, this.cache, 0, this.cacheCursor);
+			cur = null;
 		}
 		else {
 			this.cache = new byte[newSize];

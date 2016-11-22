@@ -62,6 +62,8 @@ public final class MessageErrorCode {
 	public static final int WRITE_FAILED = 403;
 	/// 读取数据时发生错误。
 	public static final int READ_FAILED = 404;
+	/// 写数据越界
+	public static final int WRITE_OUTOFBOUNDS = 405;
 
 	/// 无网络连接。
 	public static final int NO_NETWORK = 700;

@@ -95,6 +95,8 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			}
 		} catch (NumberFormatException e) {
 			Logger.log(this.getClass(), e, LogLevel.WARNING);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			Logger.log(this.getClass(), e, LogLevel.WARNING);
 		}
 	}
 
@@ -126,6 +128,12 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 		else if (errorCode == MessageErrorCode.NO_NETWORK) {
 			// 无网络错误
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NO_NETWORK, this.getClass());
+			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
+			this.speaker.fireFailed(failure);
+		}
+		else if (errorCode == MessageErrorCode.WRITE_OUTOFBOUNDS) {
+			// 数据错误
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.INCORRECT_DATA, this.getClass());
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
 			this.speaker.fireFailed(failure);
 		}
