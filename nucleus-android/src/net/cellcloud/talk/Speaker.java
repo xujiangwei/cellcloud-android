@@ -338,7 +338,12 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public boolean isCalled() {
-		return this.state == SpeakerState.CALLED;
+		if (null != this.nonblockingConnector) {
+			return (this.state == SpeakerState.CALLED) && this.nonblockingConnector.isConnected();
+		}
+		else {
+			return (this.state == SpeakerState.CALLED) && this.blockingConnector.isConnected();
+		}
 	}
 
 	protected void sleep() {
@@ -522,16 +527,11 @@ public class Speaker implements Speakable {
 
 		// 吊销密钥
 		MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
-		connector.getSession().deactiveSecretKey();
+		Session session = connector.getSession();
+		if (null != session) {
+			session.deactiveSecretKey();
+		}
 	}
-
-//	private void fireSuspended(long timestamp, int mode) {
-//		this.delegate.onSuspended(this, timestamp, mode);
-//	}
-
-//	protected void fireResumed(long timestamp, Primitive primitive) {
-//		this.delegate.onResumed(this, timestamp, primitive);
-//	}
 
 	protected void fireFailed(TalkServiceFailure failure) {
 		if (failure.getCode() == TalkFailureCode.NOT_FOUND

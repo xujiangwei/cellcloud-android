@@ -41,11 +41,11 @@ public final class TalkServiceFailure {
 	private String sourceDescription = "";
 	private ArrayList<String> sourceCelletIdentifiers = new ArrayList<String>(2);
 
-	public TalkServiceFailure(TalkFailureCode code, @SuppressWarnings("rawtypes") Class clazz) {
+	public TalkServiceFailure(TalkFailureCode code, Class<?> clazz) {
 		construct(code, clazz);
 	}
 
-	private void construct(TalkFailureCode code, @SuppressWarnings("rawtypes") Class clazz) {
+	private void construct(TalkFailureCode code, Class<?> clazz) {
 		this.code = code;
 		this.reason = "Error in " + clazz.getName();
 

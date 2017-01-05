@@ -169,8 +169,15 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		try {
 			// Wifi 网络连接正常，但无法获得正确的网络路由信息时 getHostAddress() 会出错
+			String addr = null;
+			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+				addr = address.getHostString();
+			}
+			else {
+				addr = address.getAddress().getHostAddress();
+			}
 			this.handleThread.setName(new StringBuilder("BlockingConnector[").append(this.handleThread).append("]@")
-					.append(address.getAddress().getHostAddress()).append(":").append(address.getPort()).toString());
+					.append(addr).append(":").append(address.getPort()).toString());
 		} catch (Exception e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 			this.handleThread.setName("BlockingConnector[" + this.handleThread + "]");
@@ -254,6 +261,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	public void write(Message message) {
+		if (null == this.session) {
+			return;
+		}
+
 		this.write(this.session, message);
 	}
 

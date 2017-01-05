@@ -28,25 +28,24 @@ package net.cellcloud.talk.dialect;
 
 import java.util.List;
 
-import net.cellcloud.common.Base64;
 import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.stuff.SubjectStuff;
 
-/*! 块数据方言。
+/** 块数据方言。
  * 
- * \author Jiangwei Xu
+ * @author Jiangwei Xu
  */
 public class ChunkDialect extends Dialect {
 
 	public final static String DIALECT_NAME = "ChunkDialect";
-	public static int CHUNK_SIZE = 4096;
+	public final static int CHUNK_SIZE = 2048;
 
-	protected String sign;
-	protected int chunkIndex;
-	protected int chunkNum;
-	protected String data;
-	protected int length;
-	protected long totalLength;
+	protected String sign = null;
+	protected int chunkIndex = 0;
+	protected int chunkNum = 0;
+	protected byte[] data = null;
+	protected int length = 0;
+	protected long totalLength = 0;
 
 	// 用于标识该区块是否能写入缓存队列
 	// 如果为 true ，表示已经“污染”，不能进入队列，必须直接发送
@@ -55,6 +54,9 @@ public class ChunkDialect extends Dialect {
 	private ChunkListener listener;
 
 	private int readIndex = 0;
+
+	// 数据传输速率
+	protected int speedInKB = 20;
 
 	protected ChunkDialect() {
 		super(ChunkDialect.DIALECT_NAME);
@@ -70,9 +72,8 @@ public class ChunkDialect extends Dialect {
 		this.totalLength = totalLength;
 		this.chunkIndex = chunkIndex;
 		this.chunkNum = chunkNum;
-		byte[] raw = new byte[length];
-		System.arraycopy(data, 0, raw, 0, length);
-		this.data = Base64.encodeBytes(raw);
+		this.data = new byte[length];
+		System.arraycopy(data, 0, this.data, 0, length);
 		this.length = length;
 	}
 
@@ -82,42 +83,65 @@ public class ChunkDialect extends Dialect {
 		this.totalLength = totalLength;
 		this.chunkIndex = chunkIndex;
 		this.chunkNum = chunkNum;
-		byte[] raw = new byte[length];
-		System.arraycopy(data, 0, raw, 0, length);
-		this.data = Base64.encodeBytes(raw);
+		this.data = new byte[length];
+		System.arraycopy(data, 0, this.data, 0, length);
 		this.length = length;
 	}
 
+	/**
+	 * 返回区块记号。
+	 * 
+	 * @return
+	 */
 	public String getSign() {
 		return this.sign;
 	}
 
+	/**
+	 * 返回总长度。
+	 * @return
+	 */
 	public long getTotalLength() {
 		return this.totalLength;
 	}
 
+	/**
+	 * 返回区块索引。
+	 * @return
+	 */
 	public int getChunkIndex() {
 		return this.chunkIndex;
 	}
 
+	/**
+	 * 返回区块数量。
+	 * @return
+	 */
 	public int getChunkNum() {
 		return this.chunkNum;
 	}
 
-	public int getRawLength() {
+	/**
+	 * 返回当前区块数据长度。
+	 * @return
+	 */
+	public int getLength() {
 		return this.length;
 	}
 
-	public int getDataSize() {
-		if (null == this.data) {
-			return -1;
-		}
-
-		return this.data.length();
-	}
-
+	/**
+	 * 设置监听器。
+	 * @param listener
+	 */
 	public void setListener(ChunkListener listener) {
 		this.listener = listener;
+	}
+
+	public void setSpeed(int speed) {
+		this.speedInKB = speed;
+	}
+	public int getSpeed() {
+		return this.speedInKB;
 	}
 
 	protected void fireProgress(String target) {
@@ -139,6 +163,7 @@ public class ChunkDialect extends Dialect {
 	protected void fireFailed(String target) {
 		if (null != this.listener) {
 			this.listener.onFailed(target, this);
+			this.listener = null;
 		}
 	}
 
@@ -162,7 +187,7 @@ public class ChunkDialect extends Dialect {
 		this.sign = list.get(0).getValueAsString();
 		this.chunkIndex = list.get(1).getValueAsInt();
 		this.chunkNum = list.get(2).getValueAsInt();
-		this.data = list.get(3).getValueAsString();
+		this.data = list.get(3).getValue();
 		this.length = list.get(4).getValueAsInt();
 		this.totalLength = list.get(5).getValueAsLong();
 	}

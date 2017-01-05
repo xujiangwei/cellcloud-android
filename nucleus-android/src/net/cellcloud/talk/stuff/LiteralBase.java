@@ -68,6 +68,10 @@ public enum LiteralBase {
 	 */
 	JSON,
 
+	/** 二进制类型。
+	 */
+	BIN,
+
 	/** XML 类型。
 	 */
 	XML
