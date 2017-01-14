@@ -262,6 +262,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	public void write(Message message) {
 		if (null == this.session) {
+			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
 			return;
 		}
 
@@ -271,6 +272,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	@Override
 	public void write(Session session, Message message) {
 		if (null == this.socket) {
+			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 			return;
 		}
 
@@ -309,6 +311,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private void flushMessage() {
 		if (null == this.socket) {
 			this.writing.set(false);
+			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 			return;
 		}
 
@@ -351,6 +354,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			}
 		} catch (IOException e) {
 			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+		} catch (Exception e) {
+			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+			Logger.log(this.getClass(), e, LogLevel.ERROR);
 		}
 
 		synchronized (this.messageQueue) {
@@ -400,6 +406,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		if (null != this.socket) {
 			this.socket = null;
 		}
+
+		synchronized (this.messageQueue) {
+			this.messageQueue.clear();
+		}
 	}
 	private void fireErrorOccurred(int errorCode) {
 		if (this.activeClose) {
@@ -418,7 +428,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		this.spinning = true;
 		final long time = System.currentTimeMillis();
 
-		InputStream inputStream = this.socket.getInputStream();
+		Socket socket = this.socket;
+
+		InputStream inputStream = socket.getInputStream();
 
 		while (this.spinning) {
 			if (null == this.socket) {
@@ -426,7 +438,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				break;
 			}
 
-			if (this.socket.isClosed()) {
+			if (socket.isClosed()) {
 				if (System.currentTimeMillis() - time < this.connTimeout) {
 					try {
 						Thread.sleep(100L);
@@ -443,7 +455,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				}
 			}
 
-			if (!this.socket.isConnected()) {
+			if (!socket.isConnected()) {
 				try {
 					Thread.sleep(100L);
 				} catch (Exception e) {
@@ -524,6 +536,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 
 		this.spinning = false;
+
+		Logger.i(this.getClass(), "Quit loop dispatch");
 	}
 
 	private int estimateCapacity(int currentValue, int minValue, int step) {
