@@ -242,9 +242,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		this.block = size;
 	}
 
-	//! 启动任务守护线程。
-	/*!
-	 */
+	/** 启动任务守护线程。 */
 	public void startDaemon() {
 		if (null == this.daemonTimer) {
 			this.daemonTimer = new Timer();
@@ -261,12 +259,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.daemon = new TalkServiceDaemon(periodInSeconds);
 		}
 
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000, periodInSeconds * 1000);
+		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000L, periodInSeconds * 1000L);
 	}
 
-	//! 关闭任务守护线程。
-	/*!
-	 */
+	/** 关闭任务守护线程。 */
 	public void stopDaemon() {
 		if (null != this.daemonTimer) {
 			this.daemonTimer.cancel();
@@ -575,6 +571,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 				this.speakerMap.put(identifier, speaker);
 			}
 
+			// 重启定时器
+			this.startDaemon();
+
 			// Call
 			return speaker.call(identifiers);
 		}
@@ -585,34 +584,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 			return false;
 		}
 	}
-
-	//! 挂起 Cellet 会话。
-	/*!
-	 * \note Client
-	 */
-//	public void suspend(final String identifier, final long duration) {
-//		if (null == this.speakerMap || !this.speakerMap.containsKey(identifier))
-//			return;
-//
-//		Speaker speaker = this.speakerMap.get(identifier);
-//		if (null != speaker) {
-//			speaker.suspend(duration);
-//		}
-//	}
-
-	//! 恢复 Cellet 会话。
-	/*!
-	 * \note Client
-	 */
-//	public void resume(final String identifier, final long startTime) {
-//		if (null == this.speakerMap || !this.speakerMap.containsKey(identifier))
-//			return;
-//
-//		Speaker speaker = this.speakerMap.get(identifier);
-//		if (null != speaker) {
-//			speaker.resume(startTime);
-//		}
-//	}
 
 	public void hangUp(String[] identifiers) {
 		ArrayList<String> list = new ArrayList<String>(identifiers.length);
@@ -646,23 +617,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 				}
 			}
 		}
-
-//		if (null != this.httpSpeakerMap && this.httpSpeakerMap.containsKey(identifier)) {
-			// TODO HTTP 协议 Speaker
-//			HttpSpeaker speaker = this.httpSpeakerMap.get(identifier);
-//			speaker.hangUp();
-//
-//			for (String celletIdentifier : speaker.getIdentifiers()) {
-//				this.httpSpeakerMap.remove(celletIdentifier);
-//			}
-//
-//			this.httpSpeakers.remove(speaker);
-//		}
 	}
 
-	/** 向指定 Cellet 发送原语。
-	 * 
-	 * @note Client
+	/**
+	 * 向指定 Cellet 发送原语。
 	 */
 	public boolean talk(final String identifier, final Primitive primitive) {
 		if (null != this.speakerMap) {
@@ -672,15 +630,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 				return speaker.speak(identifier, primitive);
 			}
 		}
-
-		// TODO
-//		if (null != this.httpSpeakerMap) {
-//			HttpSpeaker speaker = this.httpSpeakerMap.get(identifier);
-//			if (null != speaker) {
-//				// Speak
-//				return speaker.speak(identifier, primitive);
-//			}
-//		}
 
 		return false;
 	}
@@ -719,44 +668,40 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return false;
 	}
 
-	/** 是否已经与 Cellet 建立服务。
-	 * 
-	 * @note Client
+	/**
+	 * 是否已经与 Cellet 建立服务。
 	 */
-	public boolean isCalled(final String identifier) {
+	public boolean isCalled(String identifier) {
 		if (null != this.speakerMap) {
 			Speaker speaker = this.speakerMap.get(identifier);
 			if (null != speaker) {
-				return speaker.isCalled();
+				boolean ret = speaker.isCalled();
+				if (ret) {
+					long time = System.currentTimeMillis();
+
+					// 发送心跳
+					if (!speaker.heartbeat()) {
+						return false;
+					}
+
+					synchronized (speaker) {
+						try {
+							speaker.wait(5000L);
+						} catch (InterruptedException e) {
+							// Nothing
+						}
+					}
+
+					long d = speaker.heartbeatTime - time;
+					if (d > 0 && d < 5000L) {
+						return true;
+					}
+				}
 			}
 		}
 
-		// TODO
-//		if (null != this.httpSpeakerMap) {
-//			HttpSpeaker speaker = this.httpSpeakerMap.get(identifier);
-//			if (null != speaker) {
-//				return speaker.isCalled();
-//			}
-//		}
-
 		return false;
 	}
-
-	/** Cellet 服务是否已经被挂起。
-	 * 
-	 * @note Client
-	 */
-//	public boolean isSuspended(final String identifier) {
-//		if (null == this.speakerMap)
-//			return false;
-//
-//		Speaker speaker = this.speakerMap.get(identifier);
-//		if (null != speaker) {
-//			return speaker.isSuspended();
-//		}
-//
-//		return false;
-//	}
 
 	public boolean resetInterval(long interval) {
 		if (interval < 20) {

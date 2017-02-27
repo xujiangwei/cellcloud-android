@@ -83,6 +83,8 @@ public class Speaker implements Speakable {
 
 	private ExecutorService executor;
 
+	protected long heartbeatTime = 0L;
+
 	/** 构造函数。
 	 */
 	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, ExecutorService executor) {
@@ -370,17 +372,6 @@ public class Speaker implements Speakable {
 	}
 
 	protected void notifySessionClosed() {
-		// 判断是否要通知被挂起
-//		if (null != this.capacity && SpeakerState.CALLED == this.state) {
-//			if (this.capacity.autoSuspend) {
-//				this.state = SpeakerState.SUSPENDED;
-//				this.fireSuspended(System.currentTimeMillis(), SuspendMode.PASSIVE);
-//
-//				// 标记为丢失
-//				this.lost = true;
-//			}
-//		}
-
 		// 判断是否为异常网络中断
 		if (SpeakerState.CALLING == this.state) {
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED, this.getClass());
