@@ -53,7 +53,6 @@ import net.cellcloud.util.Utils;
  *
  */
 public class Speaker implements Speakable {
-
 	private byte[] nucleusTag;
 
 	private InetSocketAddress address;
@@ -84,6 +83,9 @@ public class Speaker implements Speakable {
 	private ExecutorService executor;
 
 	protected long heartbeatTime = 0L;
+	protected long startTime = 0L;
+	protected boolean isHeartbeatAvailable = false;
+	
 
 	/** 构造函数。
 	 */
@@ -363,7 +365,7 @@ public class Speaker implements Speakable {
 			else {
 				this.blockingConnector.write(message);
 			}
-
+			startTime = System.currentTimeMillis();
 			return true;
 		}
 		else {

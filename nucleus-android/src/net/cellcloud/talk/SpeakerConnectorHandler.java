@@ -161,6 +161,9 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 				this.speaker.notifyAll();
 			}
 			this.speaker.heartbeatTime = System.currentTimeMillis();
+			if (this.speaker.heartbeatTime > this.speaker.startTime && this.speaker.heartbeatTime -this.speaker.startTime < 3000) {
+				this.speaker.isHeartbeatAvailable = true;
+			}
 		}
 		else if (TalkDefinition.TPT_QUICK[2] == tag[2]
 			&& TalkDefinition.TPT_QUICK[3] == tag[3]) {

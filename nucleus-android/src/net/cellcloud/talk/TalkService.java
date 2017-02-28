@@ -34,12 +34,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.LogLevel;
@@ -60,10 +62,9 @@ import net.cellcloud.talk.dialect.ChunkDialectFactory;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
 import net.cellcloud.talk.stuff.PrimitiveSerializer;
+import net.cellcloud.util.Network;
+import net.cellcloud.util.TimeReceiver;
 import net.cellcloud.util.Utils;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 //! 会话服务。
 /*!
@@ -104,7 +105,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 	private ConcurrentHashMap<String, Speakable> httpSpeakerMap = null;
 
-	private Timer daemonTimer;
+	private TimeReceiver receiver;
 	private TalkServiceDaemon daemon;
 	private ArrayList<TalkListener> listeners;
 
@@ -137,6 +138,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 			this.callbackListener = DialectEnumerator.getInstance();
 			this.delegate = DialectEnumerator.getInstance();
+			this.receiver = new TimeReceiver();
+			this.daemon = new TalkServiceDaemon();
 		}
 		else {
 			throw new SingletonException(TalkService.class.getName());
@@ -244,35 +247,12 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 	/** 启动任务守护线程。 */
 	public void startDaemon() {
-		if (null == this.daemonTimer) {
-			this.daemonTimer = new Timer();
-		}
-		else {
-			this.daemonTimer.cancel();
-			this.daemonTimer.purge();
-			this.daemonTimer = null;
-		}
-
-		int periodInSeconds = 15;
-
-		if (null == this.daemon) {
-			this.daemon = new TalkServiceDaemon(periodInSeconds);
-		}
-
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000L, periodInSeconds * 1000L);
+		receiver.registerReceiver(Nucleus.getInstance().getAppContext(), daemon);
 	}
 
 	/** 关闭任务守护线程。 */
 	public void stopDaemon() {
-		if (null != this.daemonTimer) {
-			this.daemonTimer.cancel();
-			this.daemonTimer.purge();
-			this.daemonTimer = null;
-		}
-
-		if (null != this.daemon) {
-			this.daemon = null;
-		}
+		receiver.unRegisterReceiver(Nucleus.getInstance().getAppContext());
 
 		// 关闭所有 Speaker
 		if (null != this.speakers) {
@@ -300,18 +280,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/*!
 	 */
 	public void sleep() {
-		if (null != this.daemonTimer) {
-			this.daemonTimer.cancel();
-			this.daemonTimer.purge();
-			this.daemonTimer = null;
-		}
-
-		this.daemon = null;
-
-		this.daemon = new TalkServiceDaemon(60);
-		this.daemonTimer = new Timer();
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 10000, 60000);
-
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
 				s.sleep();
@@ -323,18 +291,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/*!
 	 */
 	public void wakeup() {
-		if (null != this.daemonTimer) {
-			this.daemonTimer.cancel();
-			this.daemonTimer.purge();
-			this.daemonTimer = null;
-		}
-
-		this.daemon = null;
-
-		this.daemon = new TalkServiceDaemon(15);
-		this.daemonTimer = new Timer();
-		this.daemonTimer.scheduleAtFixedRate(this.daemon, 5000, 15000);
-
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
 				s.wakeup();
@@ -573,7 +529,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 			// 重启定时器
 			this.startDaemon();
-
 			// Call
 			return speaker.call(identifiers);
 		}
@@ -677,25 +632,26 @@ public final class TalkService implements Service, SpeakerDelegate {
 			if (null != speaker) {
 				boolean ret = speaker.isCalled();
 				if (ret) {
-					long time = System.currentTimeMillis();
+//					long time = System.currentTimeMillis();
 
 					// 发送心跳
 					if (!speaker.heartbeat()) {
 						return false;
 					}
 
-					synchronized (speaker) {
-						try {
-							speaker.wait(5000L);
-						} catch (InterruptedException e) {
-							// Nothing
-						}
-					}
-
-					long d = speaker.heartbeatTime - time;
-					if (d > 0 && d < 5000L) {
-						return true;
-					}
+					return Network.isConnectedOrConnecting(Nucleus.getInstance().getAppContext());
+//					synchronized (speaker) {
+//						try {
+//							speaker.wait(5000L);
+//						} catch (InterruptedException e) {
+//							// Nothing
+//						}
+//					}
+//
+//					long d = speaker.heartbeatTime - time;
+//					if (d > 0 && d < 5000L) {
+//						return true;
+//					}
 				}
 			}
 		}
