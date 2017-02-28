@@ -633,7 +633,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 				}
 			}
 		}
-		return false;
+		return ret && Network.isConnectedOrConnecting(Nucleus.getInstance().getAppContext());
 	}
 
 	public boolean resetInterval(long interval) {
