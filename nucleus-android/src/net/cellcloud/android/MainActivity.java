@@ -132,8 +132,6 @@ public class MainActivity extends Activity implements TalkListener {
 
 	private boolean startup() {
 		NucleusConfig config = new NucleusConfig();
-		config.role = NucleusConfig.Role.CONSUMER;
-		config.device = NucleusConfig.Device.PHONE;
 
 		Nucleus nucleus = null;
 		try {

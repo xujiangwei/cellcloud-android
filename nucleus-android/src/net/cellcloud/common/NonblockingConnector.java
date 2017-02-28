@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,9 +43,11 @@ import net.cellcloud.util.Utils;
 import android.content.Context;
 
 
-/** 非阻塞式网络连接器。
+/**
+ * 非阻塞式网络连接器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class NonblockingConnector extends MessageService implements MessageConnector {
 
@@ -72,13 +74,20 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private Context androidContext;
 
+	/**
+	 * 
+	 * @param androidContext
+	 */
 	public NonblockingConnector(Context androidContext) {
 		this.androidContext = androidContext;
 		this.connectTimeout = 15000;
 		this.messages = new Vector<Message>();
 	}
 
-	/** 返回连接地址。
+	/**
+	 * 返回连接地址。
+	 * 
+	 * @return
 	 */
 	public InetSocketAddress getAddress() {
 		return this.address;
@@ -292,11 +301,19 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void setConnectTimeout(long timeout) {
 		this.connectTimeout = timeout;
 	}
 
+	/**
+	 * 获得连接超时时间设置。
+	 * 
+	 * @return
+	 */
 	public long getConnectTimeout() {
 		return this.connectTimeout;
 	}
@@ -327,8 +344,10 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		return this.block;
 	}
 
-	/** 是否已连接。
+	/**
+	 * {@inheritDoc}
 	 */
+	@Override
 	public boolean isConnected() {
 		return (null != this.channel && this.channel.isConnected());
 	}
@@ -359,6 +378,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	/**
 	 * 重置休眠间隔。
+	 * 
 	 * @param value
 	 */
 	public void resetInterval(long value) {
@@ -409,7 +429,12 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		}
 	}
 
-	/** 事件循环。 */
+	/**
+	 * 事件循环。
+	 * 
+	 * @param endingCallback
+	 * @throws Exception
+	 */
 	private void loopDispatch(Runnable endingCallback) throws Exception {
 		this.endingCallback = endingCallback;
 
@@ -422,6 +447,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		this.handleTimer.scheduleAtFixedRate(this.createTask(), 1000, this.timerInterval);
 	}
 
+	/**
+	 * 创建定时器任务。
+	 * 
+	 * @return
+	 */
 	private TimerTask createTask() {
 		TimerTask task = new TimerTask() {
 			@Override
@@ -482,6 +512,12 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		}
 	}
 
+	/**
+	 * 执行连接操作。
+	 * 
+	 * @param key
+	 * @return
+	 */
 	private boolean doConnect(SelectionKey key) {
 		// 获取创建通道选择器事件键的套接字通道
 		SocketChannel channel = (SocketChannel) key.channel();
@@ -759,8 +795,11 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	/**
 	 * 数据提取并输出。
+	 * 
+	 * @param out
+	 * @param data
 	 */
-	private void extract(final LinkedList<byte[]> out, final byte[] data) {
+	private void extract(LinkedList<byte[]> out, byte[] data) {
 		final byte[] headMark = this.getHeadMark();
 		final byte[] tailMark = this.getTailMark();
 
@@ -945,4 +984,5 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
 		message.set(plaintext);
 	}
+
 }

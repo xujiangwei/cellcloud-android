@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,35 +29,61 @@ package net.cellcloud.common;
 /**
  * 消息服务处理监听器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public interface MessageHandler {
 
-	/** 创建连接会话。
-	*/
+	/**
+	 * 创建连接会话。
+	 * 
+	 * @param session
+	 */
 	public void sessionCreated(Session session);
-	
-	/** 销毁连接会话。
-	*/
+
+	/**
+	 * 销毁连接会话。
+	 * 
+	 * @param session
+	 */
 	public void sessionDestroyed(Session session);
 
-	/** 开启连接会话。
-	*/
+	/**
+	 * 开启连接会话。
+	 * 
+	 * @param session
+	 */
 	public void sessionOpened(Session session);
 
-	/** 关闭连接会话。
-	*/
+	/**
+	 * 关闭连接会话。
+	 * 
+	 * @param session
+	 */
 	public void sessionClosed(Session session);
 
-	/** 接收到消息。
-	*/
+	/**
+	 * 接收到消息。
+	 * 
+	 * @param session
+	 * @param message
+	 */
 	public void messageReceived(Session session, Message message);
 
-	/** 消息已发送。
-	*/
+	/**
+	 * 消息已发送。
+	 * 
+	 * @param session
+	 * @param message
+	 */
 	public void messageSent(Session session, Message message);
 
-	/** 发生错误。
-	*/
+	/**
+	 * 发生错误。
+	 * 
+	 * @param errorCode
+	 * @param session
+	 */
 	public void errorOccurred(int errorCode, Session session);
+
 }

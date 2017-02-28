@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,33 +24,26 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.cluster;
+package net.cellcloud.airnfc;
 
-import org.json.JSONObject;
+public interface RecognizerListener {
 
-/** 节点数据块。
- * 
- * @author Jiangwei Xu
- */
-public class Chunk {
-
-	// 块标签
-	private String label;
-	// 块数据
-	private JSONObject data;
-
-	/** 指定块标签和数据构建数据块。
+	/**
+	 * 
+	 * @param recognizer
 	 */
-	public Chunk(String label, JSONObject data) {
-		this.label = label;
-		this.data = data;
-	}
+	public void onStarted(Recognizer recognizer);
 
-	public String getLabel() {
-		return this.label;
-	}
+	/**
+	 * 
+	 * @param recognizer
+	 */
+	public void onStopped(Recognizer recognizer);
 
-	public JSONObject getData() {
-		return this.data;
-	}
+	/**
+	 * 
+	 * @param recognizer
+	 * @param code
+	 */
+	public void onRecognized(Recognizer recognizer, byte code);
 }

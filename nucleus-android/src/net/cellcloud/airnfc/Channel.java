@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,30 +24,41 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.cluster;
+package net.cellcloud.airnfc;
 
-import net.cellcloud.common.Session;
+public enum Channel {
 
-/** 集群模块错误状态协议。
- * 
- * @author Jiangwei Xu
- */
-public class ClusterFailureProtocol extends ClusterProtocol {
+	Supersonic((byte)'1'),
 
-	protected ClusterFailure failure;
-	protected ClusterProtocol protocol;
+	Normal((byte)'2'),
 
-	protected ClusterFailureProtocol(ClusterFailure failure, ClusterProtocol protocol) {
-		super("Failure");
-		this.failure = failure;
-		this.protocol = protocol;
+	Low((byte)'3');
+
+	private byte code;
+
+	Channel(byte code) {
+		this.code = code;
+	}
+
+	public byte getCode() {
+		return this.code;
 	}
 
 	@Override
-	public void launch(Session session) {
+	public String toString() {
+		return String.valueOf((char)this.code);
 	}
 
-	@Override
-	public void respond(ClusterNode node, StateCode state) {
+	protected static Channel parse(byte code) {
+		switch (code) {
+		case '1':
+			return Channel.Supersonic;
+		case '2':
+			return Channel.Normal;
+		case '3':
+			return Channel.Low;
+		default:
+			return null;
+		}
 	}
 }

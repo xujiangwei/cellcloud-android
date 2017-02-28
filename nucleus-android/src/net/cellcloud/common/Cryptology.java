@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,11 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** 加解密库。
+/**
+ * 加解密库。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class Cryptology {
 
@@ -45,13 +47,21 @@ public final class Cryptology {
 	private Cryptology() {
 	}
 
-	/** 返回加解密库对象的实例。
+	/**
+	 * 返回加解密库对象的实例。
+	 * 
+	 * @return
 	 */
 	public static Cryptology getInstance() {
 		return instance;
 	}
 
-	/** 简单加密操作。密钥长度为 8 位。
+	/**
+	 * 简单加密操作。密钥长度为 8 位。
+	 * 
+	 * @param plaintext
+	 * @param key
+	 * @return
 	 */
 	public byte[] simpleEncrypt(byte[] plaintext, byte[] key) {
 		if (key.length != 8)
@@ -82,7 +92,12 @@ public final class Cryptology {
 		return out;
 	}
 
-	/** 简单解密操作。密钥长度为 8 位。
+	/**
+	 * 简单解密操作。密钥长度为 8 位。
+	 * 
+	 * @param ciphertext
+	 * @param key
+	 * @return
 	 */
 	public byte[] simpleDecrypt(byte[] ciphertext, byte[] key) {
 		if (key.length != 8)
@@ -113,7 +128,11 @@ public final class Cryptology {
 		return out;
 	}
 
-	/** 快速生成 Hash 编码。
+	/**
+	 * 快速生成 Hash 编码。
+	 * 
+	 * @param string
+	 * @return
 	 */
 	public long fastHash(String string) {
 		long h = 0;
@@ -128,7 +147,12 @@ public final class Cryptology {
 		}
 		return h;
 	}
-	/** 快速生成 Hash 编码。
+
+	/**
+	 * 快速生成 Hash 编码。
+	 * 
+	 * @param input
+	 * @return
 	 */
 	public long fastHash(byte[] input) {
 		long h = 0;
@@ -138,7 +162,11 @@ public final class Cryptology {
 		return h;
 	}
 
-	/** 生成 MD5 散列码。
+	/**
+	 * 生成 MD5 散列码。
+	 * 
+	 * @param input
+	 * @return
 	 */
 	public byte[] hashWithMD5(byte[] input) {
 		byte[] bytes = null;
@@ -151,7 +179,12 @@ public final class Cryptology {
 		}
 		return bytes;
 	}
-	/** 生成 MD5 散列码。
+
+	/**
+	 * 生成 MD5 散列码。
+	 * 
+	 * @param input
+	 * @return
 	 */
 	public String hashWithMD5AsString(byte[] input) {
 		byte[] md5 = this.hashWithMD5(input);
@@ -165,12 +198,21 @@ public final class Cryptology {
 		return new String(str);
 	}
 
-	/** Base64 编码数据。
+	/**
+	 * Base64 编码数据。
+	 * 
+	 * @param source
+	 * @return
 	 */
 	public String encodeBase64(byte[] source) {
 		return Base64.encodeBytes(source);
 	}
-	/** Base64 解码数据。
+
+	/**
+	 * Base64 解码数据。
+	 * 
+	 * @param source
+	 * @return
 	 */
 	public byte[] decodeBase64(String source) {
 		byte[] result = null;
@@ -182,4 +224,5 @@ public final class Cryptology {
 
 		return result;
 	}
+
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 数据报连接器。
  * 
  * @author Ambrose Xu
+ * 
  */
 public class DatagramConnector extends MessageService implements MessageConnector {
 
@@ -59,17 +60,26 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 	private Thread writeThread;
 	private AtomicBoolean writing;
 
+	/**
+	 * 构造函数。
+	 */
 	public DatagramConnector() {
 		super();
 		this.writeQueue = new LinkedList<Message>();
 		this.writing = new AtomicBoolean(false);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isConnected() {
 		return (null != this.socket);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean connect(final InetSocketAddress address) {
 		if (null != this.socket) {
@@ -121,11 +131,15 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 				}
 			}
 		};
+		this.handleThread.setDaemon(true);
 		this.handleThread.start();
 
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void disconnect() {
 		synchronized (this.writeQueue) {
@@ -144,6 +158,9 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void setConnectTimeout(long timeout) {
 		if (timeout >= Integer.MAX_VALUE) {
@@ -153,20 +170,34 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 		this.soTimeout = (int) timeout;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void setBlockSize(int size) {
 		this.block = size;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Session getSession() {
 		return this.session;
 	}
 
+	/**
+	 * 向当前连接的会话写入消息数据。
+	 * 
+	 * @param message
+	 */
 	public void write(Message message) {
 		this.write(this.session, message);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void write(Session session, Message message) {
 		if (null == this.session) {
@@ -257,6 +288,9 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 		}
 	}
 
+	/**
+	 * 循环处理消息。
+	 */
 	private void loopDispatch() {
 		this.spinning = true;
 

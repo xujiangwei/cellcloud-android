@@ -26,46 +26,27 @@ THE SOFTWARE.
 
 package net.cellcloud.core;
 
-
 /**
- * 内核参数配置描述。
+ * 内核工作角色定义。
  * 
- * @author Ambrose Xu
+ * @author Ambrose xu
  * 
  */
-public final class NucleusConfig {
-
-	/// 自定义内核标签
-	public String tag = null;
-
-	/// 角色
-	public Role role = Role.CONSUMER;
-
-	/// 设备
-	public Device device = Device.MOBILE;
-
-	/// Talk Service 配置
-	public TalkConfig talk;
-
-	public NucleusConfig() {
-		this.talk = new TalkConfig();
-	}
+public enum Role {
 
 	/**
-	 * 会话服务器配置项。
+	 * 节点角色。内核启动 Talk 服务和 Cellet 管理器。
 	 */
-	public final class TalkConfig {
-		/// 是否启用 Talk 服务
-		public boolean enable = true;
+	NODE,
 
-		/// Talk 服务端口
-		public int port = 7000;
+	/**
+	 * 网关角色。内核启动 Talk 服务和网关模式。
+	 */
+	GATEWAY,
 
-		/// Block 设置
-		public int block = 32768;
-
-		private TalkConfig() {
-		}
-	}
+	/**
+	 * 消费客户端角色。
+	 */
+	CONSUMER
 
 }

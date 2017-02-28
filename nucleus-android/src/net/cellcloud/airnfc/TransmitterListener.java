@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,57 +24,26 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.cluster;
+package net.cellcloud.airnfc;
 
-import java.net.InetSocketAddress;
-import java.util.HashMap;
+public interface TransmitterListener {
 
-/** 集群虚拟节点。
- * 
- * @author Jiangwei Xu
- */
-public class ClusterVirtualNode extends ClusterNode {
-
-	protected ClusterNode master = null;
-
-	private HashMap<String, Chunk> memoryChunks;
-
-	public ClusterVirtualNode(ClusterNode master, long hashCode, InetSocketAddress address) {
-		super(hashCode, address, -1);
-		this.master = master;
-		this.memoryChunks = new HashMap<String, Chunk>();
-	}
-
-	/** 返回数据块数量。
+	/**
+	 * 
+	 * @param transmitter
 	 */
-	public int numOfChunk() {
-		return this.memoryChunks.size();
-	}
+	public void onStarted(Transmitter transmitter);
 
-	/** 返回块。
+	/**
+	 * 
+	 * @param transmitter
 	 */
-	public Chunk getChunk(String label) {
-		return this.memoryChunks.get(label);
-	}
+	public void onStopped(Transmitter transmitter);
 
-	/** 插入块。
+	/**
+	 * 
+	 * @param transmitter
+	 * @param data
 	 */
-	public void insertChunk(Chunk chunk) {
-		this.memoryChunks.put(chunk.getLabel(), chunk);
-	}
-
-	/** 删除块。
-	 */
-	public void deleteChunk(Chunk chunk) {
-		this.memoryChunks.remove(chunk);
-	}
-
-	/** 更新块。
-	 */
-	public void updateChunk(Chunk chunk) {
-		if (this.memoryChunks.containsKey(chunk.getLabel())) {
-			this.memoryChunks.remove(chunk);
-		}
-		this.memoryChunks.put(chunk.getLabel(), chunk);
-	}
+	public void onTransmitted(Transmitter transmitter, byte data);
 }

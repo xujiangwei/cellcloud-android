@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,9 +39,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-/** 非阻塞网络接收器。
+/**
+ * 非阻塞网络接收器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class NonblockingAcceptor extends MessageService implements MessageAcceptor {
 
@@ -278,50 +280,71 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 
 	/**
 	 * 适配器句柄线程是否正在运行。
+	 * 
 	 * @return
 	 */
 	public boolean isRunning() {
 		return this.running;
 	}
 
-	/** 返回绑定地址。
+	/**
+	 * 返回绑定地址。
+	 * 
+	 * @return
 	 */
-	public final InetSocketAddress  getBindAddress() {
+	public final InetSocketAddress getBindAddress() {
 		return this.bindAddress;
 	}
 
-	/** 设置工作器数量。
+	/**
+	 * 设置工作器数量。
+	 * 
+	 * @param num
 	 */
 	public void setWorkerNum(int num) {
 		this.workerNum = num;
 	}
-	/** 返回工作器数量。
+
+	/**
+	 * 返回工作器数量。
+	 * 
+	 * @return
 	 */
 	public int getWorkerNum() {
 		return this.workerNum;
 	}
 
-	/** 设置 Block 数据块大小。
+	/**
+	 * 设置 Block 数据块大小。
+	 * 
 	 * @param size
 	 */
 	public void setBlockSize(int size) {
 		this.block = size;
 	}
 
-	/** 返回 Block 数据块大小。
+	/**
+	 * 返回 Block 数据块大小。
+	 * 
 	 * @return
 	 */
 	public int getBlockSize() {
 		return this.block;
 	}
 
-	/** 返回所有 Session 。
+	/**
+	 * 返回所有 Session 。
+	 * 
+	 * @return
 	 */
 	public Collection<NonblockingAcceptorSession> getSessions() {
 		return this.sessions.values();
 	}
 
-	/** 从接收器里删除指定的 Session 。
+	/**
+	 * 从接收器里删除指定的 Session 。
+	 * 
+	 * @param session
 	 */
 	protected synchronized void eraseSession(NonblockingAcceptorSession session) {
 		if (null == session.socket) {
@@ -348,59 +371,116 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		}
 	}
 
-	/** 通知创建会话。 */
+	/**
+	 * 通知创建会话。
+	 * 
+	 * @param session
+	 */
 	protected void fireSessionCreated(Session session) {
+		if (null != this.interceptor && this.interceptor.interceptCreating(session)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.sessionCreated(session);
 		}
 	}
-	/** 通知打开会话。 */
+
+	/**
+	 * 通知打开会话。
+	 * 
+	 * @param session
+	 */
 	protected void fireSessionOpened(Session session) {
+		if (null != this.interceptor && this.interceptor.interceptOpening(session)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.sessionOpened(session);
 		}
 	}
-	/** 通知关闭会话。 */
+
+	/**
+	 * 通知关闭会话。
+	 * 
+	 * @param session
+	 */
 	protected void fireSessionClosed(Session session) {
+		if (null != this.interceptor && this.interceptor.interceptClosing(session)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.sessionClosed(session);
 		}
 	}
-	/** 通知销毁会话。 */
+
+	/**
+	 * 通知销毁会话。
+	 * 
+	 * @param session
+	 */
 	protected void fireSessionDestroyed(Session session) {
+		if (null != this.interceptor && this.interceptor.interceptDestroying(session)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.sessionDestroyed(session);
 		}
 	}
-	/** 通知会话错误。 */
+
+	/**
+	 * 通知会话错误。
+	 * 
+	 * @param session
+	 * @param errorCode
+	 */
 	protected void fireErrorOccurred(Session session, int errorCode) {
+		if (null != this.interceptor && this.interceptor.interceptError(session, errorCode)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.errorOccurred(errorCode, session);
 		}
 	}
-	/** 通知会话接收到消息。 */
+
+	/**
+	 * 通知会话接收到消息。
+	 * 
+	 * @param session
+	 * @param message
+	 */
 	protected void fireMessageReceived(Session session, Message message) {
+		if (null != this.interceptor && this.interceptor.interceptMessage(session, message)) {
+			return;
+		}
+
 		if (null != this.handler) {
 			this.handler.messageReceived(session, message);
 		}
 	}
-	/** 通知会话已发送消息。 */
+
+	/**
+	 * 通知会话已发送消息。
+	 * 
+	 * @param session
+	 * @param message
+	 */
 	protected void fireMessageSent(Session session, Message message) {
 		if (null != this.handler) {
 			this.handler.messageSent(session, message);
 		}
 	}
-	/** 通知消息拦截。 */
-	protected boolean fireIntercepted(Session session, byte[] rawData) {
-		if (null != this.interceptor) {
-			return this.interceptor.intercepted(session, rawData);
-		}
-		else {
-			return false;
-		}
-	}
 
-	/** 事件循环。 */
+	/**
+	 * 事件循环。
+	 * 
+	 * @throws IOException
+	 * @throws Exception
+	 */
 	private void loopDispatch() throws IOException, Exception {
 		while (this.spinning) {
 			if (!this.selector.isOpen()) {
@@ -448,7 +528,11 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		} // # while
 	}
 
-	/** 处理 Accept */
+	/**
+	 * 处理 Accept 。
+	 * 
+	 * @param key
+	 */
 	private void accept(SelectionKey key) {
 		ServerSocketChannel channel = (ServerSocketChannel)key.channel();
 
@@ -489,7 +573,11 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		}
 	}
 
-	/** 处理 Read */
+	/**
+	 * 处理 Read 。
+	 * 
+	 * @param key
+	 */
 	private void receive(SelectionKey key) {
 		SocketChannel channel = (SocketChannel) key.channel();
 
@@ -513,7 +601,11 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 			key.interestOps(key.interestOps() | SelectionKey.OP_READ);
 	}
 
-	/** 处理 Write */
+	/**
+	 * 处理 Write 。
+	 * 
+	 * @param key
+	 */
 	private void send(SelectionKey key) {
 		SocketChannel channel = (SocketChannel) key.channel();
 
@@ -536,4 +628,5 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		if (key.isValid())
 			key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
 	}
+
 }

@@ -668,15 +668,20 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return false;
 	}
 
+	public boolean isCalled(String identifier) {
+		return this.isCalled(identifier, 0);
+	}
+
 	/**
 	 * 是否已经与 Cellet 建立服务。
 	 */
-	public boolean isCalled(String identifier) {
+	public boolean isCalled(String identifier, long millis) {
+		boolean ret = false;
 		if (null != this.speakerMap) {
 			Speaker speaker = this.speakerMap.get(identifier);
 			if (null != speaker) {
-				boolean ret = speaker.isCalled();
-				if (ret) {
+				ret = speaker.isCalled();
+				if (ret && millis > 0) {
 					long time = System.currentTimeMillis();
 
 					// 发送心跳
@@ -686,7 +691,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 					synchronized (speaker) {
 						try {
-							speaker.wait(5000L);
+							speaker.wait(millis);
 						} catch (InterruptedException e) {
 							// Nothing
 						}
@@ -700,7 +705,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			}
 		}
 
-		return false;
+		return ret;
 	}
 
 	public boolean resetInterval(long interval) {

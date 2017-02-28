@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,11 @@ package net.cellcloud.common;
 
 import java.util.ArrayList;
 
-
-/** 数据包类。描述在网络上进行投递的数据包格式。
-@author Jiangwei Xu
-@remarks
+/**
+ * 数据包类。描述在网络上进行投递的数据包格式。
+ * 
+ * @author Ambrose Xu
+ * @remarks
 	数据包划分为 Tag（标签）、Version（版本）、Sequence Number（序号）、
 	Body Length（包体长度） 和 Body Data（包数据） 等 5 个主要数据段，
 	依次简记为：TAG、VER、SEN、LEN、DAT。
@@ -75,7 +76,8 @@ public final class Packet {
 	private byte[] body;
 	private ArrayList<byte[]> subsegments;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
 	 */
 	public Packet(byte[] tag, int sn) {
 		this.tag = tag;
@@ -86,7 +88,8 @@ public final class Packet {
 		this.subsegments = new ArrayList<byte[]>();
 	}
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
 	 */
 	public Packet(byte[] tag, int sn, int major, int minor) {
 		this.tag = tag;
@@ -97,68 +100,73 @@ public final class Packet {
 		this.subsegments = new ArrayList<byte[]>();
 	}
 
-	/** 返回包标签。
+	/**
+	 * 返回包标签。
 	 */
 	public byte[] getTag() {
 		return this.tag;
 	}
 
-	/** 设置包标签。
+	/**
+	 * 设置包标签。
 	 */
 	public void setTag(byte[] tag) {
 		this.tag = tag;
 	}
 
-	/** 返回主版本号。
+	/**
+	 * 返回主版本号。
 	 */
 	public int getMajorVersion() {
 		return this.major;
 	}
 
-	/** 返回副版本号。
+	/**
+	 * 返回副版本号。
 	 */
 	public int getMinorVersion() {
 		return this.minor;
 	}
 
-	/** 设置版本号。
+	/**
+	 * 设置版本号。
 	 */
 	public void setVersion(int major, int minor) {
 		this.major = major;
 		this.minor = minor;
 	}
 
-	/** 返回包序号。
+	/**
+	 * 返回包序号。
 	 */
 	public int getSequenceNumber() {
 		return this.sn;
 	}
 
-	/** 设置包序号。
+	/**
+	 * 设置包序号。
 	 */
 	public void setSequenceNumber(int sn) {
 		this.sn = sn;
 	}
 
-	/** 直接设置 Body 数据。
-	 */
-	/*public void setBody(byte[] body) {
-		this.body = body;
-	}*/
-	/** 直接返回 Body 数据。
+	/**
+	 * 直接返回 Body 数据。
 	 */
 	public byte[] getBody() {
 		return this.body;
 	}
 
-	/** 追加子段。
+	/**
+	 * 追加子段。
 	 */
 	public void appendSubsegment(byte[] subsegment) {
 		this.subsegments.add(subsegment);
 		this.body = null;
 	}
 
-	/** 获取子段。
+	/**
+	 * 获取子段。
 	 */
 	public byte[] getSubsegment(int index) {
 		if (index < 0 || index >= this.subsegments.size())
@@ -167,12 +175,18 @@ public final class Packet {
 		return this.subsegments.get(index);
 	}
 
-	/** 返回子段数量。
+	/**
+	 * 返回子段数量。
 	 */
 	public int getSubsegmentCount() {
 		return this.subsegments.size();
 	}
 
+	/**
+	 * 返回 Body 长度。
+	 * 
+	 * @return
+	 */
 	public int getBodyLength() {
 		int len = 0;
 
@@ -193,7 +207,9 @@ public final class Packet {
 		return len;
 	}
 
-	/** 打包。 */
+	/**
+	 * 打包。
+	 */
 	public static byte[] pack(Packet packet) {
 		int ssNum = packet.getSubsegmentCount();
 
@@ -257,7 +273,9 @@ public final class Packet {
 		return data;
 	}
 
-	/** 解包。 */
+	/**
+	 * 解包。
+	 */
 	public static Packet unpack(byte[] data) {
 		int datalen = data.length;
 		if (datalen < PSL_TAG + PSL_VERSION + PSL_SN + PSL_BODY_LENGTH) {
@@ -350,6 +368,13 @@ public final class Packet {
 		return packet;
 	}
 
+	/**
+	 * 快速格式化数字。
+	 * 
+	 * @param number
+	 * @param limit
+	 * @return
+	 */
 	private static String fastFormatNumber(int number, int limit) {
 		switch (limit) {
 		case 2:
@@ -401,4 +426,5 @@ public final class Packet {
 			return Integer.toString(number);
 		}
 	}
+
 }

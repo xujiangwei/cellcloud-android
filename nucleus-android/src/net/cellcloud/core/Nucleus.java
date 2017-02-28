@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.cellcloud.cluster.ClusterController;
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.exception.CelletSandboxException;
@@ -38,9 +37,11 @@ import net.cellcloud.exception.SingletonException;
 import net.cellcloud.talk.TalkService;
 import android.content.Context;
 
-/** Cell Cloud 软件栈内核类。
+/**
+ * Cell Cloud 软件栈内核类。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class Nucleus {
 
@@ -51,9 +52,6 @@ public final class Nucleus {
 	private NucleusContext context = null;
 
 	private Context appContext = null;
-
-	// 集群网络控制
-	private ClusterController clusterController = null;
 
 	// Talk 服务
 	private TalkService talkService = null;
@@ -80,7 +78,7 @@ public final class Nucleus {
 			}
 			else {
 				this.tag = new NucleusTag();
-				if (this.config.role != NucleusConfig.Role.CONSUMER)
+				if (this.config.role != Role.CONSUMER)
 					Logger.w(Nucleus.class, "Nucleus Warning: No nucleus tag setting, use random tag: " + this.tag.asString());
 			}
 
@@ -129,12 +127,6 @@ public final class Nucleus {
 		return this.config;
 	}
 
-	/** 返回集群控制器实例。
-	 */
-	public ClusterController getClusterController() {
-		return this.clusterController;
-	}
-
 	/** 返回 Talk Service 实例。
 	 */
 	public TalkService getTalkService() {
@@ -145,7 +137,6 @@ public final class Nucleus {
 	public boolean startup() {
 		Logger.i(Nucleus.class, "*-*-* Cell Initializing *-*-*");
 
-		// FIXME XJW 2015-12-31 关闭 NODE 角色服务的代码
 		/*
 		// 角色：节点
 		if ((this.config.role & NucleusConfig.Role.NODE) != 0) {
@@ -201,7 +192,7 @@ public final class Nucleus {
 		}*/
 
 		// 角色：消费者
-		if ((this.config.role & NucleusConfig.Role.CONSUMER) != 0) {
+		if (this.config.role == Role.CONSUMER) {
 			if (null == this.talkService) {
 				try {
 					// 创建 Talk Service
@@ -224,7 +215,6 @@ public final class Nucleus {
 	public void shutdown() {
 		Logger.i(Nucleus.class, "*-*-* Cell Finalizing *-*-*");
 
-		// FIXME XJW 2015-12-31
 		/*
 		// 角色：节点
 		if ((this.config.role & NucleusConfig.Role.NODE) != 0) {
@@ -243,7 +233,7 @@ public final class Nucleus {
 		}*/
 
 		// 角色：消费者
-		if ((this.config.role & NucleusConfig.Role.CONSUMER) != 0) {
+		if (this.config.role == Role.CONSUMER) {
 			if (null != this.talkService) {
 				this.talkService.stopDaemon();
 			}

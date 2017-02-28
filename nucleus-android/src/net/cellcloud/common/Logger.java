@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,43 +29,73 @@ package net.cellcloud.common;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-/** 系统通用日志接口。
+/**
+ * 系统通用日志接口。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class Logger {
 
-	/** 打印 DEBUG 级别日志。
+	private Logger() {
+		// Nothing
+	}
+
+	/**
+	 * 打印 DEBUG 级别日志。
+	 * 
+	 * @param clazz
+	 * @param log
 	 */
 	public static void d(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.DEBUG, clazz.getName(), log);
 	}
 
-	/** 打印 INFO 级别日志。
+	/**
+	 * 打印 INFO 级别日志。
+	 * 
+	 * @param clazz
+	 * @param log
 	 */
 	public static void i(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.INFO, clazz.getName(), log);
 	}
 
-	/** 打印 WARNING 级别日志。
+	/**
+	 * 打印 WARNING 级别日志。
+	 * 
+	 * @param clazz
+	 * @param log
 	 */
 	public static void w(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.WARNING, clazz.getName(), log);
 	}
 
-	/** 打印 ERROR 级别日志。
+	/**
+	 * 打印 ERROR 级别日志。
+	 * 
+	 * @param clazz
+	 * @param log
 	 */
 	public static void e(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.ERROR, clazz.getName(), log);
 	}
 
-	/** 日志管理器是否设置为 DEBUG 等级。
+	/**
+	 * 日志管理器是否设置为 DEBUG 等级。
+	 * 
+	 * @return
 	 */
 	public static boolean isDebugLevel() {
 		return (LogManager.getInstance().getLevel() == LogLevel.DEBUG);
 	}
 
-	/** 记录异常。
+	/**
+	 * 记录异常。
+	 * 
+	 * @param clazz
+	 * @param exception
+	 * @param level
 	 */
 	public static void log(Class<?> clazz, Exception exception, byte level) {
 		if (LogManager.getInstance().getLevel() > level) {
@@ -90,4 +120,5 @@ public final class Logger {
 			}
 		}
 	}
+
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,10 +32,11 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Vector;
 
-
-/** 非阻塞网络接收器工作线程。
+/**
+ * 非阻塞网络接收器工作线程。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class NonblockingAcceptorWorker extends Thread {
 
@@ -53,6 +54,11 @@ public final class NonblockingAcceptorWorker extends Thread {
 	// 需要执行发送数据任务的 Session 列表
 	private Vector<NonblockingAcceptorSession> sendSessions = new Vector<NonblockingAcceptorSession>();
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param acceptor
+	 */
 	public NonblockingAcceptorWorker(NonblockingAcceptor acceptor) {
 		this.acceptor = acceptor;
 		this.setName("NonblockingAcceptorWorker@" + this.toString());
@@ -106,7 +112,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 		this.working = false;
 	}
 
-	/** 停止自旋
+	/**
+	 * 停止自旋。
+	 * 
+	 * @param blockingCheck
 	 */
 	protected void stopSpinning(boolean blockingCheck) {
 		this.spinning = false;
@@ -126,25 +135,37 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/** 返回线程是否正在工作。
+	/**
+	 * 返回线程是否正在工作。
+	 * 
+	 * @return
 	 */
 	protected boolean isWorking() {
 		return this.working;
 	}
 
-	/** 返回当前未处理的接收任务 Session 数量。
+	/**
+	 * 返回当前未处理的接收任务 Session 数量。
+	 * 
+	 * @return
 	 */
 	protected int getReceiveSessionNum() {
 		return this.receiveSessions.size();
 	}
 
-	/** 返回当前未处理的发送任务 Session 数量。
+	/**
+	 * 返回当前未处理的发送任务 Session 数量。
+	 * 
+	 * @return
 	 */
 	protected int getSendSessionNum() {
 		return this.sendSessions.size();
 	}
 
-	/** 添加执行接收数据的 Session 。
+	/**
+	 * 添加执行接收数据的 Session 。
+	 * 
+	 * @param session
 	 */
 	protected void pushReceiveSession(NonblockingAcceptorSession session) {
 		if (!this.spinning) {
@@ -158,7 +179,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/** 添加执行发送数据的 Session 。
+	/**
+	 * 添加执行发送数据的 Session 。
+	 * 
+	 * @param session
 	 */
 	protected void pushSendSession(NonblockingAcceptorSession session) {
 		if (!this.spinning) {
@@ -176,7 +200,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/** 从所有列表中移除指定的 Session 。
+	/**
+	 * 从所有列表中移除指定的 Session 。
+	 * 
+	 * @param session
 	 */
 	private void removeSession(NonblockingAcceptorSession session) {
 		boolean exist = this.receiveSessions.remove(session);
@@ -190,7 +217,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/** 处理接收。
+	/**
+	 * 处理接收。
+	 * 
+	 * @param session
 	 */
 	private void processReceive(NonblockingAcceptorSession session) {
 		SocketChannel channel = (SocketChannel) session.selectionKey.channel();
@@ -277,7 +307,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 		} while (read > 0);
 	}
 
-	/** 处理发送。
+	/**
+	 * 处理发送。
+	 * 
+	 * @param session
 	 */
 	private void processSend(NonblockingAcceptorSession session) {
 		SocketChannel channel = (SocketChannel) session.selectionKey.channel();
@@ -331,12 +364,12 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
+	/**
+	 * 
+	 * @param session
+	 * @param data
+	 */
 	private void parse(NonblockingAcceptorSession session, byte[] data) {
-		// 拦截器返回 true 则该数据被拦截，不再进行数据解析。
-		if (this.acceptor.fireIntercepted(session, data)) {
-			return;
-		}
-
 		// 根据数据标志获取数据
 		if (this.acceptor.existDataMark()) {
 			ArrayList<byte[]> out = new ArrayList<byte[]>(2);
@@ -359,15 +392,12 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 	}
 
-	/** 解析数据格式。
+	/**
+	 * 解析数据格式。
+	 * 
 	 * @deprecated
 	 */
 	protected void parseData(NonblockingAcceptorSession session, byte[] data) {
-		// 拦截器返回 true 则该数据被拦截，不再进行数据解析。
-		if (this.acceptor.fireIntercepted(session, data)) {
-			return;
-		}
-
 		// 根据数据标志获取数据
 		if (this.acceptor.existDataMark()) {
 			byte[] headMark = this.acceptor.getHeadMark();
@@ -448,6 +478,10 @@ public final class NonblockingAcceptorWorker extends Thread {
 
 	/**
 	 * 数据提取并输出。
+	 * 
+	 * @param out
+	 * @param session
+	 * @param data
 	 */
 	private void extract(final ArrayList<byte[]> out, final NonblockingAcceptorSession session, final byte[] data) {
 		final byte[] headMark = this.acceptor.getHeadMark();
@@ -605,4 +639,5 @@ public final class NonblockingAcceptorWorker extends Thread {
 		}
 		return true;
 	}
+
 }
