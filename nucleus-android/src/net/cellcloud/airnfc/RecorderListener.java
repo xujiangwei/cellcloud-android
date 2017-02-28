@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,14 +24,25 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.cluster;
+package net.cellcloud.airnfc;
 
-/** 集群故障。
- * 
- * @author Jiangwei Xu
- */
-public enum ClusterFailure {
+public interface RecorderListener {
 
-	// 节点消失
-	DisappearingNode
+	/**
+	 * 
+	 * @param recorder
+	 */
+	public void onStarted(Recorder recorder);
+
+	/**
+	 * 
+	 * @param recorder
+	 */
+	public void onStopped(Recorder recorder);
+
+	/**
+	 * 
+	 * @param buffer
+	 */
+	public void onRecording(Buffer buffer);
 }

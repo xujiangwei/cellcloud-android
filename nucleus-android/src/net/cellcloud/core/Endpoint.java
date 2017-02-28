@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,30 +28,48 @@ package net.cellcloud.core;
 
 import java.net.InetSocketAddress;
 
-/** 终端节点。
+/**
+ * 终端节点。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class Endpoint {
 
 	private NucleusTag tag;
-	private byte role;
-	private Coordinate coordinate;
+	private Role role;
+	private String host;
+	private int port;
 
 	/** 构造函数。
 	 */
-	public Endpoint(String tag, byte role, InetSocketAddress address) {
+	public Endpoint(String tag, Role role, String host, int port) {
 		this.tag = new NucleusTag(tag);
 		this.role = role;
-		this.coordinate = new Coordinate(address);
+		this.host = host;
+		this.port = port;
+	}
+
+	/**
+	 * 
+	 * @param tag
+	 * @param role
+	 * @param address
+	 */
+	public Endpoint(String tag, Role role, InetSocketAddress address) {
+		this.tag = new NucleusTag(tag);
+		this.role = role;
+		this.host = address.getHostString();
+		this.port = address.getPort();
 	}
 
 	/** 构造函数。
 	 */
-	public Endpoint(NucleusTag tag, byte role, InetSocketAddress address) {
+	public Endpoint(NucleusTag tag, Role role, InetSocketAddress address) {
 		this.tag = tag;
 		this.role = role;
-		this.coordinate = new Coordinate(address);
+		this.host = address.getHostString();
+		this.port = address.getPort();
 	}
 
 	/** 返回终端标签。
@@ -62,29 +80,22 @@ public class Endpoint {
 
 	/** 返回终端角色。
 	 */
-	public byte getRole() {
+	public Role getRole() {
 		return this.role;
 	}
 
 	/** 返回终端坐标。
 	 */
-	public Coordinate getCoordinate() {
-		return this.coordinate;
+	public String getHost() {
+		return this.host;
 	}
 
-	/** 终端坐标。
+	/**
+	 * 
+	 * @return
 	 */
-	public final class Coordinate {
-		private InetSocketAddress address;
-
-		public Coordinate(InetSocketAddress address) {
-			this.address = address;
-		}
-
-		/** 返回访问地址。
-		 */
-		public InetSocketAddress getAddress() {
-			return this.address;
-		}
+	public int getPort() {
+		return this.port;
 	}
+
 }

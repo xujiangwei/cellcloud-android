@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (cellcloudproject@gmail.com)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,11 @@ import java.util.Locale;
 
 import android.util.Log;
 
-/** 日志管理器。
+/**
+ * 日志管理器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class LogManager {
 
@@ -52,16 +54,27 @@ public final class LogManager {
 		this.handles.add(createAndroidHandle());
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public static LogManager getInstance() {
 		return instance;
 	}
 
-	/** 设置日志等级。
+	/**
+	 * 设置日志等级。
+	 * 
+	 * @param level
 	 */
 	public void setLevel(byte level) {
 		this.level = level;
 	}
-	/** 返回日志等级。
+
+	/**
+	 * 返回日志等级。
+	 * 
+	 * @return
 	 */
 	public byte getLevel() {
 		return this.level;
@@ -69,13 +82,19 @@ public final class LogManager {
 
 	/**
 	 * 返回句柄数量。
+	 * 
 	 * @return
 	 */
 	public int numHandles() {
 		return this.handles.size();
 	}
 
-	/** 记录日志。
+	/**
+	 * 记录日志。
+	 * 
+	 * @param level
+	 * @param tag
+	 * @param log
 	 */
 	public void log(byte level, String tag, String log) {
 		synchronized (this) {
@@ -109,7 +128,10 @@ public final class LogManager {
 		}
 	}
 
-	/** 添加日志内容处理器。
+	/**
+	 * 添加日志内容处理器。
+	 * 
+	 * @param handle
 	 */
 	public void addHandle(LogHandle handle) {
 		synchronized (this) {
@@ -127,7 +149,10 @@ public final class LogManager {
 		}
 	}
 
-	/** 移除日志内容处理器。
+	/**
+	 * 移除日志内容处理器。
+	 * 
+	 * @param handle
 	 */
 	public void removeHandle(LogHandle handle) {
 		synchronized (this) {
@@ -135,7 +160,8 @@ public final class LogManager {
 		}
 	}
 
-	/** 移除所有日志内容处理器。
+	/**
+	 * 移除所有日志内容处理器。
 	 */
 	public void removeAllHandles() {
 		synchronized (this) {
@@ -143,7 +169,10 @@ public final class LogManager {
 		}
 	}
 
-	/** 创建 Android 日志。
+	/**
+	 * 创建 Android 日志处理器。
+	 * 
+	 * @return
 	 */
 	public static LogHandle createAndroidHandle() {
 		return new LogHandle() {
@@ -176,4 +205,5 @@ public final class LogManager {
 			}
 		};
 	}
+
 }

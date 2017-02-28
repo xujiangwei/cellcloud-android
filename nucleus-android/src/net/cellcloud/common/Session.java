@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,11 @@ import java.net.InetSocketAddress;
 
 import net.cellcloud.util.Utils;
 
-/** 消息会话描述类。
+/**
+ * 消息会话描述类。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class Session {
 
@@ -65,19 +67,22 @@ public class Session {
 		this.cacheCursor = 0;
 	}
 
-	/** 返回会话 ID 。
+	/**
+	 * 返回会话 ID 。
 	 */
 	public Long getId() {
 		return this.id;
 	}
 
-	/** 返回消息服务实例。
+	/**
+	 * 返回消息服务实例。
 	 */
 	public MessageService getService() {
 		return this.service;
 	}
 
-	/** 返回会话的网络地址。
+	/**
+	 * 返回会话的网络地址。
 	 */
 	public InetSocketAddress getAddress() {
 		return this.address;
@@ -167,4 +172,5 @@ public class Session {
 			this.cache = new byte[newSize];
 		}
 	}
+
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,11 @@ THE SOFTWARE.
 
 package net.cellcloud.common;
 
-/** 消息服务。
+/**
+ * 消息服务。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public abstract class MessageService {
 
@@ -38,6 +40,9 @@ public abstract class MessageService {
 	private byte[] tailMark;
 	private int maxConnectNum;
 
+	/**
+	 * 
+	 */
 	public MessageService() {
 		this.handler = null;
 		this.interceptor = null;
@@ -46,69 +51,104 @@ public abstract class MessageService {
 		this.maxConnectNum = 32;
 	}
 
-	/** 返回消息句柄。
+	/**
+	 * 返回消息句柄。
+	 * 
+	 * @return
 	 */
 	public MessageHandler getHandler() {
 		return this.handler;
 	}
 
-	/** 设置消息句柄。
+	/**
+	 * 设置消息句柄。
+	 * 
+	 * @param handler
 	 */
 	public void setHandler(MessageHandler handler) {
 		this.handler = handler;
 	}
 
-	/** 返回消息拦截器。
+	/**
+	 * 返回消息拦截器。
+	 * 
+	 * @return
 	 */
 	public MessageInterceptor getInterceptor() {
 		return this.interceptor;
 	}
 
-	/** 设置消息拦截器。
+	/**
+	 * 设置消息拦截器。
+	 * 
+	 * @param interceptor
 	 */
 	public void setInterceptor(MessageInterceptor interceptor) {
 		this.interceptor = interceptor;
 	}
 
-	/** 定义消息传输时使用的数据掩码。
-	 * 默认无掩码。
+	/**
+	 * 定义消息传输时使用的数据标记。默认无标记。
+	 * 
+	 * @param headMark
+	 * @param tailMark
 	 */
 	public void defineDataMark(byte[] headMark, byte[] tailMark) {
 		this.headMark = headMark;
 		this.tailMark = tailMark;
 	}
 
-	/** 返回该服务使用使用了数据掩码。
+	/**
+	 * 返回该服务使用使用了数据标记。
+	 * 
+	 * @return
 	 */
 	public boolean existDataMark() {
 		return (null != this.headMark && null != this.tailMark);
 	}
 
-	/** 返回数据头掩码。
+	/**
+	 * 返回数据头标记。
+	 * 
+	 * @return
 	 */
 	public byte[] getHeadMark() {
 		return this.headMark;
 	}
 
-	/** 返回数据尾掩码。
+	/**
+	 * 返回数据尾标记。
+	 * 
+	 * @return
 	 */
 	public byte[] getTailMark() {
 		return this.tailMark;
 	}
 
-	/** 设置最大连接数。
+	/**
+	 * 设置最大连接数。
+	 * 
+	 * @param num
 	 */
 	public void setMaxConnectNum(int num) {
 		this.maxConnectNum = num;
 	}
 
-	/** 返回最大连接数。
+	/**
+	 * 返回最大连接数。
+	 * 
+	 * @return
 	 */
 	public int getMaxConnectNum() {
 		return this.maxConnectNum;
 	}
 
-	/** 写入消息数据。 */
+	/**
+	 * 写入消息数据到会话。
+	 * 
+	 * @param session
+	 * @param message
+	 */
 	public abstract void write(Session session, Message message);
 
 }

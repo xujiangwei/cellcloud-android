@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2014 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,9 +41,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import net.cellcloud.util.Utils;
 import android.content.Context;
 
-/** 阻塞式网络连接器。
+/**
+ * 阻塞式网络连接器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
  *
  */
 public class BlockingConnector extends MessageService implements MessageConnector {
@@ -73,6 +74,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private AtomicBoolean writing;
 	private LinkedList<Message> messageQueue;
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param androidContext
+	 * @param executor
+	 */
 	public BlockingConnector(Context androidContext, ExecutorService executor) {
 		this.androidContext = androidContext;
 		this.executor = executor;
@@ -81,13 +88,17 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 返回已连接的对端地址。
+	 * 返回已连接的地址。
+	 * 
 	 * @return
 	 */
 	public InetSocketAddress getAddress() {
 		return (null != this.session) ? this.session.getAddress() : null;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean connect(final InetSocketAddress address) {
 		if (null != this.socket || this.running) {
@@ -184,6 +195,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 
 		// 启动线程
+		this.handleThread.setDaemon(true);
 		this.handleThread.start();
 
 		// 判断是否连接成功
@@ -211,6 +223,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void disconnect() {
 		this.activeClose = true;
@@ -232,16 +247,25 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isConnected() {
 		return (null != this.socket && this.socket.isConnected());
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void setConnectTimeout(long timeout) {
 		this.connTimeout = (int)timeout;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void setBlockSize(int size) {
 		if (size < 2048) {
@@ -255,11 +279,19 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		this.block = size;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Session getSession() {
 		return this.session;
 	}
 
+	/**
+	 * 向当前连接的会话写入消息数据。
+	 * 
+	 * @param message
+	 */
 	public void write(Message message) {
 		if (null == this.session) {
 			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
@@ -269,6 +301,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		this.write(this.session, message);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void write(Session session, Message message) {
 		if (null == this.socket) {
@@ -375,6 +410,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		});
 	}
 
+	/**
+	 * 重置守护线程空闲间隔时间，单位：毫秒。
+	 * 
+	 * @param value
+	 */
 	public void resetInterval(long value) {
 		if (this.timerInterval == value) {
 			return;
@@ -422,7 +462,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 	}
 
-	/** 事件循环。 */
+	/**
+	 * 事件处理循环。
+	 * 
+	 * @throws SocketException
+	 * @throws Exception
+	 */
 	private void loopDispatch() throws SocketException, Exception {
 		// 自旋
 		this.spinning = true;
@@ -540,6 +585,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		Logger.i(this.getClass(), "Quit loop dispatch");
 	}
 
+	/**
+	 * 辅助函数，评估指定容量扩容操作。
+	 * 
+	 * @param currentValue
+	 * @param minValue
+	 * @param step
+	 * @return
+	 */
 	private int estimateCapacity(int currentValue, int minValue, int step) {
 		int newValue = currentValue + step;
 		while (newValue < minValue) {
@@ -548,6 +601,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		return newValue;
 	}
 
+	/**
+	 * 执行数据解析。
+	 * 
+	 * @param data
+	 */
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
@@ -595,7 +653,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		final byte[] tailMark = this.getTailMark();
 
 		// 当数据小于标签长度时直接缓存
-		/*if (data.length < headMark.length) {
+		/*
+		if (data.length < headMark.length) {
 			if (this.session.cacheCursor + data.length > this.session.getCacheSize()) {
 				// 重置 cache 大小
 				this.session.resetCacheSize(this.session.cacheCursor + data.length);
@@ -764,15 +823,28 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		return 0;
 	}
 
+	/**
+	 * 使用密钥加密数据。
+	 * 
+	 * @param message
+	 * @param key
+	 */
 	private void encryptMessage(Message message, byte[] key) {
 		byte[] plaintext = message.get();
 		byte[] ciphertext = Cryptology.getInstance().simpleEncrypt(plaintext, key);
 		message.set(ciphertext);
 	}
 
+	/**
+	 * 使用密钥解密数据。
+	 * 
+	 * @param message
+	 * @param key
+	 */
 	private void decryptMessage(Message message, byte[] key) {
 		byte[] ciphertext = message.get();
 		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
 		message.set(plaintext);
 	}
+
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,11 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.util.Vector;
 
-/** 非阻塞网络接收器会话。
+/**
+ * 非阻塞网络接收器会话。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class NonblockingAcceptorSession extends Session {
 
@@ -48,16 +50,25 @@ public class NonblockingAcceptorSession extends Session {
 	// 所属的工作线程
 	protected NonblockingAcceptorWorker worker = null;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param address
+	 * @param block
 	 */
-	public NonblockingAcceptorSession(MessageService service,
-			InetSocketAddress address, int block) {
+	public NonblockingAcceptorSession(MessageService service, InetSocketAddress address, int block) {
 		super(service, address);
 		this.block = block;
 	}
 
-	/** 返回缓存大小。 */
+	/**
+	 * 返回缓存大小。
+	 * 
+	 * @return
+	 */
 	public int getBlock() {
 		return this.block;
 	}
+
 }

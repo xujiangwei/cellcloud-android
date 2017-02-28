@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,26 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.cluster;
+package net.cellcloud.core;
 
-import java.util.Map;
-
-/** 协议工厂。
- * 
- * @author Jiangwei Xu
+/**
+ * 设备平台。
+ *
+ * @author Ambrose Xu
+ *
  */
-public final class ClusterProtocolFactory {
+public enum Device {
 
-	private ClusterProtocolFactory() {
-	}
+	/** 移动设备。 */
+	MOBILE,
 
-	/** 根据属性键值对创建协议。
-	 */
-	public static ClusterProtocol create(Map<String, String> prop) {
-		String protocol = prop.get(ClusterProtocol.KEY_PROTOCOL);
-		if (protocol.equalsIgnoreCase(ClusterPullProtocol.NAME)) {
-			return new ClusterPullProtocol(prop);
-		}
-		else if (protocol.equalsIgnoreCase(ClusterPushProtocol.NAME)) {
-			return new ClusterPushProtocol(prop);
-		}
-		else if (protocol.equalsIgnoreCase(ClusterDiscoveringProtocol.NAME)) {
-			return new ClusterDiscoveringProtocol(prop);
-		}
-		else {
-			return null;
-		}
-	}
+	/** 平板设备。 */
+	TABLET,
+
+	/** 桌面设备。 */
+	DESKTOP,
+
+	/** 服务器。 */
+	SERVER
+
 }

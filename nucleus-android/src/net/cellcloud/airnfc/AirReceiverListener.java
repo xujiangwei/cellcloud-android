@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,25 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.core;
+package net.cellcloud.airnfc;
 
-/** Cellet 监视器。
- * 
- * @author Jiangwei Xu
- */
-public final class CelletSupervisor {
+public interface AirReceiverListener {
 
-	public CelletSupervisor() {
-		
-	}
+	/**
+	 * 
+	 */
+	public void onStarted(AirReceiver receiver);
+
+	/**
+	 * 
+	 */
+	public void onStopped(AirReceiver receiver);
+
+	/**
+	 * 
+	 * @param channel
+	 * @param source
+	 * @param text
+	 */
+	public void onReceived(Channel channel, byte source, String text);
 }
