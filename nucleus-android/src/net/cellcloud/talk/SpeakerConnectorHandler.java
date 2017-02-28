@@ -157,10 +157,12 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 		}
 		else if (TalkDefinition.TPT_HEARTBEAT[2] == tag[2]
 			&& TalkDefinition.TPT_HEARTBEAT[3] == tag[3]) {
+			// 更新时间戳
+			this.speaker.heartbeatTime = System.currentTimeMillis();
+
 			synchronized (this.speaker) {
 				this.speaker.notifyAll();
 			}
-			this.speaker.heartbeatTime = System.currentTimeMillis();
 		}
 		else if (TalkDefinition.TPT_QUICK[2] == tag[2]
 			&& TalkDefinition.TPT_QUICK[3] == tag[3]) {
