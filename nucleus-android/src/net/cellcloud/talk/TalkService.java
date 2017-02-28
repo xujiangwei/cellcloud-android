@@ -1,19 +1,28 @@
 /*
- * ----------------------------------------------------------------------------- This source file is part of Cell Cloud.
- * 
- * Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software
- * without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
- * persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * -----------------------------------------------------------------------------
- */
+-----------------------------------------------------------------------------
+This source file is part of Cell Cloud.
+
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-----------------------------------------------------------------------------
+*/
 
 package net.cellcloud.talk;
 
@@ -30,9 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.LogLevel;
@@ -56,6 +62,9 @@ import net.cellcloud.talk.stuff.PrimitiveSerializer;
 import net.cellcloud.util.Network;
 import net.cellcloud.util.TimeReceiver;
 import net.cellcloud.util.Utils;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 // ! 会话服务。
 /*
@@ -620,20 +629,41 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 */
 	public boolean isCalled(String identifier, long millis) {
 		boolean ret = false;
+
 		if (null != this.speakerMap) {
 			Speaker speaker = this.speakerMap.get(identifier);
 			if (null != speaker) {
-				ret = speaker.isCalled();
+				ret = speaker.isCalled() && Network.isConnectedOrConnecting(Nucleus.getInstance().getAppContext());
+
 				if (ret && millis > 0) {
+					long time = System.currentTimeMillis();
+
 					// 发送心跳
 					if (!speaker.heartbeat()) {
 						return false;
 					}
-					return Network.isConnectedOrConnecting(Nucleus.getInstance().getAppContext());
+
+					synchronized (speaker) {
+						try {
+							speaker.wait(millis);
+						} catch (InterruptedException e) {
+							// Nothing
+						}
+					}
+
+					long d = speaker.heartbeatTime - time;
+					if (d >= 0 && d < millis) {
+						ret = true;
+					}
+					else {
+						ret = false;
+					}
+					return ret;
 				}
 			}
 		}
-		return ret && Network.isConnectedOrConnecting(Nucleus.getInstance().getAppContext());
+
+		return ret;
 	}
 
 	public boolean resetInterval(long interval) {

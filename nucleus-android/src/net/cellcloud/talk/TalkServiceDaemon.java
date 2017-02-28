@@ -28,6 +28,7 @@ import net.cellcloud.util.TimeReceiver.TimeListener;
  * @author Jiangwei Xu
  */
 public final class TalkServiceDaemon implements TimeListener {
+
 	private long tickTime = 0;
 	private int speakerHeartbeatMod = 2;
 	private int heartbeatCount = 0;
@@ -38,7 +39,7 @@ public final class TalkServiceDaemon implements TimeListener {
 	}
 
 	/**
-	 * 设置💗间隔时间
+	 * 设置隔时间
 	 * 
 	 * @param minute
 	 */
