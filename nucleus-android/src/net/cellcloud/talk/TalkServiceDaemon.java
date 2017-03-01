@@ -49,7 +49,6 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	private int heartbeatCount = 0;
 
 	private Timer timer;
-	private long timerRunning = 0;
 
 	protected TalkServiceDaemon() {
 	}
@@ -61,6 +60,34 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	 */
 	public void setSpaceTime(int minute) {
 		this.speakerHeartbeatMod = minute;
+	}
+
+	public void sleep() {
+		try {
+			if (null != this.timer) {
+				this.timer.cancel();
+				this.timer.purge();
+				this.timer = null;
+			}
+		} catch (Exception e) {
+			Logger.log(this.getClass(), e, LogLevel.WARNING);
+		}
+	}
+
+	public void wakeup() {
+		try {
+			if (null != this.timer) {
+				this.timer.cancel();
+				this.timer.purge();
+				this.timer = null;
+			}
+		} catch (Exception e) {
+			Logger.log(this.getClass(), e, LogLevel.WARNING);
+		}
+
+		this.timer = new Timer();
+		// 间隔15秒
+		this.timer.schedule(this, 10000L, 15000L);
 	}
 
 	public void stop() {
@@ -75,36 +102,10 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	public void onTimeTick() {
 		// Tick 进行心跳
 		this.tick(true);
-
-		if (null == this.timer) {
-			this.timer = new Timer();
-			// 间隔15秒
-			this.timer.schedule(this, 10000L, 15000L);
-		}
-		else {
-			// 间隔时间大于20秒，说明定时器已经停止工作
-			if (this.tickTime - this.timerRunning > 30000L) {
-				try {
-					if (null != this.timer) {
-						this.timer.cancel();
-						this.timer.purge();
-						this.timer = null;
-					}
-				} catch (Exception e) {
-					Logger.log(this.getClass(), e, LogLevel.WARNING);
-				}
-
-				this.timer = new Timer();
-				// 间隔15秒
-				this.timer.schedule(this, 10000L, 15000L);
-			}
-		}
 	}
 
 	@Override
 	public void run() {
-		this.timerRunning = System.currentTimeMillis();
-
 		this.tick(false);
 	}
 

@@ -310,12 +310,20 @@ public final class TalkService implements Service, SpeakerDelegate {
 				s.sleep();
 			}
 		}
+
+		if (null != this.daemon) {
+			this.daemon.sleep();
+		}
 	}
 
 	/**
 	 * 从睡眠模式唤醒。
 	 */
 	public void wakeup() {
+		if (null != this.daemon) {
+			this.daemon.wakeup();
+		}
+
 		if (null != this.speakers) {
 			for (Speaker s : this.speakers) {
 				s.wakeup();
