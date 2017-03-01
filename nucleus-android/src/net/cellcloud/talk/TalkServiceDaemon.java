@@ -1,24 +1,36 @@
 /*
- * ----------------------------------------------------------------------------- This source file is part of Cell Cloud.
- * 
- * Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software
- * without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
- * persons to whom the Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * -----------------------------------------------------------------------------
- */
+-----------------------------------------------------------------------------
+This source file is part of Cell Cloud.
+
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-----------------------------------------------------------------------------
+*/
 
 package net.cellcloud.talk;
 
 import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.util.TimeReceiver.TimeListener;
 
@@ -26,16 +38,20 @@ import net.cellcloud.util.TimeReceiver.TimeListener;
  * Talk Service 守护线程。
  * 
  * @author Jiangwei Xu
+ * 
  */
-public final class TalkServiceDaemon implements TimeListener {
+public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	private long tickTime = 0;
+
 	private int speakerHeartbeatMod = 2;
+
 	private int heartbeatCount = 0;
 
-	@Override
-	public void onTimeTick() {
-		run();
+	private Timer timer;
+	private long timerRunning = 0;
+
+	protected TalkServiceDaemon() {
 	}
 
 	/**
@@ -44,27 +60,75 @@ public final class TalkServiceDaemon implements TimeListener {
 	 * @param minute
 	 */
 	public void setSpaceTime(int minute) {
-		speakerHeartbeatMod = minute;
+		this.speakerHeartbeatMod = minute;
 	}
 
+	public void stop() {
+		if (null != timer) {
+			this.timer.cancel();
+			this.timer.purge();
+			this.timer = null;
+		}
+	}
+
+	@Override
+	public void onTimeTick() {
+		// Tick 进行心跳
+		this.tick(true);
+
+		if (null == this.timer) {
+			this.timer = new Timer();
+			// 间隔15秒
+			this.timer.schedule(this, 10000L, 15000L);
+		}
+		else {
+			// 间隔时间大于20秒，说明定时器已经停止工作
+			if (this.tickTime - this.timerRunning > 30000L) {
+				try {
+					if (null != this.timer) {
+						this.timer.cancel();
+						this.timer.purge();
+						this.timer = null;
+					}
+				} catch (Exception e) {
+					Logger.log(this.getClass(), e, LogLevel.WARNING);
+				}
+
+				this.timer = new Timer();
+				// 间隔15秒
+				this.timer.schedule(this, 10000L, 15000L);
+			}
+		}
+	}
+
+	@Override
 	public void run() {
+		this.timerRunning = System.currentTimeMillis();
+
+		this.tick(false);
+	}
+
+	private void tick(boolean heartbeat) {
 		// 当前时间
 		this.tickTime = System.currentTimeMillis();
-		// 心跳计数
-		++this.heartbeatCount;
-		if (this.heartbeatCount >= Integer.MAX_VALUE) {
-			this.heartbeatCount = 0;
-		}
 
 		TalkService service = TalkService.getInstance();
 
-		if (this.heartbeatCount % this.speakerHeartbeatMod == 0) {
-			// 5分钟一次心跳
-			if (null != service.speakers) {
-				for (Speaker speaker : service.speakers) {
-					if (speaker.heartbeat()) {
-						Logger.i(TalkServiceDaemon.class,
-								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+		// 执行心跳逻辑
+		if (heartbeat) {
+			// 心跳计数
+			++this.heartbeatCount;
+			if (this.heartbeatCount >= Integer.MAX_VALUE) {
+				this.heartbeatCount = 0;
+			}
+
+			if (this.heartbeatCount % this.speakerHeartbeatMod == 0) {
+				if (null != service.speakers) {
+					for (Speaker speaker : service.speakers) {
+						if (speaker.heartbeat()) {
+							Logger.i(TalkServiceDaemon.class,
+									"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+						}
 					}
 				}
 			}
@@ -124,7 +188,9 @@ public final class TalkServiceDaemon implements TimeListener {
 				}
 			}
 		}
+
 		// 处理未识别 Session
 		// service.processUnidentifiedSessions(this.tickTime);
 	}
+
 }

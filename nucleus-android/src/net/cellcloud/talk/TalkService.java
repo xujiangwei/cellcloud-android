@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -66,11 +66,12 @@ import net.cellcloud.util.Utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-// ! 会话服务。
+/** 会话服务。
 /*
- * ! 会话服务是节点与 Cellet 之间通信的基础服务。 通过会话服务完成节点与 Cellet 之间的数据传输。
+ * 会话服务是节点与 Cellet 之间通信的基础服务。 通过会话服务完成节点与 Cellet 之间的数据传输。
  * 
- * \author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class TalkService implements Service, SpeakerDelegate {
 
@@ -112,9 +113,11 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 	private TalkDelegate delegate;
 
-	// ! 构造函数。
-	/*!
-	 * \throws SingletonException 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param nucleusContext
+	 * @throws SingletonException
 	 */
 	public TalkService(NucleusContext nucleusContext) throws SingletonException {
 		if (null == TalkService.instance) {
@@ -126,7 +129,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.block = 32768;
 
 			// 15 分钟
-			this.sessionTimeout = 15 * 60 * 1000;
+			this.sessionTimeout = 15L * 60L * 1000L;
 
 			// 创建执行器
 			this.executor = Executors.newCachedThreadPool();
@@ -137,25 +140,27 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 			this.callbackListener = DialectEnumerator.getInstance();
 			this.delegate = DialectEnumerator.getInstance();
+
 			this.receiver = new TimeReceiver();
-			this.daemon = new TalkServiceDaemon();
 		}
 		else {
 			throw new SingletonException(TalkService.class.getName());
 		}
 	}
 
-	// ! 返回会话服务单例。
-	/*!
-	 * \return 如果返回空指针，则表示内核服务尚未启动，需要先启动内核。
+	/**
+	 * 返回会话服务单例。
+	 * 
+	 * @return 如果返回空指针，则表示内核服务尚未启动，需要先启动内核。
 	 */
 	public static TalkService getInstance() {
 		return TalkService.instance;
 	}
 
-	// ! 启动会话服务。
-	/*!
-	 * \return 如果启动成功，则返回 \c true ，否则返回 \c false 。
+	/**
+	 * 启动会话服务。
+	 * 
+	 * @return 如果启动成功，则返回 <code>true</code> ，否则返回 <code>false</code> 。
 	 */
 	@Override
 	public boolean startup() {
@@ -198,7 +203,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		return succeeded;
 	}
 
-	/*!
+	/**
 	 * 关闭会话服务。
 	 */
 	@Override
@@ -214,11 +219,12 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 设置服务端口。
-	/*!
-	 * \note 在 TalkService#startup 之前设置才能生效。
+	/**
+	 * 设置服务端口。
 	 * 
-	 * \param port 指定服务监听端口。
+	 * 在 {@link TalkService#startup()} 之前设置才能生效。
+	 * 
+	 * @param port 指定服务监听端口。
 	 */
 	public void setPort(int port) {
 		if (null != this.acceptor && this.acceptor.isRunning()) {
@@ -228,30 +234,45 @@ public final class TalkService implements Service, SpeakerDelegate {
 		this.port = port;
 	}
 
-	// ! 返回服务端口。
-	/*!
-	 * \return 返回正在使用的服务端口号。
+	/**
+	 * 返回服务端口。
+	 * 
+	 * @return 返回正在使用的服务端口号。
 	 */
 	public int getPort() {
 		return this.port;
 	}
 
-	// ! 设置适配器缓存块大小。
-	/*!
-	 * \param size 指定新的缓存块大小。
+	/**
+	 * 设置适配器缓存块大小。
+	 * 
+	 * @param size 指定新的缓存块大小。
 	 */
 	public void setBlockSize(int size) {
 		this.block = size;
 	}
 
-	/** 启动任务守护线程。 */
+	/**
+	 * 启动任务守护线程。
+	 */
 	public void startDaemon() {
-		receiver.registerReceiver(Nucleus.getInstance().getAppContext(), daemon);
+		if (null != this.daemon) {
+			return;
+		}
+
+		this.daemon = new TalkServiceDaemon();
+		this.receiver.registerReceiver(Nucleus.getInstance().getAppContext(), this.daemon);
 	}
 
-	/** 关闭任务守护线程。 */
+	/**
+	 * 关闭任务守护线程。
+	 */
 	public void stopDaemon() {
-		receiver.unRegisterReceiver(Nucleus.getInstance().getAppContext());
+		if (null != this.daemon) {
+			this.daemon.stop();
+			this.receiver.unRegisterReceiver(Nucleus.getInstance().getAppContext());
+			this.daemon = null;
+		}
 
 		// 关闭所有 Speaker
 		if (null != this.speakers) {
@@ -271,12 +292,17 @@ public final class TalkService implements Service, SpeakerDelegate {
 		DialectEnumerator.getInstance().shutdownAll();
 	}
 
+	/**
+	 * 守护任务是否正在运行。
+	 * 
+	 * @return
+	 */
 	public boolean daemonRunning() {
 		return (null != this.daemon);
 	}
 
-	// ! 进入睡眠模式。
-	/*!
+	/**
+	 * 进入睡眠模式。
 	 */
 	public void sleep() {
 		if (null != this.speakers) {
@@ -286,8 +312,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 从睡眠模式唤醒。
-	/*!
+	/**
+	 * 从睡眠模式唤醒。
 	 */
 	public void wakeup() {
 		if (null != this.speakers) {
@@ -297,9 +323,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 添加会话监听器。
-	/*!
-	 * \param listener 指定添加的监听器对象实例。
+	/**
+	 * 添加会话监听器。
+	 * 
+	 * @param listener 指定添加的监听器对象实例。
 	 */
 	public void addListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -313,9 +340,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 删除会话监听器。
-	/*!
-	 * \param listener 指定删除的监听器对象实例。
+	/**
+	 * 删除会话监听器。
+	 * 
+	 * @param listener 指定删除的监听器对象实例。
 	 */
 	public void removeListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -327,10 +355,11 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 是否已添加指定的监听器。
-	/*!
-	 * \param listener 指定待判断的监听器实例。
-	 * \return 如果指定的监听器已添加到会话服务则返回 \c true ，否则返回 \c false 。
+	/**
+	 * 是否已添加指定的监听器。
+	 * 
+	 * @param listener 指定待判断的监听器实例。
+	 * @return 如果指定的监听器已添加到会话服务则返回 <code>true</code> ，否则返回 <code>false</code> 。
 	 */
 	public boolean hasListener(TalkListener listener) {
 		if (null == this.listeners) {
@@ -342,21 +371,23 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 	}
 
-	// ! 返回当前所有会话者的 Tag 列表。
-	/*!
-	 * \return 返回已经连接的会话客户端 Tag 列表。
+	/**
+	 * 返回当前所有会话者的 Tag 列表。
+	 * 
+	 * @return 返回已经连接的会话客户端 Tag 列表。
 	 */
 	public Set<String> getTalkerList() {
 		return this.tagList;
 	}
 
-	// ! 向指定 Tag 端发送原语。
-	/*!
-	 * \param targetTag 指定目标 Tag 。
-	 * \param primitive 指定发送的原语。
-	 * \param cellet 指定源 Cellet 。
-	 * \param sandbox 指定校验用的安全沙箱实例。
-	 * \return 如果发送原语成功返回 \c true ，否则返回 \c false 。
+	/**
+	 * 向指定 Tag 端发送原语。
+	 * 
+	 * @param targetTag 指定目标 Tag 。
+	 * @param primitive 指定发送的原语。
+	 * @param cellet 指定源 Cellet 。
+	 * @param sandbox 指定校验用的安全沙箱实例。
+	 * @return 如果发送原语成功返回 <code>true</code> ，否则返回 <code>false</code> 。
 	 */
 	public boolean notice(final String targetTag, final Primitive primitive, final Cellet cellet, final CelletSandbox sandbox) {
 		// 检查 Cellet 合法性
@@ -524,8 +555,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 				this.speakerMap.put(identifier, speaker);
 			}
 
-			// 重启定时器
-			this.startDaemon();
 			// Call
 			return speaker.call(identifiers);
 		}
