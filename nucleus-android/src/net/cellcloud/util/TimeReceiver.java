@@ -4,8 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Bundle;
-import net.cellcloud.common.Logger;
 
 /**
  * 时间广播
@@ -18,12 +16,6 @@ public class TimeReceiver extends BroadcastReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		Logger.i(TimeReceiver.class, "action: " + intent.getAction());
-		Logger.i(TimeReceiver.class, "intent : ");
-		Bundle bundle = intent.getExtras();
-		for (String key : bundle.keySet()) {
-			Logger.i(TimeReceiver.class, key + " : " + bundle.get(key));
-		}
 		if (Intent.ACTION_TIME_TICK.equals(intent.getAction())) {
 			if (timeListener != null) {
 				timeListener.onTimeTick();
