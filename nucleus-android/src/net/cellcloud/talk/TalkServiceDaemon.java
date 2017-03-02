@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.util.TimeReceiver.TimeListener;
 
@@ -63,31 +62,32 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	}
 
 	public void sleep() {
-		try {
-			if (null != this.timer) {
-				this.timer.cancel();
-				this.timer.purge();
-				this.timer = null;
-			}
-		} catch (Exception e) {
-			Logger.log(this.getClass(), e, LogLevel.WARNING);
-		}
+//		try {
+//			if (null != this.timer) {
+//				this.timer.cancel();
+//				this.timer.purge();
+//				this.timer = null;
+//			}
+//		} catch (Exception e) {
+//			Logger.log(this.getClass(), e, LogLevel.WARNING);
+//		}
 	}
-
+	
+	// for fixed Caused by: java.lang.IllegalStateException: TimerTask is scheduled already by fldy
 	public void wakeup() {
-		try {
-			if (null != this.timer) {
-				this.timer.cancel();
-				this.timer.purge();
-				this.timer = null;
-			}
-		} catch (Exception e) {
-			Logger.log(this.getClass(), e, LogLevel.WARNING);
-		}
-
-		this.timer = new Timer();
-		// 间隔15秒
-		this.timer.schedule(this, 10000L, 15000L);
+//		try {
+//			if (null != this.timer) {
+//				this.timer.cancel();
+//				this.timer.purge();
+//				this.timer = null;
+//			}
+//		} catch (Exception e) {
+//			Logger.log(this.getClass(), e, LogLevel.WARNING);
+//		}
+//
+//		this.timer = new Timer();
+//		// 间隔15秒
+//		this.timer.schedule(this, 10000L, 15000L);
 	}
 
 	public void stop() {
