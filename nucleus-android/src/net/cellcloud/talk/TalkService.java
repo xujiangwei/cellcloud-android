@@ -260,7 +260,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			return;
 		}
 
-		this.daemon = new TalkServiceDaemon();
+		this.daemon = new TalkServiceDaemon(false);
 		this.receiver.registerReceiver(Nucleus.getInstance().getAppContext(), this.daemon);
 	}
 
