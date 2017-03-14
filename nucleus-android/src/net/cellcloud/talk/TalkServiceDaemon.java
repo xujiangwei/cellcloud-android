@@ -135,9 +135,16 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						}
 					}
 
-					for (Speaker speaker : service.speakers) {
+					for (int i = 0; i < service.speakers.size(); ++i) {
+						final Speaker speaker = service.speakers.get(i);
 						if (this.tickTime - speaker.heartbeatTime >= 300000L) {
-							speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
+							Thread thread = new Thread() {
+								@Override
+								public void run() {
+									speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
+								}
+							};
+							thread.start();
 						}
 					}
 				}
