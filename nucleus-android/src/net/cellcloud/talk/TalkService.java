@@ -695,7 +695,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 					else {
 						ret = false;
 					}
-					return ret;
 				}
 			}
 		}
