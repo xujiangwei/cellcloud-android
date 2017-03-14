@@ -44,7 +44,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	private long tickTime = 0;
 
-	private int speakerHeartbeatMod = 2;
+	private int speakerHeartbeatMod = 3;
 
 	private int heartbeatCount = 0;
 
@@ -53,15 +53,6 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	protected TalkServiceDaemon(boolean auto) {
 		this.auto = auto;
-	}
-
-	/**
-	 * 设置隔时间
-	 * 
-	 * @param minute
-	 */
-	public void setSpaceTime(int minute) {
-		this.speakerHeartbeatMod = minute;
 	}
 
 	public void sleep() {
@@ -141,6 +132,12 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						if (speaker.heartbeat()) {
 							Logger.i(TalkServiceDaemon.class,
 									"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+						}
+					}
+
+					for (Speaker speaker : service.speakers) {
+						if (this.tickTime - speaker.heartbeatTime >= 300000L) {
+							speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
 						}
 					}
 				}

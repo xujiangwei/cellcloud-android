@@ -160,6 +160,8 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			// 更新时间戳
 			this.speaker.heartbeatTime = System.currentTimeMillis();
 
+			Logger.d(this.getClass(), "Speaker " + this.speaker.getAddress().toString() + " heartbeat");
+
 			synchronized (this.speaker) {
 				this.speaker.notifyAll();
 			}

@@ -95,6 +95,7 @@ public class Speaker implements Speakable {
 		this.block = block;
 		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
+		this.heartbeatTime = System.currentTimeMillis();
 	}
 
 	/** 构造函数。
@@ -107,6 +108,7 @@ public class Speaker implements Speakable {
 		this.capacity = capacity;
 		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
+		this.heartbeatTime = System.currentTimeMillis();
 	}
 
 	/** 返回 Cellet Identifier 列表。

@@ -134,9 +134,8 @@ public final class TalkSessionContext {
 			this.sessionHeartbeats.put(session.getId(), time);
 
 			// 将心跳的 Session 放到队尾
-			if (this.sessions.remove(session)) {
-				this.sessions.offer(session);
-			}
+			this.sessions.remove(session);
+			this.sessions.offer(session);
 		}
 	}
 
