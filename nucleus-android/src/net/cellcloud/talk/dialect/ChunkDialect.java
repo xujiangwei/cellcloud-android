@@ -168,7 +168,7 @@ public class ChunkDialect extends Dialect {
 	}
 
 	@Override
-	public Primitive translate() {
+	public Primitive reconstruct() {
 		Primitive primitive = new Primitive(this);
 
 		primitive.commit(new SubjectStuff(this.sign));
@@ -182,7 +182,7 @@ public class ChunkDialect extends Dialect {
 	}
 
 	@Override
-	public void build(Primitive primitive) {
+	public void construct(Primitive primitive) {
 		List<SubjectStuff> list = primitive.subjects();
 		this.sign = list.get(0).getValueAsString();
 		this.chunkIndex = list.get(1).getValueAsInt();

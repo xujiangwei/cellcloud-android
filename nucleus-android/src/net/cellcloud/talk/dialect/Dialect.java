@@ -110,9 +110,9 @@ public abstract class Dialect {
 
 	/** 翻译原语为方言。
 	 */
-	abstract public Primitive translate();
+	abstract public Primitive reconstruct();
 
 	/** 从原语构建方言。
 	 */
-	abstract public void build(Primitive primitive);
+	abstract public void construct(Primitive primitive);
 }

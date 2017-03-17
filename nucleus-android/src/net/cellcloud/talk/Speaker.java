@@ -95,7 +95,6 @@ public class Speaker implements Speakable {
 		this.block = block;
 		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
-		this.heartbeatTime = System.currentTimeMillis();
 	}
 
 	/** 构造函数。
@@ -108,7 +107,6 @@ public class Speaker implements Speakable {
 		this.capacity = capacity;
 		this.executor = executor;
 		this.identifierList = new ArrayList<String>(2);
-		this.heartbeatTime = System.currentTimeMillis();
 	}
 
 	/** 返回 Cellet Identifier 列表。
@@ -448,6 +446,8 @@ public class Speaker implements Speakable {
 					delegate.onContacted(Speaker.this, cid);
 				}
 
+				heartbeatTime = System.currentTimeMillis();
+
 				(new Thread(new Runnable() {
 					@Override
 					public void run() {
@@ -459,7 +459,7 @@ public class Speaker implements Speakable {
 					}
 				})).start();
 			}
-		}, 300);
+		}, 50);
 	}
 
 	private void fireQuitted(String celletIdentifier) {
@@ -585,7 +585,7 @@ public class Speaker implements Speakable {
 		}
 		else {
 			this.capacity.secure = newCapacity.secure;
-			this.capacity.retryAttempts = newCapacity.retryAttempts;
+			this.capacity.retry = newCapacity.retry;
 			this.capacity.retryDelay = newCapacity.retryDelay;
 		}
 
@@ -596,7 +596,7 @@ public class Speaker implements Speakable {
 			buf.append("' : secure=");
 			buf.append(this.capacity.secure);
 			buf.append(" attempts=");
-			buf.append(this.capacity.retryAttempts);
+			buf.append(this.capacity.retry);
 			buf.append(" delay=");
 			buf.append(this.capacity.retryDelay);
 
@@ -717,7 +717,7 @@ public class Speaker implements Speakable {
 				}
 				else {
 					this.capacity.secure = newCapacity.secure;
-					this.capacity.retryAttempts = newCapacity.retryAttempts;
+					this.capacity.retry = newCapacity.retry;
 					this.capacity.retryDelay = newCapacity.retryDelay;
 				}
 			}

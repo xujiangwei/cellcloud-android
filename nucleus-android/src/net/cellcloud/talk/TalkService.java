@@ -270,7 +270,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	public void stopDaemon() {
 		if (null != this.daemon) {
 			this.daemon.stop();
-			this.receiver.unRegisterReceiver(Nucleus.getInstance().getAppContext());
+			this.receiver.unregisterReceiver(Nucleus.getInstance().getAppContext());
 			this.daemon = null;
 		}
 
@@ -452,7 +452,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * \return 如果发送原语方言成功返回 \c true ，否则返回 \c false 。
 	 */
 	public boolean notice(final String targetTag, final Dialect dialect, final Cellet cellet, final CelletSandbox sandbox) {
-		Primitive primitive = dialect.translate();
+		Primitive primitive = dialect.reconstruct();
 		if (null != primitive) {
 			return this.notice(targetTag, primitive, cellet, sandbox);
 		}
@@ -641,7 +641,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		// 方言转为原语
-		Primitive primitive = dialect.translate();
+		Primitive primitive = dialect.reconstruct();
 
 		if (null != primitive) {
 			boolean ret = this.talk(identifier, primitive);

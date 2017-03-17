@@ -44,11 +44,11 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	private long tickTime = 0;
 
-	private int speakerHeartbeatMod = 3;
-
-	private int heartbeatCount = 0;
+	private long lastHeartbeatTime = 0L;
+	private long speakerHeartbeatInterval= 2L * 60L * 1000L;
 
 	private boolean auto;
+
 	private Timer timer;
 
 	protected TalkServiceDaemon(boolean auto) {
@@ -80,13 +80,13 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						this.timer.purge();
 						this.timer = null;
 					}
+
+					this.timer = new Timer();
+					// 间隔15秒
+					this.timer.schedule(this, 10000L, 30000L);
 				} catch (Exception e) {
 					Logger.log(this.getClass(), e, LogLevel.WARNING);
 				}
-
-				this.timer = new Timer();
-				// 间隔15秒
-				this.timer.schedule(this, 10000L, 15000L);
 			}
 		}
 	}
@@ -104,48 +104,43 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	@Override
 	public void onTimeTick() {
 		// Tick 进行心跳
-		this.tick(true);
+		this.tick();
 	}
 
 	@Override
 	public void run() {
-		this.tick(false);
+		this.tick();
 	}
 
-	private void tick(boolean heartbeat) {
+	private void tick() {
 		// 当前时间
 		this.tickTime = System.currentTimeMillis();
 
 		TalkService service = TalkService.getInstance();
 
 		// 执行心跳逻辑
-		if (heartbeat) {
-			// 心跳计数
-			++this.heartbeatCount;
-			if (this.heartbeatCount >= Integer.MAX_VALUE) {
-				this.heartbeatCount = 0;
-			}
+		if (this.tickTime - this.lastHeartbeatTime >= this.speakerHeartbeatInterval) {
+			// 更新最近心跳时间
+			this.lastHeartbeatTime = this.tickTime;
 
-			if (this.heartbeatCount % this.speakerHeartbeatMod == 0) {
-				if (null != service.speakers) {
-					for (Speaker speaker : service.speakers) {
-						if (speaker.heartbeat()) {
-							Logger.i(TalkServiceDaemon.class,
-									"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
-						}
+			if (null != service.speakers) {
+				for (Speaker speaker : service.speakers) {
+					if (speaker.heartbeat()) {
+						Logger.i(TalkServiceDaemon.class,
+								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
 					}
+				}
 
-					for (int i = 0; i < service.speakers.size(); ++i) {
-						final Speaker speaker = service.speakers.get(i);
-						if (this.tickTime - speaker.heartbeatTime >= 300000L) {
-							Thread thread = new Thread() {
-								@Override
-								public void run() {
-									speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
-								}
-							};
-							thread.start();
-						}
+				for (int i = 0; i < service.speakers.size(); ++i) {
+					final Speaker speaker = service.speakers.get(i);
+					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= 360000L) {
+						Thread thread = new Thread() {
+							@Override
+							public void run() {
+								speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
+							}
+						};
+						thread.start();
 					}
 				}
 			}
@@ -156,7 +151,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 			Iterator<Speaker> iter = service.speakers.iterator();
 			while (iter.hasNext()) {
 				Speaker speaker = iter.next();
-				if (speaker.isLost() && null != speaker.capacity && speaker.capacity.retryAttempts > 0) {
+				if (speaker.isLost() && null != speaker.capacity && speaker.capacity.retry > 0) {
 					if (speaker.retryTimestamp == 0) {
 						// 建立时间戳
 						speaker.retryTimestamp = this.tickTime;
@@ -164,7 +159,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					}
 
 					// 判断是否达到最大重试次数
-					if (speaker.retryCounts >= speaker.capacity.retryAttempts) {
+					if (speaker.retryCounts >= speaker.capacity.retry) {
 						if (!speaker.retryEnd) {
 							speaker.retryEnd = true;
 							speaker.fireRetryEnd();

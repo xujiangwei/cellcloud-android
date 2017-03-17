@@ -24,18 +24,18 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-/** 布尔型属性。
+/** 整数型属性。
  * 
  * @author Jiangwei Xu
  */
-public final class BooleanProperty implements PropertyReference {
+public final class IntegerProperty implements PropertyReference {
 
 	private String key;
-	private Boolean value;
+	private Integer value;
 
-	public BooleanProperty(String key, boolean value) {
+	public IntegerProperty(String key, int value) {
 		this.key = key;
 		this.value = value;
 	}
@@ -50,8 +50,7 @@ public final class BooleanProperty implements PropertyReference {
 		return this.value;
 	}
 
-	/** 返回布尔类型。 */
-	public boolean getValueAsBoolean() {
-		return this.value.booleanValue();
+	public int getValueAsInt() {
+		return this.value.intValue();
 	}
 }

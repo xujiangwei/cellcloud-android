@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,33 +24,57 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-/** 长整型属性。
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+
+/** 属性集。
  * 
  * @author Jiangwei Xu
  */
-public final class LongProperty implements PropertyReference {
+public class Properties {
 
-	private String key;
-	private Long value;
+	private ConcurrentHashMap<String, PropertyReference> properties;
 
-	public LongProperty(String key, long value) {
-		this.key = key;
-		this.value = value;
+	public Properties() {
+		this.properties = new ConcurrentHashMap<String, PropertyReference>();
 	}
 
-	@Override
-	public String getKey() {
-		return this.key;
+	/** 添加属性。
+	 */
+	public void addProperty(PropertyReference property) {
+		this.properties.put(property.getKey(), property);
 	}
 
-	@Override
-	public Object getValue() {
-		return this.value;
+	/** 移除属性。
+	 */
+	public void removeProperty(String key) {
+		this.properties.remove(key);
 	}
 
-	public long getValueAsLong() {
-		return this.value.longValue();
+	/** 返回属性。
+	 */
+	public PropertyReference getProperty(String key) {
+		return this.properties.get(key);
+	}
+
+	/** 更新属性。
+	 */
+	public void updateProperty(PropertyReference property) {
+		this.properties.remove(property.getKey());
+		this.properties.put(property.getKey(), property);
+	}
+
+	/** 是否包含指定主键的属性。
+	 */
+	public boolean hasProperty(String key) {
+		return this.properties.containsKey(key);
+	}
+
+	/** 返回属性集合。
+	 */
+	public Collection<PropertyReference> getPropertyCollection() {
+		return this.properties.values();
 	}
 }

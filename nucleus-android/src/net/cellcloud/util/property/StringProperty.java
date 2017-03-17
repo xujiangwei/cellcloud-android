@@ -24,18 +24,18 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-/** 整数型属性。
+/** 字符串型属性。
  * 
  * @author Jiangwei Xu
  */
-public final class IntegerProperty implements PropertyReference {
+public final class StringProperty implements PropertyReference {
 
 	private String key;
-	private Integer value;
+	private String value;
 
-	public IntegerProperty(String key, int value) {
+	public StringProperty(String key, String value) {
 		this.key = key;
 		this.value = value;
 	}
@@ -50,7 +50,7 @@ public final class IntegerProperty implements PropertyReference {
 		return this.value;
 	}
 
-	public int getValueAsInt() {
-		return this.value.intValue();
+	public String getValueAsString() {
+		return this.value;
 	}
 }

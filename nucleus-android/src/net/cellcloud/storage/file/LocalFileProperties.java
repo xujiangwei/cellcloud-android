@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 package net.cellcloud.storage.file;
 
-import net.cellcloud.util.Properties;
+import net.cellcloud.util.property.Properties;
 
 /** 本地文件存储器属性集。
  * 

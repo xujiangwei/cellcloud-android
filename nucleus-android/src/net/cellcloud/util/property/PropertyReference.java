@@ -24,33 +24,19 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-/** 字符串型属性。
+/** 属性参考。
  * 
  * @author Jiangwei Xu
  */
-public final class StringProperty implements PropertyReference {
+public interface PropertyReference {
 
-	private String key;
-	private String value;
+	/** 返回主键。
+	 */
+	public String getKey();
 
-	public StringProperty(String key, String value) {
-		this.key = key;
-		this.value = value;
-	}
-
-	@Override
-	public String getKey() {
-		return this.key;
-	}
-
-	@Override
-	public Object getValue() {
-		return this.value;
-	}
-
-	public String getValueAsString() {
-		return this.value;
-	}
+	/** 返回数值。
+	 */
+	public Object getValue();
 }

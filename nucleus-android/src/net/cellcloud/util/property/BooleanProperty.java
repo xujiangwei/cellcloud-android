@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,57 +24,34 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-
-/** 属性集。
+/** 布尔型属性。
  * 
  * @author Jiangwei Xu
  */
-public class Properties {
+public final class BooleanProperty implements PropertyReference {
 
-	private ConcurrentHashMap<String, PropertyReference> properties;
+	private String key;
+	private Boolean value;
 
-	public Properties() {
-		this.properties = new ConcurrentHashMap<String, PropertyReference>();
+	public BooleanProperty(String key, boolean value) {
+		this.key = key;
+		this.value = value;
 	}
 
-	/** 添加属性。
-	 */
-	public void addProperty(PropertyReference property) {
-		this.properties.put(property.getKey(), property);
+	@Override
+	public String getKey() {
+		return this.key;
 	}
 
-	/** 移除属性。
-	 */
-	public void removeProperty(String key) {
-		this.properties.remove(key);
+	@Override
+	public Object getValue() {
+		return this.value;
 	}
 
-	/** 返回属性。
-	 */
-	public PropertyReference getProperty(String key) {
-		return this.properties.get(key);
-	}
-
-	/** 更新属性。
-	 */
-	public void updateProperty(PropertyReference property) {
-		this.properties.remove(property.getKey());
-		this.properties.put(property.getKey(), property);
-	}
-
-	/** 是否包含指定主键的属性。
-	 */
-	public boolean hasProperty(String key) {
-		return this.properties.containsKey(key);
-	}
-
-	/** 返回属性集合。
-	 */
-	public Collection<PropertyReference> getPropertyCollection() {
-		return this.properties.values();
+	/** 返回布尔类型。 */
+	public boolean getValueAsBoolean() {
+		return this.value.booleanValue();
 	}
 }

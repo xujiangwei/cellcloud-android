@@ -31,6 +31,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import net.cellcloud.util.Base64;
+
 /**
  * 加解密库。
  * 

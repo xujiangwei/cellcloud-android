@@ -41,7 +41,7 @@ public final class TalkCapacity {
 	protected boolean secure = false;
 
 	/// 重复尝试连接的次数
-	protected int retryAttempts = 0;
+	protected int retry = 0;
 	/// 两次连接中间隔时间，单位毫秒
 	protected long retryDelay = 5000L;
 
@@ -59,11 +59,11 @@ public final class TalkCapacity {
 
 	/**
 	 * 构造函数。
-	 * @param retryAttempts
+	 * @param retry
 	 * @param retryDelay
 	 */
-	public TalkCapacity(int retryAttempts, long retryDelay) {
-		this(false, retryAttempts, retryDelay);
+	public TalkCapacity(int retry, long retryDelay) {
+		this(false, retry, retryDelay);
 	}
 
 	/**
@@ -72,13 +72,13 @@ public final class TalkCapacity {
 	 * @param retryAttempts
 	 * @param retryDelay
 	 */
-	public TalkCapacity(boolean secure, int retryAttempts, long retryDelay) {
+	public TalkCapacity(boolean secure, int retry, long retryDelay) {
 		this.secure = secure;
-		this.retryAttempts = retryAttempts;
+		this.retry = retry;
 		this.retryDelay = retryDelay;
 
-		if (this.retryAttempts == Integer.MAX_VALUE) {
-			this.retryAttempts -= 1;
+		if (this.retry == Integer.MAX_VALUE) {
+			this.retry -= 1;
 		}
 	}
 
@@ -108,7 +108,7 @@ public final class TalkCapacity {
 			buf.append("|");
 			buf.append(capacity.secure ? "Y" : "N");
 			buf.append("|");
-			buf.append(capacity.retryAttempts);
+			buf.append(capacity.retry);
 			buf.append("|");
 			buf.append(capacity.retryDelay);
 		}
@@ -117,7 +117,7 @@ public final class TalkCapacity {
 			buf.append("|");
 			buf.append(capacity.secure ? "Y" : "N");
 			buf.append("|");
-			buf.append(capacity.retryAttempts);
+			buf.append(capacity.retry);
 			buf.append("|");
 			buf.append(capacity.retryDelay);
 			buf.append("|");
@@ -141,12 +141,12 @@ public final class TalkCapacity {
 		cap.version = Integer.parseInt(array[0]);
 		if (cap.version == 1) {
 			cap.secure = array[1].equalsIgnoreCase("Y") ? true : false;
-			cap.retryAttempts = Integer.parseInt(array[2]);
+			cap.retry = Integer.parseInt(array[2]);
 			cap.retryDelay = Integer.parseInt(array[3]);
 		}
 		else if (cap.version == 2) {
 			cap.secure = array[1].equalsIgnoreCase("Y") ? true : false;
-			cap.retryAttempts = Integer.parseInt(array[2]);
+			cap.retry = Integer.parseInt(array[2]);
 			cap.retryDelay = Integer.parseInt(array[3]);
 			cap.versionNumber = Integer.parseInt(array[4]);
 		}

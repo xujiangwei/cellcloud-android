@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,20 +24,20 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.util;
+package net.cellcloud.util.property;
 
-/** 对象引用属性。
+/** 长整型属性。
  * 
  * @author Jiangwei Xu
  */
-public final class ObjectProperty implements PropertyReference {
+public final class LongProperty implements PropertyReference {
 
 	private String key;
-	private Object object;
+	private Long value;
 
-	public ObjectProperty(String key, Object object) {
+	public LongProperty(String key, long value) {
 		this.key = key;
-		this.object = object;
+		this.value = value;
 	}
 
 	@Override
@@ -47,6 +47,10 @@ public final class ObjectProperty implements PropertyReference {
 
 	@Override
 	public Object getValue() {
-		return this.object;
+		return this.value;
+	}
+
+	public long getValueAsLong() {
+		return this.value.longValue();
 	}
 }

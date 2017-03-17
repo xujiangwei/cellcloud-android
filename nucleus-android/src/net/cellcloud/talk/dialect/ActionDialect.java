@@ -96,7 +96,7 @@ public class ActionDialect extends Dialect {
 	}
 
 	@Override
-	public Primitive translate() {
+	public Primitive reconstruct() {
 		if (null == this.action || this.action.isEmpty()) {
 			return null;
 		}
@@ -120,7 +120,7 @@ public class ActionDialect extends Dialect {
 	}
 
 	@Override
-	public void build(Primitive primitive) {
+	public void construct(Primitive primitive) {
 		this.action = primitive.predicates().get(0).getValueAsString();
 
 		if (null != primitive.subjects()) {

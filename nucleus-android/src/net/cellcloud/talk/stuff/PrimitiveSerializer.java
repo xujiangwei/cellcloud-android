@@ -33,12 +33,12 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
-import net.cellcloud.common.Base64;
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
 import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
+import net.cellcloud.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -614,7 +614,7 @@ public final class PrimitiveSerializer {
 		primitive.capture(dialect);
 
 		// 分析数据
-		dialect.build(primitive);
+		dialect.construct(primitive);
 	}
 
 	/**
@@ -770,7 +770,7 @@ public final class PrimitiveSerializer {
 				output.capture(dialect);
 
 				// 构建数据
-				dialect.build(output);
+				dialect.construct(output);
 			}
 			else {
 				Logger.w(PrimitiveSerializer.class, "Can't create '" +  dialectName + "' dialect.");
