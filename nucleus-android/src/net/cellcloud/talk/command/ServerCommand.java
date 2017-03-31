@@ -24,10 +24,11 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.talk;
+package net.cellcloud.talk.command;
 
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
+import net.cellcloud.talk.TalkService;
 
 /** 会话命令。
  * 
@@ -35,9 +36,9 @@ import net.cellcloud.common.Session;
  */
 public abstract class ServerCommand {
 
-	protected TalkService service;
-	protected Session session;
-	protected Packet packet;
+	public TalkService service;
+	public Session session;
+	public Packet packet;
 
 	/** 构造函数。
 	 */

@@ -28,6 +28,8 @@ package net.cellcloud.talk;
 
 import java.nio.charset.Charset;
 
+import net.cellcloud.Version;
+
 /** 会话能力描述类。
  * 
  * @author Jiangwei Xu
@@ -51,8 +53,8 @@ public final class TalkCapacity {
 	/// 是否是阻塞方式
 	protected boolean blocking = true;
 
-	/// 内核的版本串号
-	private int versionNumber = 150;
+	/** 内核的版本串号。 */
+	private int versionNumber = Version.VERSION_NUMBER;
 
 	public TalkCapacity() {
 	}
@@ -96,8 +98,8 @@ public final class TalkCapacity {
 		if (version == 1) {
 			this.versionNumber = 130;
 		}
-		else if (version == 2) {
-			this.versionNumber = 150;
+		else if (version == 2 || version == 3) {
+			this.versionNumber = Version.VERSION_NUMBER;
 		}
 	}
 

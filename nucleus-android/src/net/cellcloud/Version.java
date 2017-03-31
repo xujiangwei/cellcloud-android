@@ -36,13 +36,15 @@ public final class Version {
 	public static final int MAJOR = 1;
 
 	/// 副版本号
-	public static final int MINOR = 5;
+	public static final int MINOR = 6;
 
 	/// 修订号
-	public static final int REVISION = 11;
+	public static final int REVISION = 0;
 
 	/// 版本名
-	public static final String NAME = "Journey";
+	public static final String NAME = "Xi";
+
+	public static final int VERSION_NUMBER = 160;
 
 	/// 是否调试模式
 	public static boolean DEBUG = true;

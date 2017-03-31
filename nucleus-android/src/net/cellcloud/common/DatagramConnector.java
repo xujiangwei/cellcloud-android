@@ -43,14 +43,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class DatagramConnector extends MessageService implements MessageConnector {
 
+	/** 数据包 Socket 。 */
 	private DatagramSocket socket;
 
+	/** 会话实例。 */
 	private Session session = null;
 
-	// 10 秒
+	/** Socket 超时时间，默认 10 秒。 */
 	private int soTimeout = 10000;
 
-	// 块大小
+	/** 数据缓存块大小。 */
 	private int block = 16 * 1024;
 
 	private Thread handleThread;
@@ -189,7 +191,7 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 	/**
 	 * 向当前连接的会话写入消息数据。
 	 * 
-	 * @param message
+	 * @param message 指定需写入的消息。
 	 */
 	public void write(Message message) {
 		this.write(this.session, message);
@@ -289,7 +291,7 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 循环处理消息。
+	 * 循环处理消息数据。
 	 */
 	private void loopDispatch() {
 		this.spinning = true;

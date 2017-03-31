@@ -216,7 +216,8 @@ public class Speaker implements Speakable {
 					lost = true;
 					// 设置为挂断状态
 					state = SpeakerState.HANGUP;
-					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, Speaker.class);
+					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, Speaker.class,
+							address.getHostString(), address.getPort());
 					failure.setSourceDescription("Connector failed");
 					delegate.onFailed(Speaker.this, failure);
 				}
@@ -272,10 +273,10 @@ public class Speaker implements Speakable {
 		ByteArrayOutputStream stream = primitive.write();
 
 		// 封装数据包
-		Packet packet = new Packet(TalkDefinition.TPT_DIALOGUE, 99, 1, 0);
-		packet.appendSubsegment(stream.toByteArray());
-		packet.appendSubsegment(this.nucleusTag);
-		packet.appendSubsegment(Utils.string2Bytes(identifier));
+		Packet packet = new Packet(TalkDefinition.TPT_DIALOGUE, 99, 2, 0);
+		packet.appendSegment(stream.toByteArray());
+		packet.appendSegment(this.nucleusTag);
+		packet.appendSegment(Utils.string2Bytes(identifier));
 
 		// 发送数据
 		byte[] data = Packet.pack(packet);
@@ -354,7 +355,7 @@ public class Speaker implements Speakable {
 	protected boolean heartbeat() {
 		MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
 		if (this.authenticated && !this.lost && connector.isConnected()) {
-			Packet packet = new Packet(TalkDefinition.TPT_HEARTBEAT, 9, 1, 0);
+			Packet packet = new Packet(TalkDefinition.TPT_HEARTBEAT, 9, 2, 0);
 			byte[] data = Packet.pack(packet);
 			Message message = new Message(data);
 
@@ -374,7 +375,8 @@ public class Speaker implements Speakable {
 	protected void notifySessionClosed() {
 		// 判断是否为异常网络中断
 		if (SpeakerState.CALLING == this.state) {
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.CALL_FAILED, this.getClass(),
+					this.address.getHostString(), this.address.getPort());
 			failure.setSourceDescription("No network device");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
@@ -383,7 +385,8 @@ public class Speaker implements Speakable {
 			this.lost = true;
 		}
 		else if (SpeakerState.CALLED == this.state) {
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
+					this.address.getHostString(), this.address.getPort());
 			failure.setSourceDescription("Network fault, connection closed");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
@@ -392,7 +395,8 @@ public class Speaker implements Speakable {
 			this.lost = true;
 		}
 		else {
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass(),
+					this.address.getHostString(), this.address.getPort());
 			failure.setSourceDescription("Session has closed");
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
@@ -493,22 +497,24 @@ public class Speaker implements Speakable {
 	}
 
 	protected void fireRetryEnd() {
-		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.RETRY_END, this.getClass());
+		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.RETRY_END, this.getClass(),
+				this.address.getHostString(), this.address.getPort());
 		failure.setSourceCelletIdentifiers(this.identifierList);
 		this.fireFailed(failure);
 	}
 
 	protected void fireRetryError() {
-		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass());
+		TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, this.getClass(),
+				this.address.getHostString(), this.address.getPort());
 		failure.setSourceCelletIdentifiers(this.identifierList);
 		this.fireFailed(failure);
 	}
 
-	protected void requestCheck(Packet packet, Session session) {
+	protected void respondCheck(Packet packet, Session session) {
 		// 包格式：密文|密钥
 
-		byte[] ciphertext = packet.getSubsegment(0);
-		byte[] key = packet.getSubsegment(1);
+		byte[] ciphertext = packet.getSegment(0);
+		byte[] key = packet.getSegment(1);
 
 		// 写密钥
 		this.secretKey = new byte[key.length];
@@ -518,9 +524,9 @@ public class Speaker implements Speakable {
 		byte[] plaintext = Cryptology.getInstance().simpleDecrypt(ciphertext, key);
 
 		// 发送响应数据
-		Packet response = new Packet(TalkDefinition.TPT_CHECK, 2, 1, 0);
-		response.appendSubsegment(plaintext);
-		response.appendSubsegment(this.nucleusTag);
+		Packet response = new Packet(TalkDefinition.TPT_CHECK, 2, 2, 0);
+		response.appendSegment(plaintext);
+		response.appendSegment(this.nucleusTag);
 		// 数据打包
 		byte[] data = Packet.pack(response);
 		Message message = new Message(data);
@@ -534,9 +540,9 @@ public class Speaker implements Speakable {
 		}
 
 		// 包格式：源标签|能力描述序列化数据
-		Packet packet = new Packet(TalkDefinition.TPT_CONSULT, 4, 1, 0);
-		packet.appendSubsegment(this.nucleusTag);
-		packet.appendSubsegment(TalkCapacity.serialize(this.capacity));
+		Packet packet = new Packet(TalkDefinition.TPT_CONSULT, 4, 2, 0);
+		packet.appendSegment(this.nucleusTag);
+		packet.appendSegment(TalkCapacity.serialize(this.capacity));
 
 		byte[] data = Packet.pack(packet);
 		if (null != data) {
@@ -555,9 +561,9 @@ public class Speaker implements Speakable {
 		// 包格式：Cellet标识串|标签
 
 		for (String celletIdentifier : this.identifierList) {
-			Packet packet = new Packet(TalkDefinition.TPT_REQUEST, 3, 1, 0);
-			packet.appendSubsegment(celletIdentifier.getBytes());
-			packet.appendSubsegment(this.nucleusTag);
+			Packet packet = new Packet(TalkDefinition.TPT_REQUEST, 3, 2, 0);
+			packet.appendSegment(celletIdentifier.getBytes());
+			packet.appendSegment(this.nucleusTag);
 
 			byte[] data = Packet.pack(packet);
 			Message message = new Message(data);
@@ -574,7 +580,7 @@ public class Speaker implements Speakable {
 	protected void doConsult(Packet packet, Session session) {
 		// 包格式：源标签(即自己的内核标签)|能力描述序列化串
 
-		TalkCapacity newCapacity = TalkCapacity.deserialize(packet.getSubsegment(1));
+		TalkCapacity newCapacity = TalkCapacity.deserialize(packet.getSegment(1));
 		if (null == newCapacity) {
 			return;
 		}
@@ -611,7 +617,7 @@ public class Speaker implements Speakable {
 		// 成功：请求方标签|成功码|Cellet识别串|Cellet版本
 		// 失败：请求方标签|失败码
 
-		byte[] code = packet.getSubsegment(1);
+		byte[] code = packet.getSegment(1);
 		if (code[0] == TalkDefinition.SC_SUCCESS[0]
 			&& code[1] == TalkDefinition.SC_SUCCESS[1]
 			&& code[2] == TalkDefinition.SC_SUCCESS[2]
@@ -619,7 +625,7 @@ public class Speaker implements Speakable {
 			// 变更状态
 			this.state = SpeakerState.CALLED;
 
-			String celletIdentifier = Utils.bytes2String(packet.getSubsegment(2));
+			String celletIdentifier = Utils.bytes2String(packet.getSegment(2));
 
 			StringBuilder buf = new StringBuilder();
 			buf.append("Cellet '");
@@ -639,7 +645,8 @@ public class Speaker implements Speakable {
 			this.state = SpeakerState.HANGUP;
 
 			// 回调事件
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class);
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class,
+					this.address.getHostString(), this.address.getPort());
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
 
@@ -651,9 +658,9 @@ public class Speaker implements Speakable {
 	protected void doDialogue(Packet packet, Session session) {
 		// 包格式：序列化的原语|Cellet
 
-		byte[] pridata = packet.getSubsegment(0);
+		byte[] pridata = packet.getSegment(0);
 		ByteArrayInputStream stream = new ByteArrayInputStream(pridata);
-		String celletIdentifier = Utils.bytes2String(packet.getSubsegment(1));
+		String celletIdentifier = Utils.bytes2String(packet.getSegment(1));
 
 		// 反序列化原语
 		Primitive primitive = new Primitive(this.remoteTag);
@@ -663,9 +670,9 @@ public class Speaker implements Speakable {
 		this.fireDialogue(celletIdentifier, primitive);
 	}
 
-	protected void requestQuick(Packet packet, Session session) {
-		byte[] ciphertext = packet.getSubsegment(0);
-		byte[] key = packet.getSubsegment(1);
+	protected void respondQuick(Packet packet, Session session) {
+		byte[] ciphertext = packet.getSegment(0);
+		byte[] key = packet.getSegment(1);
 
 		// 写密钥
 		this.secretKey = new byte[key.length];
@@ -681,12 +688,12 @@ public class Speaker implements Speakable {
 
 		// 包格式：明文|源标签|能力描述序列化数据|CelletIdentifiers
 		// 发送响应数据
-		Packet response = new Packet(TalkDefinition.TPT_QUICK, 2, 1, 0);
-		response.appendSubsegment(plaintext);
-		response.appendSubsegment(this.nucleusTag);
-		response.appendSubsegment(TalkCapacity.serialize(this.capacity));
+		Packet response = new Packet(TalkDefinition.TPT_QUICK, 2, 2, 0);
+		response.appendSegment(plaintext);
+		response.appendSegment(this.nucleusTag);
+		response.appendSegment(TalkCapacity.serialize(this.capacity));
 		for (String celletIdentifier : this.identifierList) {
-			response.appendSubsegment(celletIdentifier.getBytes());
+			response.appendSegment(celletIdentifier.getBytes());
 		}
 
 		byte[] data = Packet.pack(response);
@@ -700,17 +707,17 @@ public class Speaker implements Speakable {
 	protected void doQuick(Packet packet, Session session) {
 		// 包格式：状态码|源标签|能力描述序列化数据|CelletIdentifiers
 
-		byte[] code = packet.getSubsegment(0);
+		byte[] code = packet.getSegment(0);
 		if (code[0] == TalkDefinition.SC_SUCCESS[0]
 			&& code[1] == TalkDefinition.SC_SUCCESS[1]
 			&& code[2] == TalkDefinition.SC_SUCCESS[2]
 			&& code[3] == TalkDefinition.SC_SUCCESS[3]) {
 			// 记录标签
-			byte[] rtag = packet.getSubsegment(1);
+			byte[] rtag = packet.getSegment(1);
 			this.recordTag(Utils.bytes2String(rtag));
 
 			// 更新能力
-			TalkCapacity newCapacity = TalkCapacity.deserialize(packet.getSubsegment(2));
+			TalkCapacity newCapacity = TalkCapacity.deserialize(packet.getSegment(2));
 			if (null != newCapacity) {
 				if (null == this.capacity) {
 					this.capacity = newCapacity;
@@ -725,8 +732,8 @@ public class Speaker implements Speakable {
 			// 变更状态
 			this.state = SpeakerState.CALLED;
 
-			for (int i = 3, size = packet.getSubsegmentCount(); i < size; ++i) {
-				String celletIdentifier = Utils.bytes2String(packet.getSubsegment(i));
+			for (int i = 3, size = packet.numSegments(); i < size; ++i) {
+				String celletIdentifier = Utils.bytes2String(packet.getSegment(i));
 
 				StringBuilder buf = new StringBuilder();
 				buf.append("Cellet '");
@@ -747,7 +754,8 @@ public class Speaker implements Speakable {
 			this.state = SpeakerState.HANGUP;
 
 			// 回调事件
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class);
+			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class,
+					this.address.getHostString(), this.address.getPort());
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
 
@@ -756,27 +764,4 @@ public class Speaker implements Speakable {
 		}
 	}
 
-	/*private void smartSleepInterval() {
-		if (null != this.timer) {
-			return;
-		}
-
-		this.timer = new Timer();
-		this.timer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (null != connector) {
-					connector.resetSleepInterval(1000);
-				}
-
-				if (Logger.isDebugLevel()) {
-					Logger.d(Speaker.class, "Reset sleep interval: 1000");
-				}
-
-				timer = null;
-			}
-		}, 60000);
-
-		this.connector.resetSleepInterval(500);
-	}*/
 }

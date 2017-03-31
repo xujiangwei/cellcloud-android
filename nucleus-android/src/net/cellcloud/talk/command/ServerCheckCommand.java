@@ -24,7 +24,7 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.talk;
+package net.cellcloud.talk.command;
 
 import java.io.UnsupportedEncodingException;
 
@@ -34,6 +34,8 @@ import net.cellcloud.common.Message;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.core.Nucleus;
+import net.cellcloud.talk.TalkDefinition;
+import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkService.Certificate;
 import net.cellcloud.util.Utils;
 
@@ -56,12 +58,12 @@ public final class ServerCheckCommand extends ServerCommand {
 			return;
 		}
 
-		byte[] plaintext = this.packet.getSubsegment(0);
+		byte[] plaintext = this.packet.getSegment(0);
 		if (null == plaintext) {
 			return;
 		}
 
-		byte[] tag = this.packet.getSubsegment(1);
+		byte[] tag = this.packet.getSegment(1);
 
 		boolean checkin = false;
 		String pt = "";
@@ -89,9 +91,9 @@ public final class ServerCheckCommand extends ServerCommand {
 			// 包格式：成功码|内核标签
 
 			// 数据打包
-			Packet packet = new Packet(TalkDefinition.TPT_CHECK, 2, 1, 0);
-			packet.appendSubsegment(TalkDefinition.SC_SUCCESS);
-			packet.appendSubsegment(Nucleus.getInstance().getTagAsString().getBytes());
+			Packet packet = new Packet(TalkDefinition.TPT_CHECK, 2, 2, 0);
+			packet.appendSegment(TalkDefinition.SC_SUCCESS);
+			packet.appendSegment(Nucleus.getInstance().getTagAsString().getBytes());
 
 			byte[] data = Packet.pack(packet);
 			if (null != data) {

@@ -44,8 +44,8 @@ public final class Logger {
 	/**
 	 * 打印 DEBUG 级别日志。
 	 * 
-	 * @param clazz
-	 * @param log
+	 * @param clazz 记录日志的类。
+	 * @param log 日志内容。
 	 */
 	public static void d(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.DEBUG, clazz.getName(), log);
@@ -54,8 +54,8 @@ public final class Logger {
 	/**
 	 * 打印 INFO 级别日志。
 	 * 
-	 * @param clazz
-	 * @param log
+	 * @param clazz 记录日志的类。
+	 * @param log 日志内容。
 	 */
 	public static void i(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.INFO, clazz.getName(), log);
@@ -64,8 +64,8 @@ public final class Logger {
 	/**
 	 * 打印 WARNING 级别日志。
 	 * 
-	 * @param clazz
-	 * @param log
+	 * @param clazz 记录日志的类。
+	 * @param log 日志内容。
 	 */
 	public static void w(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.WARNING, clazz.getName(), log);
@@ -74,8 +74,8 @@ public final class Logger {
 	/**
 	 * 打印 ERROR 级别日志。
 	 * 
-	 * @param clazz
-	 * @param log
+	 * @param clazz 记录日志的类。
+	 * @param log 日志内容。
 	 */
 	public static void e(Class<?> clazz, String log) {
 		LogManager.getInstance().log(LogLevel.ERROR, clazz.getName(), log);
@@ -84,18 +84,18 @@ public final class Logger {
 	/**
 	 * 日志管理器是否设置为 DEBUG 等级。
 	 * 
-	 * @return
+	 * @return 如果当前日志等级是 DEBUG 等级返回 <code>true</code> 。
 	 */
 	public static boolean isDebugLevel() {
 		return (LogManager.getInstance().getLevel() == LogLevel.DEBUG);
 	}
 
 	/**
-	 * 记录异常。
+	 * 打印指定等级的包含异常信息的日志。
 	 * 
-	 * @param clazz
-	 * @param exception
-	 * @param level
+	 * @param clazz 记录日志的类。
+	 * @param exception 指定记录的异常。
+	 * @param level 日志等级 {@link LogLevel} 。
 	 */
 	public static void log(Class<?> clazz, Exception exception, byte level) {
 		if (LogManager.getInstance().getLevel() > level) {

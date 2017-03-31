@@ -49,36 +49,49 @@ import android.content.Context;
  */
 public class BlockingConnector extends MessageService implements MessageConnector {
 
-	// 缓冲块大小
+	/** 缓冲块大小。 */
 	private int block = 65536;
+	/** 单次写数据大小限制（字节），默认 16 KB 。 */
 	private final int writeLimit = 16384;
 
-	// 超时时间
+	/** Socket 超时时间。 */
 	private int soTimeout = 3000;
+	/** 连接超时时间。 */
 	private long connTimeout = 15000L;
 
-	private long timerInterval = 1000L;
+	/** 两次阻塞操作之间的时间间隔。 */
+	private long interval = 1000L;
 
+	/** Socket 句柄。 */
 	private Socket socket = null;
 
+	/** 数据处理线程。 */
 	private Thread handleThread;
+	/** 线程是否自悬。 */
 	private boolean spinning = false;
+	/** 线程是否正在运行。 */
 	private boolean running = false;
+	/** 主动关闭标识。 */
 	private boolean activeClose = false;
 
+	/** Session 会话实例。 */
 	private Session session;
 
+	/** Android 上下文。 */
 	private Context androidContext;
 
+	/** 线程池执行器。 */
 	private ExecutorService executor;
+	/** 当前是否正在写入数据。 */
 	private AtomicBoolean writing;
+	/** 数据写队列。 */
 	private LinkedList<Message> messageQueue;
 
 	/**
 	 * 构造函数。
 	 * 
-	 * @param androidContext
-	 * @param executor
+	 * @param androidContext Android 上下文对象。
+	 * @param executor 指定线程池执行器。
 	 */
 	public BlockingConnector(Context androidContext, ExecutorService executor) {
 		this.androidContext = androidContext;
@@ -88,9 +101,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 返回已连接的地址。
+	 * 获得已连接的地址。
 	 * 
-	 * @return
+	 * @return 返回已连接的地址。
 	 */
 	public InetSocketAddress getAddress() {
 		return (null != this.session) ? this.session.getAddress() : null;
@@ -104,11 +117,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		if (null != this.socket || this.running) {
 			return false;
 		}
-
-//		if (this.socket.isConnected()) {
-//			Logger.w(BlockingConnector.class, "Connector has connected to " + address.getAddress().getHostAddress());
-//			return false;
-//		}
 
 		// For Android 2.2
 		System.setProperty("java.net.preferIPv6Addresses", "false");
@@ -129,8 +137,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.socket.setTcpNoDelay(true);
 			this.socket.setKeepAlive(true);
 			this.socket.setSoTimeout(this.soTimeout);
-//			this.socket.setSendBufferSize(this.block);
-//			this.socket.setReceiveBufferSize(this.block);
+			//this.socket.setSendBufferSize(this.block);
+			//this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
@@ -290,7 +298,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/**
 	 * 向当前连接的会话写入消息数据。
 	 * 
-	 * @param message
+	 * @param message 指定消息。
 	 */
 	public void write(Message message) {
 		if (null == this.session) {
@@ -343,6 +351,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 	}
 
+	/**
+	 * 将队列里消息写入到 Socket 。
+	 * 该方法会尝试启动数据管理线程将队列的所有消息依次写入 Socket 。
+	 */
 	private void flushMessage() {
 		if (null == this.socket) {
 			this.writing.set(false);
@@ -413,31 +425,43 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/**
 	 * 重置守护线程空闲间隔时间，单位：毫秒。
 	 * 
-	 * @param value
+	 * @param value 设置间隔。
 	 */
 	public void resetInterval(long value) {
-		if (this.timerInterval == value) {
+		if (this.interval == value) {
 			return;
 		}
 
-		this.timerInterval = value;
+		this.interval = value;
 	}
 
+	/**
+	 * 回调 {@link MessageHandler#sessionCreated(Session)} 。
+	 */
 	private void fireSessionCreated() {
 		if (null != this.handler) {
 			this.handler.sessionCreated(this.session);
 		}
 	}
+	/**
+	 * 回调 {@link MessageHandler#sessionOpened(Session)} 。
+	 */
 	private void fireSessionOpened() {
 		if (null != this.handler) {
 			this.handler.sessionOpened(this.session);
 		}
 	}
+	/**
+	 * 回调 {@link MessageHandler#sessionClosed(Session)} 。
+	 */
 	private void fireSessionClosed() {
 		if (null != this.handler) {
 			this.handler.sessionClosed(this.session);
 		}
 	}
+	/**
+	 * 回调 {@link MessageHandler#sessionDestroyed(Session)} ，并进行数据清理。
+	 */
 	private void fireSessionDestroyed() {
 		if (null != this.handler) {
 			this.handler.sessionDestroyed(this.session);
@@ -451,6 +475,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.messageQueue.clear();
 		}
 	}
+	/**
+	 * 回调 {@link MessageHandler#errorOccurred(int, Session)} 。
+	 */
 	private void fireErrorOccurred(int errorCode) {
 		if (this.activeClose) {
 			// 主动关闭时，不回调错误
@@ -556,7 +583,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				buf = null;
 
 				try {
-					Thread.sleep(this.timerInterval);
+					Thread.sleep(this.interval);
 				} catch (Exception e) {
 					// Nothing;
 				}
@@ -586,12 +613,13 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 辅助函数，评估指定容量扩容操作。
+	 * 评估指定容量所需要的扩容数据。
+	 * 新的容量会按照步长进行线性增长。
 	 * 
-	 * @param currentValue
-	 * @param minValue
-	 * @param step
-	 * @return
+	 * @param currentValue 当前容量。
+	 * @param minValue 期望得到的最小容量。
+	 * @param step 增容步长。
+	 * @return 返回计算后的新容量大小。
 	 */
 	private int estimateCapacity(int currentValue, int minValue, int step) {
 		int newValue = currentValue + step;
@@ -602,9 +630,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 执行数据解析。
+	 * 执行数据解析操作。
 	 * 
-	 * @param data
+	 * @param data 指定数据数组。
 	 */
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
@@ -646,7 +674,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
-	 * 数据提取并输出。
+	 * 进行数据提取并输出。
+	 * 
+	 * @param out 输出的数据列表。
+	 * @param data 源数据。
 	 */
 	private void extract(final LinkedList<byte[]> out, final byte[] data) {
 		final byte[] headMark = this.getHeadMark();
@@ -800,13 +831,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	/**
+	 * 比较两个字节数组内容。
 	 * 
-	 * @param b1
-	 * @param offsetB1
-	 * @param b2
-	 * @param offsetB2
-	 * @param length
-	 * @return 0 表示匹配，-1 表示不匹配，1 表示越界
+	 * @param b1 待比较数组1
+	 * @param offsetB1 待比较数组1的数据位置偏移。
+	 * @param b2 待比较数组2
+	 * @param offsetB2 待比较数组2的数据位置偏移。
+	 * @param length 比较操作的数据长度。
+	 * @return 返回 <code>0</code> 表示匹配，<code>-1</code> 表示不匹配，<code>1</code> 表示越界
 	 */
 	private int compareBytes(byte[] b1, int offsetB1, byte[] b2, int offsetB2, int length) {
 		for (int i = 0; i < length; ++i) {
@@ -826,8 +858,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/**
 	 * 使用密钥加密数据。
 	 * 
-	 * @param message
-	 * @param key
+	 * @param message 待加密的消息。
+	 * @param key 加密操作使用的密钥。
 	 */
 	private void encryptMessage(Message message, byte[] key) {
 		byte[] plaintext = message.get();
@@ -838,8 +870,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/**
 	 * 使用密钥解密数据。
 	 * 
-	 * @param message
-	 * @param key
+	 * @param message 待解密的消息。
+	 * @param key 解密操作使用的密钥。
 	 */
 	private void decryptMessage(Message message, byte[] key) {
 		byte[] ciphertext = message.get();

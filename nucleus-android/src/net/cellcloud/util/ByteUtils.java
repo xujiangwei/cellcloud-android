@@ -33,17 +33,17 @@ public final class ByteUtils {
 	private ByteUtils() {
 	}
 
-	public static byte[] toBytes(short data) {
-		byte[] bytes = new byte[2];
-		bytes[0] = (byte) (data & 0xff);
-		bytes[1] = (byte) ((data & 0xff00) >> 8);
-		return bytes;
-	}
-
 	public static byte[] toBytes(char data) {
 		byte[] bytes = new byte[2];
 		bytes[0] = (byte) (data);
 		bytes[1] = (byte) (data >> 8);
+		return bytes;
+	}
+
+	public static byte[] toBytes(short data) {
+		byte[] bytes = new byte[2];
+		bytes[0] = (byte) (data & 0xff);
+		bytes[1] = (byte) ((data & 0xff00) >> 8);
 		return bytes;
 	}
 
@@ -91,12 +91,12 @@ public final class ByteUtils {
 		return toBytes(data, "UTF-8");
 	}
 
-	public static short toShort(byte[] bytes) {
-		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
-	}
-
 	public static char toChar(byte[] bytes) {
 		return (char) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+	}
+
+	public static short toShort(byte[] bytes) {
+		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 	}
 
 	public static int toInt(byte[] bytes) {

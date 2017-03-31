@@ -918,7 +918,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 允许指定 Session 连接。
 	 */
-	protected synchronized void acceptSession(Session session, String tag) {
+	public synchronized void acceptSession(Session session, String tag) {
 		Long sid = session.getId();
 		this.unidentifiedSessions.remove(sid);
 
@@ -947,7 +947,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 拒绝指定 Session 连接。
 	 */
-	protected synchronized void rejectSession(Session session) {
+	public synchronized void rejectSession(Session session) {
 		Long sid = session.getId();
 
 		StringBuilder log = new StringBuilder();
@@ -977,7 +977,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 请求 Cellet 。
 	 */
-	protected TalkTracker processRequest(Session session, String tag, String identifier) {
+	public TalkTracker processRequest(Session session, String tag, String identifier) {
 		TalkSessionContext ctx = this.tagContexts.get(tag);
 		if (null == ctx) {
 			return null;
@@ -993,17 +993,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 				tracker.addCellet(cellet);
 			}
 
-			// 尝试恢复被动挂起的 Talk
-			// if (this.tryResumeTalk(tag, cellet, SuspendMode.PASSIVE, 0)) {
-			// // 回调 resumed
-			// cellet.resumed(tag);
-			// }
-			// else {
-
 			// 回调 contacted
 			cellet.contacted(tag);
-
-			// }
 		}
 
 		return tracker;
@@ -1012,7 +1003,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 协商服务能力。
 	 */
-	protected TalkCapacity processConsult(Session session, String tag, TalkCapacity capacity) {
+	public TalkCapacity processConsult(Session session, String tag, TalkCapacity capacity) {
 		TalkSessionContext ctx = this.tagContexts.get(tag);
 		if (null == ctx) {
 			return null;
@@ -1028,7 +1019,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 对话 Cellet 。
 	 */
-	protected void processDialogue(Session session, String speakerTag, String targetIdentifier, Primitive primitive) {
+	public void processDialogue(Session session, String speakerTag, String targetIdentifier, Primitive primitive) {
 		TalkSessionContext ctx = this.tagContexts.get(speakerTag);
 		if (null != ctx) {
 			ctx.dialogueTickTime = this.getTickTime();
@@ -1054,96 +1045,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 	}
 
 	/**
-	 * 挂起指定的会话。
-	 */
-	// protected boolean processSuspend(Session session, String speakerTag, long duration) {
-	// TalkSessionContext ctx = this.sessionContexts.get(session);
-	// if (null == ctx) {
-	// return false;
-	// }
-	//
-	// TalkTracker talkTracker = ctx.getTracker();
-	// // 进行主动挂起
-	// SuspendedTracker st = this.suspendTalk(talkTracker, SuspendMode.INITATIVE);
-	// if (null != st) {
-	// // 更新有效时长
-	// st.liveDuration = duration;
-	//
-	// // 回调 Cellet 接口
-	// for (Cellet cellet : talkTracker.getCelletList()) {
-	// cellet.suspended(speakerTag);
-	// }
-	//
-	// return true;
-	// }
-	//
-	// return false;
-	// }
-
-	/**
-	 * 恢复指定的会话。
-	 */
-	// protected void processResume(Session session, String speakerTag, long startTime) {
-	// TalkSessionContext ctx = this.sessionContexts.get(session);
-	// if (null == ctx) {
-	// return;
-	// }
-	//
-	// TalkTracker talkTracker = ctx.getTracker();
-	// if (talkTracker.getCelletList().isEmpty()) {
-	// return;
-	// }
-	//
-	// // 尝试回送原语
-	// for (Cellet cellet : talkTracker.getCelletList()) {
-	// if (this.tryResumeTalk(speakerTag, cellet, SuspendMode.INITATIVE, startTime)) {
-	// // 回调恢复
-	// cellet.resumed(speakerTag);
-	// }
-	// }
-	// }
-
-	/**
-	 * 恢复之前被挂起的原语。
-	 */
-	// protected void noticeResume(Cellet cellet, String targetTag
-	// , Queue<Long> timestampQueue, Queue<Primitive> primitiveQueue, long startTime) {
-	// TalkSessionContext context = this.tagContexts.get(targetTag);
-	// if (null == context) {
-	// if (Logger.isDebugLevel()) {
-	// Logger.d(TalkService.class, "Not find session by remote tag");
-	// }
-	// return;
-	// }
-	//
-	// Message message = null;
-	//
-	// synchronized (context) {
-	// // 查找上文里指定的会话追踪器
-	// TalkTracker tracker = context.getTracker();
-	// // 判断是否是同一个 Cellet
-	// if (tracker.getCellet(cellet.getFeature().getIdentifier()) == cellet) {
-	// Session session = context.getSession();
-	//
-	// // 发送所有原语
-	// for (int i = 0, size = timestampQueue.size(); i < size; ++i) {
-	// Long timestamp = timestampQueue.poll();
-	// Primitive primitive = primitiveQueue.poll();
-	// if (timestamp.longValue() >= startTime) {
-	// message = this.packetResume(targetTag, timestamp, primitive);
-	// if (null != message) {
-	// session.write(message);
-	// }
-	// }
-	// }
-	// }
-	// }
-	// }
-
-	/**
 	 * 返回 Session 证书。
 	 */
-	protected Certificate getCertificate(Session session) {
+	public Certificate getCertificate(Session session) {
 		return this.unidentifiedSessions.get(session.getId());
 	}
 
@@ -1219,7 +1123,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 更新 Session tick time 。
 	 */
-	protected void updateSessionHeartbeat(Session session) {
+	public void updateSessionHeartbeat(Session session) {
 		String tag = this.sessionTagMap.get(session.getId());
 		if (null == tag) {
 			return;
@@ -1401,9 +1305,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		byte[] ciphertext = Cryptology.getInstance().simpleEncrypt(text.getBytes(), key.getBytes());
 
-		Packet packet = new Packet(TalkDefinition.TPT_INTERROGATE, 1, 1, 0);
-		packet.appendSubsegment(ciphertext);
-		packet.appendSubsegment(key.getBytes());
+		Packet packet = new Packet(TalkDefinition.TPT_INTERROGATE, 1, 2, 0);
+		packet.appendSegment(ciphertext);
+		packet.appendSegment(key.getBytes());
 
 		byte[] data = Packet.pack(packet);
 		if (null != data) {
@@ -1414,24 +1318,6 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		packet = null;
 	}
-
-	// private Message packetResume(String targetTag, Long timestamp, Primitive primitive) {
-	// // 包格式：目的标签|时间戳|原语序列
-	//
-	// // 序列化原语
-	// ByteArrayOutputStream stream = primitive.write();
-	//
-	// // 封装数据包
-	// Packet packet = new Packet(TalkDefinition.TPT_RESUME, 6, 1, 0);
-	// packet.appendSubsegment(Utils.string2Bytes(targetTag));
-	// packet.appendSubsegment(Utils.string2Bytes(timestamp.toString()));
-	// packet.appendSubsegment(stream.toByteArray());
-	//
-	// // 打包数据
-	// byte[] data = Packet.pack(packet);
-	// Message message = new Message(data);
-	// return message;
-	// }
 
 	/**
 	 * 打包对话原语。
@@ -1465,9 +1351,9 @@ public final class TalkService implements Service, SpeakerDelegate {
 			ByteArrayOutputStream stream = primitive.write();
 
 			// 封装数据包
-			Packet packet = new Packet(TalkDefinition.TPT_DIALOGUE, 99, 1, 0);
-			packet.appendSubsegment(stream.toByteArray());
-			packet.appendSubsegment(Utils.string2Bytes(cellet.getFeature().getIdentifier()));
+			Packet packet = new Packet(TalkDefinition.TPT_DIALOGUE, 99, 2, 0);
+			packet.appendSegment(stream.toByteArray());
+			packet.appendSegment(Utils.string2Bytes(cellet.getFeature().getIdentifier()));
 
 			// 打包数据
 			byte[] data = Packet.pack(packet);
@@ -1480,7 +1366,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 会话身份证书。
 	 */
-	protected class Certificate {
+	public class Certificate {
 		/** 构造函数。 */
 		protected Certificate() {
 			this.session = null;
@@ -1491,14 +1377,14 @@ public final class TalkService implements Service, SpeakerDelegate {
 		}
 
 		/// 相关 Session
-		protected Session session;
+		public Session session;
 		/// 密钥
-		protected String key;
+		public String key;
 		/// 明文
-		protected String plaintext;
+		public String plaintext;
 		/// 时间戳
-		protected long time;
+		public long time;
 		/// 是否已经发送校验请求
-		protected boolean checked;
+		public boolean checked;
 	}
 }

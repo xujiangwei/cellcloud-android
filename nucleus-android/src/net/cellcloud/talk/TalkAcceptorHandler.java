@@ -35,6 +35,11 @@ import net.cellcloud.common.Message;
 import net.cellcloud.common.MessageHandler;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
+import net.cellcloud.talk.command.ServerCheckCommand;
+import net.cellcloud.talk.command.ServerConsultCommand;
+import net.cellcloud.talk.command.ServerDialogueCommand;
+import net.cellcloud.talk.command.ServerHeartbeatCommand;
+import net.cellcloud.talk.command.ServerRequestCommand;
 
 /** Talk 服务句柄。
  * 

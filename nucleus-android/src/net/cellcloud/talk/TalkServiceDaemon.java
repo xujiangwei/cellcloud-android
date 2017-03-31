@@ -45,19 +45,19 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	private long tickTime = 0;
 
 	private long lastHeartbeatTime = 0L;
-	private long speakerHeartbeatInterval= 2L * 60L * 1000L;
+	private long speakerHeartbeatInterval= 7L * 60L * 1000L;
 
-	private boolean auto;
+	private boolean polling;
 
 	private Timer timer;
 
-	protected TalkServiceDaemon(boolean auto) {
-		this.auto = auto;
+	protected TalkServiceDaemon(boolean polling) {
+		this.polling = polling;
 	}
 
 	public void sleep() {
 		synchronized (this) {
-			if (this.auto) {
+			if (this.polling) {
 				try {
 					if (null != this.timer) {
 						this.timer.cancel();
@@ -73,7 +73,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	public void wakeup() {
 		synchronized (this) {
-			if (this.auto) {
+			if (this.polling) {
 				try {
 					if (null != this.timer) {
 						this.timer.cancel();
@@ -82,7 +82,8 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					}
 
 					this.timer = new Timer();
-					// 间隔15秒
+
+					// 间隔 30 秒
 					this.timer.schedule(this, 10000L, 30000L);
 				} catch (Exception e) {
 					Logger.log(this.getClass(), e, LogLevel.WARNING);
@@ -137,7 +138,8 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						Thread thread = new Thread() {
 							@Override
 							public void run() {
-								speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass()));
+								speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
+										speaker.getAddress().getHostString(), speaker.getAddress().getPort()));
 							}
 						};
 						thread.start();

@@ -24,31 +24,61 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 
-package net.cellcloud.talk;
+package net.cellcloud.talk.command;
 
+import net.cellcloud.common.Logger;
+import net.cellcloud.common.Message;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
+import net.cellcloud.talk.TalkCapacity;
+import net.cellcloud.talk.TalkDefinition;
+import net.cellcloud.talk.TalkService;
+import net.cellcloud.util.Utils;
 
-/** Talk heartbeat command
+/** Consult Command
  * 
  * @author Jiangwei Xu
  */
-public final class ServerHeartbeatCommand extends ServerCommand {
+public final class ServerConsultCommand extends ServerCommand {
 
-	/** 构造函数。
-	 */
-	protected ServerHeartbeatCommand(TalkService service) {
-		super(service, null, null);
-	}
-
-	/** 构造函数。
-	 */
-	public ServerHeartbeatCommand(TalkService service, Session session, Packet packet) {
+	public ServerConsultCommand(TalkService service, Session session, Packet packet) {
 		super(service, session, packet);
 	}
 
 	@Override
 	public void execute() {
-		this.service.updateSessionHeartbeat(this.session);
+		// 包格式：源标签|能力描述序列化数据
+
+		// 标签
+		String tag = Utils.bytes2String(this.packet.getSegment(0));
+
+		// 能力描述
+		TalkCapacity capacity = TalkCapacity.deserialize(this.packet.getSegment(1));
+
+		if (null == capacity) {
+			Logger.w(ServerConsultCommand.class, "Error talk capacity data format: tag=" + tag);
+			capacity = new TalkCapacity();
+		}
+
+		TalkCapacity ret = this.service.processConsult(this.session, tag, capacity);
+
+//		if (null == ret) {
+//			Logger.w(ServerConsultCommand.class, "Can not match talk capacity: tag=" + tag);
+//		}
+
+		// 应答		
+		// 包格式：源标签|能力描述序列化数据
+
+		byte[] capdata = TalkCapacity.serialize(ret);
+
+		Packet response = new Packet(TalkDefinition.TPT_CONSULT, 4, 2, 0);
+		response.appendSegment(this.packet.getSegment(0));
+		response.appendSegment(capdata);
+
+		byte[] data = Packet.pack(response);
+		if (null != data) {
+			Message message = new Message(data);
+			this.session.write(message);
+		}
 	}
 }
