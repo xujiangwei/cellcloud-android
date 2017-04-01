@@ -56,8 +56,8 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	}
 
 	public void sleep() {
-		synchronized (this) {
-			if (this.polling) {
+		if (this.polling) {
+			synchronized (this) {
 				try {
 					if (null != this.timer) {
 						this.timer.cancel();
@@ -72,8 +72,8 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	}
 
 	public void wakeup() {
-		synchronized (this) {
-			if (this.polling) {
+		if (this.polling) {
+			synchronized (this) {
 				try {
 					if (null != this.timer) {
 						this.timer.cancel();
