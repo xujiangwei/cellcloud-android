@@ -55,6 +55,10 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		this.polling = polling;
 	}
 
+	public long tickTime() {
+		return this.tickTime;
+	}
+
 	public void sleep() {
 		if (this.polling) {
 			synchronized (this) {

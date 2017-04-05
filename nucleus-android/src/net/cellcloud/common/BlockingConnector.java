@@ -86,6 +86,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private AtomicBoolean writing;
 	/** 数据写队列。 */
 	private LinkedList<Message> messageQueue;
+	/** 写数据间隔。 */
+	private long writingInterval = 17L;
 
 	/**
 	 * 构造函数。
@@ -399,14 +401,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				else {
 					os.write(message.get());
 					os.flush();
-	
+
 					if (null != this.handler) {
 						this.handler.messageSent(this.session, message);
 					}
 				}
 
 				// sleep
-				Thread.sleep(10);
+				Thread.sleep(this.writingInterval);
 			} catch (IOException e) {
 				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 			} catch (Exception e) {

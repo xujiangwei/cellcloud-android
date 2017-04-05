@@ -82,10 +82,25 @@ public class ChunkDialect extends Dialect {
 		super(ChunkDialect.DIALECT_NAME);
 	}
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param tracker
+	 */
 	public ChunkDialect(String tracker) {
 		super(ChunkDialect.DIALECT_NAME, tracker);
 	}
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param sign
+	 * @param totalLength
+	 * @param chunkIndex
+	 * @param chunkNum
+	 * @param data
+	 * @param length
+	 */
 	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
 		super(ChunkDialect.DIALECT_NAME);
 		this.sign = sign;
