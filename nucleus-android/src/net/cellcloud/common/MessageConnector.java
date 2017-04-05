@@ -39,8 +39,8 @@ public interface MessageConnector {
 	/**
 	 * 连接远端的消息接收器。
 	 * 
-	 * @param address
-	 * @return
+	 * @param address 指定连接目标地址。
+	 * @return 如果成功启动连接任务返回 <code>true</code> 。
 	 */
 	public boolean connect(InetSocketAddress address);
 
@@ -52,28 +52,28 @@ public interface MessageConnector {
 	/**
 	 * 是否已经建立连接。
 	 * 
-	 * @return
+	 * @return 如果该连接器已经建立连接返回 <code>true</code> 。
 	 */
 	public boolean isConnected();
 
 	/**
 	 * 设置连接超时值。
 	 * 
-	 * @param timeout
+	 * @param timeout 指定以毫秒为单位的超时时长。
 	 */
 	public void setConnectTimeout(long timeout);
 
 	/**
 	 * 设置数据缓存块大小。
 	 * 
-	 * @param size
+	 * @param size 指定数据块大小。
 	 */
 	public void setBlockSize(int size);
 
 	/**
-	 * 返回会话实例。
+	 * 获得会话实例。
 	 * 
-	 * @return
+	 * @return 返回会话实例。
 	 */
 	public Session getSession();
 

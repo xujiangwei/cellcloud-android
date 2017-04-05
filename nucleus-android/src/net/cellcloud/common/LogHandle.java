@@ -35,41 +35,41 @@ package net.cellcloud.common;
 public interface LogHandle {
 
 	/**
-	 * 返回日志句柄名。
+	 * 获得日志句柄名。
 	 * 
-	 * @return
+	 * @return 返回日志句柄名。
 	 */
 	public String getName();
 
 	/**
 	 * 记录 DEBUG 记录。
 	 * 
-	 * @param tag
-	 * @param log
+	 * @param tag 日志标签。
+	 * @param log 日志内容。
 	 */
 	public void logDebug(String tag, String log);
 
 	/**
 	 * 记录 INFO 记录。
 	 * 
-	 * @param tag
-	 * @param log
+	 * @param tag 日志标签。
+	 * @param log 日志内容。
 	 */
 	public void logInfo(String tag, String log);
 
 	/**
 	 * 记录 WARNING 记录。
 	 * 
-	 * @param tag
-	 * @param log
+	 * @param tag 日志标签。
+	 * @param log 日志内容。
 	 */
 	public void logWarning(String tag, String log);
 
 	/**
 	 * 记录 ERROR 记录。
 	 * 
-	 * @param tag
-	 * @param log
+	 * @param tag 日志标签。
+	 * @param log 日志内容。
 	 */
 	public void logError(String tag, String log);
 

@@ -35,22 +35,22 @@ package net.cellcloud.common;
 public final class LogLevel {
 
 	/**
-	 * Debug
+	 * Debug 等级。
 	 */
 	public final static byte DEBUG = 1;
 	
 	/**
-	 * Info
+	 * Info 等级。
 	 */
 	public final static byte INFO = 2;
 	
 	/**
-	 * Warning
+	 * Warning 等级。
 	 */
 	public final static byte WARNING = 3;
 
 	/**
-	 * Error
+	 * Error 等级。
 	 */
 	public final static byte ERROR = 4;
 

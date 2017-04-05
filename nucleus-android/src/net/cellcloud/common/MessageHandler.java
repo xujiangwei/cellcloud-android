@@ -37,52 +37,52 @@ public interface MessageHandler {
 	/**
 	 * 创建连接会话。
 	 * 
-	 * @param session
+	 * @param session 创建的会话。
 	 */
 	public void sessionCreated(Session session);
 
 	/**
 	 * 销毁连接会话。
 	 * 
-	 * @param session
+	 * @param session 销毁的会话。
 	 */
 	public void sessionDestroyed(Session session);
 
 	/**
 	 * 开启连接会话。
 	 * 
-	 * @param session
+	 * @param session 开启的会话。
 	 */
 	public void sessionOpened(Session session);
 
 	/**
 	 * 关闭连接会话。
 	 * 
-	 * @param session
+	 * @param session 关闭的会话。
 	 */
 	public void sessionClosed(Session session);
 
 	/**
 	 * 接收到消息。
 	 * 
-	 * @param session
-	 * @param message
+	 * @param session 接收消息的会话。
+	 * @param message 接收的消息。
 	 */
 	public void messageReceived(Session session, Message message);
 
 	/**
 	 * 消息已发送。
 	 * 
-	 * @param session
-	 * @param message
+	 * @param session 发送消息的目标会话。
+	 * @param message 发送的消息。
 	 */
 	public void messageSent(Session session, Message message);
 
 	/**
 	 * 发生错误。
 	 * 
-	 * @param errorCode
-	 * @param session
+	 * @param errorCode 错误码 {@link MessageErrorCode} 。
+	 * @param session 发生错误的会话。
 	 */
 	public void errorOccurred(int errorCode, Session session);
 

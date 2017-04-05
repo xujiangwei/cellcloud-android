@@ -362,64 +362,68 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			return;
 		}
 
-		Message message = null;
-		synchronized (this.messageQueue) {
-			if (this.messageQueue.isEmpty()) {
-				this.writing.set(false);
-				return;
-			}
-
-			message = this.messageQueue.removeFirst();
-		}
-
-		try {
-			OutputStream os = this.socket.getOutputStream();
-
-			if (this.existDataMark()) {
-				byte[] data = message.get();
-				byte[] head = this.getHeadMark();
-				byte[] tail = this.getTailMark();
-				byte[] pd = new byte[data.length + head.length + tail.length];
-				System.arraycopy(head, 0, pd, 0, head.length);
-				System.arraycopy(data, 0, pd, head.length, data.length);
-				System.arraycopy(tail, 0, pd, head.length + data.length, tail.length);
-
-				os.write(pd);
-				os.flush();
-
-				if (null != this.handler) {
-					this.handler.messageSent(this.session, message);
+		while (null != this.socket && this.writing.get()) {
+			Message message = null;
+			synchronized (this.messageQueue) {
+				if (this.messageQueue.isEmpty()) {
+					this.writing.set(false);
+					break;
 				}
-			}
-			else {
-				os.write(message.get());
-				os.flush();
 
-				if (null != this.handler) {
-					this.handler.messageSent(this.session, message);
+				message = this.messageQueue.removeFirst();
+			}
+
+			if (null == message) {
+				continue;
+			}
+
+			try {
+				OutputStream os = this.socket.getOutputStream();
+
+				if (this.existDataMark()) {
+					byte[] data = message.get();
+					byte[] head = this.getHeadMark();
+					byte[] tail = this.getTailMark();
+					byte[] pd = new byte[data.length + head.length + tail.length];
+					System.arraycopy(head, 0, pd, 0, head.length);
+					System.arraycopy(data, 0, pd, head.length, data.length);
+					System.arraycopy(tail, 0, pd, head.length + data.length, tail.length);
+
+					os.write(pd);
+					os.flush();
+
+					if (null != this.handler) {
+						this.handler.messageSent(this.session, message);
+					}
 				}
+				else {
+					os.write(message.get());
+					os.flush();
+	
+					if (null != this.handler) {
+						this.handler.messageSent(this.session, message);
+					}
+				}
+
+				// sleep
+				Thread.sleep(10);
+			} catch (IOException e) {
+				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+			} catch (Exception e) {
+				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+				Logger.log(this.getClass(), e, LogLevel.ERROR);
 			}
-		} catch (IOException e) {
-			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
-		} catch (Exception e) {
-			this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
-			Logger.log(this.getClass(), e, LogLevel.ERROR);
 		}
 
-		synchronized (this.messageQueue) {
-			if (this.messageQueue.isEmpty()) {
-				this.writing.set(false);
-				return;
-			}
+		if (!this.messageQueue.isEmpty()) {
+			this.writing.set(true);
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					flushMessage();
+				}
+			});
 		}
-
-		this.writing.set(true);
-		this.executor.execute(new Runnable() {
-			@Override
-			public void run() {
-				flushMessage();
-			}
-		});
 	}
 
 	/**

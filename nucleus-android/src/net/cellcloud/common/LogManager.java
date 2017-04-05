@@ -42,11 +42,20 @@ public final class LogManager {
 
 	private final static LogManager instance = new LogManager();
 
+	/**
+	 * 时间格式。
+	 */
 	public final static SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss.SSS", Locale.CHINA);
 
+	/** 处理器列表。 */
 	private ArrayList<LogHandle> handles;
+
+	/** 当前日志等级。 */
 	private byte level;
 
+	/**
+	 * 构造函数。
+	 */
 	private LogManager() {
 		this.handles = new ArrayList<LogHandle>();
 		this.level = LogLevel.DEBUG;
@@ -55,8 +64,7 @@ public final class LogManager {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * 返回管理器单例。
 	 */
 	public static LogManager getInstance() {
 		return instance;
@@ -65,25 +73,25 @@ public final class LogManager {
 	/**
 	 * 设置日志等级。
 	 * 
-	 * @param level
+	 * @param level 指定新的日志等级。
 	 */
 	public void setLevel(byte level) {
 		this.level = level;
 	}
 
 	/**
-	 * 返回日志等级。
+	 * 获得日志等级。
 	 * 
-	 * @return
+	 * @return 返回日志等级。
 	 */
 	public byte getLevel() {
 		return this.level;
 	}
 
 	/**
-	 * 返回句柄数量。
+	 * 获得句柄数量。
 	 * 
-	 * @return
+	 * @return 返回句柄数量。
 	 */
 	public int numHandles() {
 		return this.handles.size();
@@ -92,9 +100,9 @@ public final class LogManager {
 	/**
 	 * 记录日志。
 	 * 
-	 * @param level
-	 * @param tag
-	 * @param log
+	 * @param level 指定该条日志的记录等级。
+	 * @param tag 指定该条日志的标签。
+	 * @param log 指定该条日志的内容。
 	 */
 	public void log(byte level, String tag, String log) {
 		synchronized (this) {
@@ -131,7 +139,7 @@ public final class LogManager {
 	/**
 	 * 添加日志内容处理器。
 	 * 
-	 * @param handle
+	 * @param handle 指定待添加的处理器。
 	 */
 	public void addHandle(LogHandle handle) {
 		synchronized (this) {
@@ -152,7 +160,7 @@ public final class LogManager {
 	/**
 	 * 移除日志内容处理器。
 	 * 
-	 * @param handle
+	 * @param handle 指定待移除的处理器。
 	 */
 	public void removeHandle(LogHandle handle) {
 		synchronized (this) {
@@ -172,7 +180,7 @@ public final class LogManager {
 	/**
 	 * 创建 Android 日志处理器。
 	 * 
-	 * @return
+	 * @return 返回日志处理器。
 	 */
 	public static LogHandle createAndroidHandle() {
 		return new LogHandle() {

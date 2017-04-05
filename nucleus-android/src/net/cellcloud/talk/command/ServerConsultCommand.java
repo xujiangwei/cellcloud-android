@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,16 +35,28 @@ import net.cellcloud.talk.TalkDefinition;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.util.Utils;
 
-/** Consult Command
+/**
+ * 对话 Consult 命令。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class ServerConsultCommand extends ServerCommand {
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param session
+	 * @param packet
+	 */
 	public ServerConsultCommand(TalkService service, Session session, Packet packet) {
 		super(service, session, packet);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void execute() {
 		// 包格式：源标签|能力描述序列化数据
@@ -81,4 +93,5 @@ public final class ServerConsultCommand extends ServerCommand {
 			this.session.write(message);
 		}
 	}
+
 }

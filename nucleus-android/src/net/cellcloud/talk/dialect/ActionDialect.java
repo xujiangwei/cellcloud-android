@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,18 +38,37 @@ import net.cellcloud.talk.stuff.SubjectStuff;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** 动作方言。
+/**
+ * 动作方言。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class ActionDialect extends Dialect {
 
+	/**
+	 * 动作方言的方言名。
+	 */
 	public final static String DIALECT_NAME = "ActionDialect";
 
+	/**
+	 * 动作名称。
+	 */
 	private String action;
+
+	/**
+	 * 参数名列表。
+	 */
 	private LinkedList<String> nameList;
+
+	/**
+	 * 参数值列表。
+	 */
 	private LinkedList<ObjectiveStuff> valueList;
 
+	/**
+	 * 自定义上下文数据。
+	 */
 	private Object customContext;
 
 	/**
@@ -63,7 +82,8 @@ public class ActionDialect extends Dialect {
 
 	/**
 	 * 构造函数。
-	 * @param tracker
+	 * 
+	 * @param tracker 指定追踪名。
 	 */
 	public ActionDialect(String tracker) {
 		super(ActionDialect.DIALECT_NAME, tracker);
@@ -73,8 +93,9 @@ public class ActionDialect extends Dialect {
 
 	/**
 	 * 构造函数。
-	 * @param tracker
-	 * @param action
+	 * 
+	 * @param tracker 指定追踪名。
+	 * @param action 指定动作名。
 	 */
 	public ActionDialect(String tracker, String action) {
 		super(ActionDialect.DIALECT_NAME, tracker);
@@ -83,18 +104,25 @@ public class ActionDialect extends Dialect {
 		this.valueList = new LinkedList<ObjectiveStuff>();
 	}
 
-	/** 设置自定义上下文。
+	/**
+	 * 设置自定义上下文。
+	 * 
+	 * @param custom 指定自定义的数据对象。
 	 */
-	public void setCustomContext(Object obj) {
-		this.customContext = obj;
+	public void setCustomContext(Object custom) {
+		this.customContext = custom;
 	}
 
-	/** 返回自定义上下文。
+	/**
+	 * 返回自定义上下文对象。
 	 */
 	public Object getCustomContext() {
 		return this.customContext;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Primitive reconstruct() {
 		if (null == this.action || this.action.isEmpty()) {
@@ -119,6 +147,9 @@ public class ActionDialect extends Dialect {
 		return primitive;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void construct(Primitive primitive) {
 		this.action = primitive.predicates().get(0).getValueAsString();
@@ -135,172 +166,263 @@ public class ActionDialect extends Dialect {
 		}
 	}
 
-	/** 设置动作名。
+	/**
+	 * 设置动作名。
+	 * 
+	 * @param action 动作名。
 	 */
-	public void setAction(final String action) {
+	public void setAction(String action) {
 		this.action = action;
 	}
 
-	/** 返回动作名。
+	/**
+	 * 获得动作名。
+	 * 
+	 * @return 返回动作名。
 	 */
 	public String getAction() {
 		return this.action;
 	}
 
-	/** 添加动作参数键值对。
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
 	 */
-	public void appendParam(final String name, final String value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final int value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final long value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final float value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final double value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final boolean value) {
-		synchronized (this) {
-			this.nameList.add(name);
-			this.valueList.add(new ObjectiveStuff(value));
-		}
-	}
-	/** 添加动作参数键值对。
-	 */
-	public void appendParam(final String name, final JSONObject value) {
+	public void appendParam(String name, String value) {
 		synchronized (this) {
 			this.nameList.add(name);
 			this.valueList.add(new ObjectiveStuff(value));
 		}
 	}
 
-	/** 返回指定名称的参数值。
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
 	 */
-	public String getParamAsString(final String name) {
+	public void appendParam(String name, int value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
+	 */
+	public void appendParam(String name, long value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
+	 */
+	public void appendParam(String name, float value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
+	 */
+	public void appendParam(String name, double value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
+	 */
+	public void appendParam(String name, boolean value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 添加动作参数键值对。
+	 * 
+	 * @param name 指定参数名。
+	 * @param value 指定参数值。
+	 */
+	public void appendParam(String name, JSONObject value) {
+		synchronized (this) {
+			this.nameList.add(name);
+			this.valueList.add(new ObjectiveStuff(value));
+		}
+	}
+
+	/**
+	 * 获得指定名称的字符串型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
+	 */
+	public String getParamAsString(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsString();
+			}
 		}
 
 		return null;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的整数类型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
 	 */
-	public int getParamAsInt(final String name) {
+	public int getParamAsInt(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsInt();
+			}
 		}
 
 		return 0;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的长整型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
 	 */
-	public long getParamAsLong(final String name) {
+	public long getParamAsLong(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsLong();
+			}
 		}
 
 		return 0;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的浮点型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
 	 */
-	public float getParamAsFloat(final String name) {
+	public float getParamAsFloat(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsFloat();
+			}
 		}
 
 		return 0;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的双精浮点型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
 	 */
-	public double getParamAsDouble(final String name) {
+	public double getParamAsDouble(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsDouble();
+			}
 		}
 
 		return 0;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的布尔型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
 	 */
-	public boolean getParamAsBoolean(final String name) {
+	public boolean getParamAsBoolean(String name) {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsBool();
+			}
 		}
 
 		return false;
 	}
-	/** 返回指定名称的参数值。
+
+	/**
+	 * 获得指定名称的 JSON 类型参数值。
+	 * 
+	 * @param name 指定待查找参数的参数名。
+	 * @return 返回指定名称的参数值。
+	 * 
 	 * @throws JSONException 
 	 */
-	public JSONObject getParamAsJSON(final String name) throws JSONException {
+	public JSONObject getParamAsJSON(String name) throws JSONException {
 		synchronized (this) {
 			int index = this.nameList.indexOf(name);
-			if (index >= 0)
+			if (index >= 0) {
 				return this.valueList.get(index).getValueAsJSON();
+			}
 		}
 
 		return null;
 	}
 
-	/** 判断指定名称的参数是否存在。
+	/**
+	 * 判断指定名称的参数是否存在。
+	 * 
+	 * @param name 待判断的参数名。
+	 * @return 如果存在返回 <code>true</code> 。
 	 */
-	public boolean existParam(final String name) {
+	public boolean existParam(String name) {
 		synchronized (this) {
 			return this.nameList.contains(name);
 		}
 	}
 
-	/** 返回所有参数名。
+	/**
+	 * 获得所有参数的参数名列表。
+	 * 
+	 * @return 返回所有参数名数组。
 	 */
 	public List<String> getParamNames() {
 		return this.nameList;
 	}
 
 	/**
-	 * 返回指定参数的数值字面义。
-	 * @param name
-	 * @return
+	 * 获得指定参数的数值字面义。
+	 * 
+	 * @param name 指定参数名。
+	 * @return 返回指定参数的数值字面义 {@link LiteralBase} 。
+	 * @see {@link LiteralBase}
 	 */
 	public LiteralBase getParamLiteralBase(String name) {
 		synchronized (this) {
@@ -314,33 +436,7 @@ public class ActionDialect extends Dialect {
 	}
 
 	/**
-	 * 创建数据副本。
-	 * @return
-	 */
-//	public ActionDialect copy() {
-//		ActionDialect copy = new ActionDialect();
-//		synchronized (this) {
-//			copy.tracker = this.tracker;
-//			copy.tag = this.tag;
-//			copy.celletIdentifier = this.celletIdentifier;
-//			copy.cellet = this.cellet;
-//
-//			copy.action = this.action;
-//
-//			for (String name : this.nameList) {
-//				copy.nameList.add(name);
-//			}
-//
-//			for (ObjectiveStuff value : this.valueList) {
-//				copy.valueList.add(value);
-//			}
-//
-//			copy.customContext = this.customContext;
-//		}
-//		return copy;
-//	}
-
-	/** 执行动作委派（异步）。
+	 * 执行动作委派（异步）。
 	 */
 	public void act(ActionDelegate delegate) {
 		ActionDialectFactory factory = (ActionDialectFactory) DialectEnumerator.getInstance().getFactory(ActionDialect.DIALECT_NAME);
@@ -348,4 +444,5 @@ public class ActionDialect extends Dialect {
 			factory.doAction(this, delegate);
 		}
 	}
+
 }

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,20 +35,37 @@ import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.util.Utils;
 
-/** Dialogue Command
+/**
+ * 对话 Dialogue 命令。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class ServerDialogueCommand extends ServerCommand {
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 */
 	public ServerDialogueCommand(TalkService service) {
 		super(service, null, null);
 	}
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param session
+	 * @param packet
+	 */
 	public ServerDialogueCommand(TalkService service, Session session, Packet packet) {
 		super(service, session, packet);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void execute() {
 		// 包格式：序列化的原语|源标签
@@ -72,4 +89,5 @@ public final class ServerDialogueCommand extends ServerCommand {
 
 		this.service.processDialogue(this.session, speakerTag, Utils.bytes2String(identifierData), primitive);
 	}
+
 }

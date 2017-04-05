@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,33 +31,53 @@ import java.util.List;
 import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.stuff.SubjectStuff;
 
-/** 块数据方言。
+/**
+ * 块数据方言。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class ChunkDialect extends Dialect {
 
+	/**
+	 * 数据块方言的方言名。
+	 */
 	public final static String DIALECT_NAME = "ChunkDialect";
+
+	/**
+	 * 默认数据块大小。
+	 */
 	public final static int CHUNK_SIZE = 2048;
 
+	/** 整块记号。用于标记整个块。 */
 	protected String sign = null;
-	protected int chunkIndex = 0;
-	protected int chunkNum = 0;
-	protected byte[] data = null;
-	protected int length = 0;
+	/** 整块总长度。 */
 	protected long totalLength = 0;
+	/** 整块总数量。 */
+	protected int chunkNum = 0;
+	/** 当前块索引。 */
+	protected int chunkIndex = 0;
+	/** 当前块数据。 */
+	protected byte[] data = null;
+	/** 当前块长度。 */
+	protected int length = 0;
 
-	// 用于标识该区块是否能写入缓存队列
-	// 如果为 true ，表示已经“污染”，不能进入队列，必须直接发送
+	/**
+	 * 用于标识该区块是否能写入缓存队列。
+	 * 如果为 true ，表示已经“污染”，不能进入队列，必须直接发送。
+	 */
 	protected boolean infectant = false;
 
 	private ChunkListener listener;
 
 	private int readIndex = 0;
 
-	// 数据传输速率
+	/** 数据传输速率。 */
 	protected int speedInKB = 20;
 
+	/**
+	 * 构造函数。
+	 */
 	protected ChunkDialect() {
 		super(ChunkDialect.DIALECT_NAME);
 	}

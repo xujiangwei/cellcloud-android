@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,16 +30,24 @@ import net.cellcloud.talk.Primitive;
 import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.dialect.Dialect;
 
-/** Cellet 管理单元。
+/**
+ * Cellet 单元。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public abstract class Cellet extends AbstractCellet {
 
+	/** 特性描述。 */
 	private CelletFeature feature;
+
+	/** 沙盒模型。 */
 	private CelletSandbox sandbox;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param feature 指定 Cellet 的特性。
 	 */
 	public Cellet(CelletFeature feature) {
 		super();
@@ -47,66 +55,66 @@ public abstract class Cellet extends AbstractCellet {
 		this.sandbox = new CelletSandbox(feature);
 	}
 
-	/** 返回 Cellet 的特性描述。
+	/**
+	 * 获得 Cellet 的特性描述。
+	 * 
+	 * @return 返回 Cellet 的特性描述。
 	 */
 	public CelletFeature getFeature() {
 		return this.feature;
 	}
 
-	/** 发送原语到消费端进行会话。
+	/**
+	 * 发送原语到消费端进行会话。
+	 * 
+	 * @param targetTag 指定目标终端你的内核标签。
+	 * @param primitive 指定原语数据。
+	 * @return 数据被成功送入发送队列返回 <code>true</code> 。
 	 */
-	public boolean talk(final String targetTag, final Primitive primitive) {
+	public boolean talk(String targetTag, Primitive primitive) {
 		return TalkService.getInstance().notice(targetTag, primitive, this, this.sandbox);
 	}
-	/** 发送方言到消费端进行会话。
+
+	/**
+	 * 发送方言到消费端进行会话。
+	 * 
+	 * @param targetTag 指定目标终端你的内核标签。
+	 * @param dialect 指定方言数据。
+	 * @return 数据被成功送入发送队列返回 <code>true</code> 。
 	 */
-	public boolean talk(final String targetTag, final Dialect dialect) {
+	public boolean talk(String targetTag, Dialect dialect) {
 		return TalkService.getInstance().notice(targetTag, dialect, this, this.sandbox);
 	}
 
-	/** 进行激活前准备。
+	/**
+	 * 进行激活前准备。
 	 */
 	protected final void prepare() {
 		Nucleus.getInstance().prepareCellet(this, this.sandbox);
 	}
 
 	/**
-	 * @copydoc AbstractCellet::dialogue(String,String)
+	 * {@inheritDoc}
 	 */
 	@Override
-	public void dialogue(final String tag, final Primitive primitive) {
+	public void dialogue(String tag, Primitive primitive) {
 		// Nothing
 	}
 
 	/**
-	 * @copydoc AbstractCellet::contacted(String)
+	 * {@inheritDoc}
 	 */
 	@Override
-	public void contacted(final String tag) {
+	public void contacted(String tag) {
 		// Nothing
 	}
 
 	/**
-	 * @copydoc AbstractCellet::quitted(String)
+	 * {@inheritDoc}
 	 */
 	@Override
-	public void quitted(final String tag) {
+	public void quitted(String tag) {
 		// Nothing
 	}
 
-	/**
-	 * @copydoc AbstractCellet::suspended(String)
-	 */
-	@Override
-	public void suspended(final String tag) {
-		// Nothing
-	}
-
-	/**
-	 * @copydoc AbstractCellet::resumed(String)
-	 */
-	@Override
-	public void resumed(final String tag) {
-		// Nothing
-	}
 }

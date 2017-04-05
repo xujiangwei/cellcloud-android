@@ -36,6 +36,8 @@ public interface Service {
 
 	/**
 	 * 启动服务。
+	 * 
+	 * @return 如果启动成功返回 <code>true</code> ，否则返回 <code>false</code> 。
 	 */
 	boolean startup();
 

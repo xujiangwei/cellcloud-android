@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,16 +39,28 @@ import net.cellcloud.talk.TalkService;
 import net.cellcloud.talk.TalkService.Certificate;
 import net.cellcloud.util.Utils;
 
-/** Talk check command
+/**
+ * 对话 check 命令。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class ServerCheckCommand extends ServerCommand {
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param session
+	 * @param packet
+	 */
 	public ServerCheckCommand(TalkService service, Session session, Packet packet) {
 		super(service, session, packet);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void execute() {
 		// 包格式：原文
@@ -111,4 +123,5 @@ public final class ServerCheckCommand extends ServerCommand {
 		}
 		log = null;
 	}
+
 }

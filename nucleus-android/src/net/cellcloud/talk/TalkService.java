@@ -67,7 +67,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /** 会话服务。
-/*
+ * 
  * 会话服务是节点与 Cellet 之间通信的基础服务。 通过会话服务完成节点与 Cellet 之间的数据传输。
  * 
  * @author Ambrose Xu
@@ -158,9 +158,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	}
 
 	/**
-	 * 启动会话服务。
-	 * 
-	 * @return 如果启动成功，则返回 <code>true</code> ，否则返回 <code>false</code> 。
+	 * {@inheritDoc}
 	 */
 	@Override
 	public boolean startup() {
@@ -204,7 +202,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	}
 
 	/**
-	 * 关闭会话服务。
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void shutdown() {
@@ -1338,7 +1336,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 				data.put("packet", packet);
 
 				// 创建 message
-				message = new Message(data.toString());
+				message = new Message(Utils.string2Bytes(data.toString()));
 			}
 			catch (JSONException e) {
 				Logger.log(this.getClass(), e, LogLevel.ERROR);

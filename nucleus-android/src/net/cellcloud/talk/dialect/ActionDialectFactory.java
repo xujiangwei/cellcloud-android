@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.cellcloud.core.Cellet;
 
-/** 动作方言工厂。
+/**
+ * 动作方言工厂。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class ActionDialectFactory extends DialectFactory {
 
@@ -46,6 +48,11 @@ public final class ActionDialectFactory extends DialectFactory {
 	private LinkedList<ActionDialect> dialects;
 	private LinkedList<ActionDelegate> delegates;
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param executor
+	 */
 	public ActionDialectFactory(ExecutorService executor) {
 		this.metaData = new DialectMetaData(ActionDialect.DIALECT_NAME, "Action Dialect");
 		this.executor = executor;
@@ -98,7 +105,11 @@ public final class ActionDialectFactory extends DialectFactory {
 		return true;
 	}
 
-	/** 执行动作。
+	/**
+	 * 执行动作。
+	 * 
+	 * @param dialect
+	 * @param delegate
 	 */
 	protected void doAction(final ActionDialect dialect, final ActionDelegate delegate) {
 		synchronized (this.metaData) {
@@ -136,4 +147,5 @@ public final class ActionDialectFactory extends DialectFactory {
 			});
 		}
 	}
+
 }

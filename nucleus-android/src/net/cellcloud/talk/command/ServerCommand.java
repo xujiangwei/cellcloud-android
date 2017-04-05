@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,11 @@ import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.talk.TalkService;
 
-/** 会话命令。
+/**
+ * 对话命令。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public abstract class ServerCommand {
 
@@ -40,7 +42,12 @@ public abstract class ServerCommand {
 	public Session session;
 	public Packet packet;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param session
+	 * @param packet
 	 */
 	public ServerCommand(TalkService service, Session session, Packet packet) {
 		this.service = service;
@@ -48,7 +55,9 @@ public abstract class ServerCommand {
 		this.packet = packet;
 	}
 
-	/** 执行命令。
+	/**
+	 * 执行命令。
 	 */
 	public abstract void execute();
+
 }

@@ -39,28 +39,28 @@ public interface MessageAcceptor {
 	/**
 	 * 绑定消息接收服务到指定端口。
 	 * 
-	 * @param port
-	 * @return
+	 * @param port 指定绑定端口。
+	 * @return 如果绑定成功返回 <code>true</code> 。
 	 */
 	public boolean bind(int port);
 
 	/**
 	 * 绑定消息接收服务到指定地址。
 	 * 
-	 * @param address
-	 * @return
+	 * @param address 指定绑定地址。
+	 * @return 如果绑定成功返回 <code>true</code> 。
 	 */
 	public boolean bind(InetSocketAddress address);
 	
 	/**
-	 * 解绑当前绑定的服务地址。
+	 * 解绑当前绑定的服务地址，并关闭所有连接。
 	 */
 	public void unbind();
 
 	/**
 	 * 关闭指定会话。
 	 * 
-	 * @param session
+	 * @param session 指定的会话。
 	 */
 	public void close(Session session);
 

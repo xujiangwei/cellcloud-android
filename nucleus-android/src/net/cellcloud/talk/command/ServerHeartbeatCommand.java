@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,26 +30,40 @@ import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.talk.TalkService;
 
-/** Talk heartbeat command
+/**
+ * 对话 heartbeat 命令。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class ServerHeartbeatCommand extends ServerCommand {
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
 	 */
 	public ServerHeartbeatCommand(TalkService service) {
 		super(service, null, null);
 	}
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param service
+	 * @param session
+	 * @param packet
 	 */
 	public ServerHeartbeatCommand(TalkService service, Session session, Packet packet) {
 		super(service, session, packet);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void execute() {
 		this.service.updateSessionHeartbeat(this.session);
 	}
+
 }

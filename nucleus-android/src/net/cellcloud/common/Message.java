@@ -26,9 +26,6 @@ THE SOFTWARE.
 
 package net.cellcloud.common;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-
 /**
  * 消息描述类。
  * 
@@ -42,28 +39,16 @@ public class Message {
 	/**
 	 * 构造函数。
 	 * 
-	 * @param data
+	 * @param data 指定消息数据。
 	 */
 	public Message(byte[] data) {
 		this.data = data;
 	}
 
 	/**
-	 * 构造函数。
-	 * 
-	 * @param data
-	 */
-	public Message(String data) {
-		try {
-			this.data = data.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException e) {
-		}
-	}
-
-	/**
 	 * 返回消息数据。
 	 * 
-	 * @return
+	 * @return 返回消息数据。
 	 */
 	public byte[] get() {
 		return this.data;
@@ -72,7 +57,7 @@ public class Message {
 	/**
 	 * 设置新数据。
 	 * 
-	 * @param newData
+	 * @param newData 新的消息数据。
 	 */
 	protected void set(byte[] newData) {
 		this.data = newData;
@@ -81,25 +66,10 @@ public class Message {
 	/**
 	 * 消息数据长度。
 	 * 
-	 * @return 
+	 * @return 返回消息数据长度。
 	 */
 	public int length() {
 		return this.data.length;
-	}
-
-	/**
-	 * 返回 UTF-8 字符集编码的字符串形式的消息数据。
-	 */
-	public String getAsString() {
-		return new String(this.data, Charset.forName("UTF-8"));
-	}
-
-	/**
-	 * 返回指定字符集的消息数据的字符串形式。
-	 * @throws UnsupportedEncodingException 
-	 */
-	public String getAsString(String charsetName) throws UnsupportedEncodingException {
-		return new String(this.data, charsetName);
 	}
 
 }

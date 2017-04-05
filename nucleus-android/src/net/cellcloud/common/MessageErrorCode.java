@@ -34,44 +34,44 @@ package net.cellcloud.common;
  */
 public final class MessageErrorCode {
 
-	/// 未知的错误类型。
+	/** 未知错误。 */
 	public static final int UNKNOWN = 100;
 
-	/// 无效的网络地址。
+	/** 无效的网络地址。 */
 	public static final int ADDRESS_INVALID = 101;
-	/// 错误的状态。
+	/** 错误的状态。 */
 	public static final int STATE_ERROR = 102;
 
-	/// Socket 函数发生错误。
+	/** Socket 函数发生错误。 */
 	public static final int SOCKET_FAILED = 200;
-	/// 绑定服务时发生错误。
+	/** 绑定服务时发生错误。 */
 	public static final int BIND_FAILED = 201;
-	/// 监听连接时发生错误。
+	/** 监听连接时发生错误。 */
 	public static final int LISTEN_FAILED = 202;
-	/// Accept 发生错误。
+	/** Accept 发生错误。 */
 	public static final int ACCEPT_FAILED = 203;
 
-	/// 连接失败。
+	/** 连接失败。 */
 	public static final int CONNECT_FAILED = 300;
-	/// 连接超时。
+	/** 连接超时。 */
 	public static final int CONNECT_TIMEOUT = 301;
 
-	/// 写数据超时。
+	/** 写数据超时。 */
 	public static final int WRITE_TIMEOUT = 401;
-	/// 读数据超时。
+	/** 读数据超时。 */
 	public static final int READ_TIMEOUT = 402;
-	/// 写入数据时发生错误。
+	/** 写入数据时发生错误。 */
 	public static final int WRITE_FAILED = 403;
-	/// 读取数据时发生错误。
+	/** 读取数据时发生错误。 */
 	public static final int READ_FAILED = 404;
-	/// 写数据越界
+	/** 写数据越界 */
 	public static final int WRITE_OUTOFBOUNDS = 405;
 
-	/// 无网络连接。
+	/** 无网络连接。 */
 	public static final int NO_NETWORK = 700;
-	/// 无 Wifi 网络。
+	/** 无 Wifi 网络。 */
 	public static final int NO_WIFI_NETWORK = 701;
-	/// 无 Mobile 网络。
+	/** 无 Mobile 网络。 */
 	public static final int NO_MOBILE_NETWORK = 702;
 
 	private MessageErrorCode() {

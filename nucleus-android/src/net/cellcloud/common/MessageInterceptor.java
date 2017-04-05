@@ -30,6 +30,7 @@ package net.cellcloud.common;
  * 消息拦截器。
  * 
  * @author Ambrose Xu
+ * 
  */
 public interface MessageInterceptor {
 
@@ -42,6 +43,7 @@ public interface MessageInterceptor {
 	public boolean interceptCreating(Session session);
 
 	/**
+	 * 拦截会话开启。
 	 * 
 	 * @param session
 	 * @return
@@ -49,6 +51,7 @@ public interface MessageInterceptor {
 	public boolean interceptOpening(Session session);
 
 	/**
+	 * 拦截会话关闭。
 	 * 
 	 * @param session
 	 * @return
@@ -56,6 +59,7 @@ public interface MessageInterceptor {
 	public boolean interceptClosing(Session session);
 
 	/**
+	 * 拦截会话被销毁。
 	 * 
 	 * @param session
 	 * @return
@@ -72,7 +76,7 @@ public interface MessageInterceptor {
 	public boolean interceptMessage(Session session, Message message);
 
 	/**
-	 * 
+	 * 拦截会话错误发生。
 	 * 
 	 * @param session
 	 * @param errorCode

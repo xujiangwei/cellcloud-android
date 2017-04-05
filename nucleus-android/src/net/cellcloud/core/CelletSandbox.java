@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,11 @@ package net.cellcloud.core;
 
 import net.cellcloud.exception.CelletSandboxException;
 
-/** Celle 沙箱。
+/**
+ * Celle 沙箱。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class CelletSandbox {
 
@@ -41,7 +43,8 @@ public final class CelletSandbox {
 		this.feature = feature;
 	}
 
-	/** 封闭沙箱，返回唯一验证码。
+	/**
+	 * 封闭沙箱。
 	 */
 	protected void sealOff(CelletFeature feature)
 		throws CelletSandboxException {
@@ -55,4 +58,5 @@ public final class CelletSandbox {
 	protected boolean isSealed() {
 		return this.sealed.booleanValue();
 	}
+
 }

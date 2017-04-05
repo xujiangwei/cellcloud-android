@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,50 +28,46 @@ package net.cellcloud.core;
 
 import net.cellcloud.talk.Primitive;
 
-/** 抽象 Cellet 单元。
+/**
+ * 抽象 Cellet 单元。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public abstract class AbstractCellet {
 
 	public AbstractCellet() {
 	}
 
-	/** Cellet 激活回调。
+	/**
+	 * Cellet 激活回调。
 	 */
 	public abstract void activate();
 
-	/** Cellet 钝化回调。
+	/**
+	 * Cellet 钝化回调。
 	 */
 	public abstract void deactivate();
 
-	/** Talk 会话回调。
+	/**
+	 * Talk 会话回调。
 	 * 
 	 * @param tag 对端的内核标签。
 	 */
-	public abstract void dialogue(final String tag, final Primitive primitive);
+	public abstract void dialogue(String tag, Primitive primitive);
 
-	/** 当消费者连接服务时回调此方法。
+	/**
+	 * 当消费者连接服务时回调此方法。
 	 * 
 	 * @param tag 对端的内核标签。
 	 */
-	public abstract void contacted(final String tag);
+	public abstract void contacted(String tag);
 
-	/** 当消费者退出服务时回调此方法。
+	/**
+	 * 当消费者退出服务时回调此方法。
 	 * 
 	 * @param tag 对端的内核标签。
 	 */
-	public abstract void quitted(final String tag);
+	public abstract void quitted(String tag);
 
-	/** 当消费者被挂起时回调此方法。
-	 * 
-	 * @param tag 对端的内核标签。
-	 */
-	public abstract void suspended(final String tag);
-
-	/** 当消费者从挂起状态恢复时回调此方法。
-	 * 
-	 * @param tag 对端的内核标签。
-	 */
-	public abstract void resumed(final String tag);
 }
