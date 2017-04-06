@@ -29,10 +29,10 @@ package net.cellcloud.talk;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 
 import net.cellcloud.common.BlockingConnector;
@@ -61,7 +61,7 @@ public class Speaker implements Speakable {
 	private NonblockingConnector nonblockingConnector;
 	private int block;
 
-	private List<String> identifierList;
+	private Vector<String> identifierList;
 
 	protected TalkCapacity capacity;
 
@@ -94,7 +94,7 @@ public class Speaker implements Speakable {
 		this.delegate = delegate;
 		this.block = block;
 		this.executor = executor;
-		this.identifierList = new ArrayList<String>(2);
+		this.identifierList = new Vector<String>(2);
 	}
 
 	/** 构造函数。
@@ -106,10 +106,11 @@ public class Speaker implements Speakable {
 		this.block = block;
 		this.capacity = capacity;
 		this.executor = executor;
-		this.identifierList = new ArrayList<String>(2);
+		this.identifierList = new Vector<String>(2);
 	}
 
-	/** 返回 Cellet Identifier 列表。
+	/**
+	 * 返回 Cellet Identifier 列表。
 	 */
 	@Override
 	public List<String> getIdentifiers() {

@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2012 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,29 +32,40 @@ import net.cellcloud.core.Cellet;
 import net.cellcloud.talk.CelletCallbackListener;
 import net.cellcloud.talk.TalkDelegate;
 
-/** 方言枚举器。
+/**
+ * 方言枚举器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class DialectEnumerator implements TalkDelegate, CelletCallbackListener {
 
 	private static final DialectEnumerator instance = new DialectEnumerator();
 
+	/**
+	 * 方言工厂映射。
+	 */
 	private ConcurrentHashMap<String, DialectFactory> factories;
 
 	private DialectEnumerator() {
 		this.factories = new ConcurrentHashMap<String, DialectFactory>();
 	}
 
-	/** 返回对象实例。
+	/**
+	 * 返回方言工厂的单例。
 	 */
 	public static DialectEnumerator getInstance() {
 		return instance;
 	}
 
-	/** 创建方言。
+	/**
+	 * 创建方言。
+	 * 
+	 * @param name 指定方言名称。
+	 * @param tracker 指定追踪器。
+	 * @return 如果没有找到指定名称的方言工厂则无法创建方言，返回 <code>null</code> 值。
 	 */
-	public Dialect createDialect(final String name, final String tracker) {
+	public Dialect createDialect(String name, String tracker) {
 		DialectFactory fact = this.factories.get(name);
 		if (null != fact) {
 			return fact.create(tracker);
@@ -63,13 +74,19 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		return null;
 	}
 
-	/** 添加方言工厂。
+	/**
+	 * 添加方言工厂。
+	 * 
+	 * @param fact 指定方言工厂。
 	 */
 	public void addFactory(DialectFactory fact) {
 		this.factories.put(fact.getMetaData().name, fact);
 	}
 
-	/** 删除方言工厂。
+	/**
+	 * 删除方言工厂。
+	 * 
+	 * @param fact 指定方言工厂。
 	 */
 	public void removeFactory(DialectFactory fact) {
 		if (this.factories.containsKey(fact.getMetaData().name)) {
@@ -77,13 +94,18 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		}
 	}
 
-	/** 获取指定名称的方言工厂。
+	/**
+	 * 获取指定名称的方言工厂。
+	 * 
+	 * @param name 指定方言名称。
+	 * @return 返回指定名称的方言工厂。
 	 */
 	public DialectFactory getFactory(String name) {
 		return this.factories.get(name);
 	}
 
-	/** 关闭所有方言工厂。
+	/**
+	 * 关闭所有方言工厂。
 	 */
 	public void shutdownAll() {
 		for (DialectFactory fact : this.factories.values()) {
@@ -91,6 +113,9 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean doTalk(String identifier, Dialect dialect) {
 		DialectFactory fact = this.factories.get(dialect.getName());
@@ -102,11 +127,17 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		return fact.onTalk(identifier, dialect);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void didTalk(String identifier, Dialect dialect) {
 		// Nothing
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean doDialogue(String identifier, Dialect dialect) {
 		DialectFactory fact = this.factories.get(dialect.getName());
@@ -118,11 +149,17 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		return fact.onDialogue(identifier, dialect);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void didDialogue(String identifier, Dialect dialect) {
 		// Nothing
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean doTalk(Cellet cellet, String targetTag, Dialect dialect) {
 		DialectFactory fact = this.factories.get(dialect.getName());
@@ -134,6 +171,9 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 		return fact.onTalk(cellet, targetTag, dialect);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean doDialogue(Cellet cellet, String sourceTag, Dialect dialect) {
 		DialectFactory fact = this.factories.get(dialect.getName());
@@ -144,4 +184,5 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 
 		return fact.onDialogue(cellet, sourceTag, dialect);
 	}
+
 }

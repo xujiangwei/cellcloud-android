@@ -40,18 +40,25 @@ import net.cellcloud.core.Cellet;
  */
 public final class ActionDialectFactory extends DialectFactory {
 
+	/** 方言的元描述。 */
 	private DialectMetaData metaData;
 
+	/** 线程池执行器。 */
 	private ExecutorService executor;
+	/** 最大并发线程数量。 */
 	private int maxThreadNum;
+	/** 线程数量计数。 */
 	private AtomicInteger threadCount;
+
+	/** 待处理的方言列表。 */
 	private LinkedList<ActionDialect> dialects;
+	/** 待处理方言对应的委派列表。 */
 	private LinkedList<ActionDelegate> delegates;
 
 	/**
 	 * 构造函数。
 	 * 
-	 * @param executor
+	 * @param executor 指定线程池执行器。
 	 */
 	public ActionDialectFactory(ExecutorService executor) {
 		this.metaData = new DialectMetaData(ActionDialect.DIALECT_NAME, "Action Dialect");
@@ -62,16 +69,25 @@ public final class ActionDialectFactory extends DialectFactory {
 		this.delegates = new LinkedList<ActionDelegate>();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public DialectMetaData getMetaData() {
 		return this.metaData;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Dialect create(String tracker) {
 		return new ActionDialect(tracker);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void shutdown() {
 		synchronized (this.metaData) {
@@ -85,21 +101,33 @@ public final class ActionDialectFactory extends DialectFactory {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onTalk(String identifier, Dialect dialect) {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onDialogue(String identifier, Dialect dialect) {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onTalk(Cellet cellet, String targetTag, Dialect dialect) {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onDialogue(Cellet cellet, String sourceTag, Dialect dialect) {
 		return true;
@@ -108,10 +136,10 @@ public final class ActionDialectFactory extends DialectFactory {
 	/**
 	 * 执行动作。
 	 * 
-	 * @param dialect
-	 * @param delegate
+	 * @param dialect 执行动作的方言。
+	 * @param delegate 指定动作的委派。
 	 */
-	protected void doAction(final ActionDialect dialect, final ActionDelegate delegate) {
+	protected void doAction(ActionDialect dialect, ActionDelegate delegate) {
 		synchronized (this.metaData) {
 			this.dialects.add(dialect);
 			this.delegates.add(delegate);
@@ -120,11 +148,12 @@ public final class ActionDialectFactory extends DialectFactory {
 		if (this.threadCount.get() < this.maxThreadNum) {
 			// 线程数量未达到最大线程数，启动新线程
 
+			// 更新计数
+			this.threadCount.incrementAndGet();
+
 			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					threadCount.incrementAndGet();
-
 					while (!dialects.isEmpty()) {
 						ActionDelegate adg = null;
 						ActionDialect adl = null;
@@ -132,8 +161,8 @@ public final class ActionDialectFactory extends DialectFactory {
 							if (dialects.isEmpty()) {
 								break;
 							}
-							adg = delegates.remove(0);
-							adl = dialects.remove(0);
+							adg = delegates.removeFirst();
+							adl = dialects.removeFirst();
 						}
 
 						// Do action
@@ -142,6 +171,7 @@ public final class ActionDialectFactory extends DialectFactory {
 						}
 					}
 
+					// 更新计数
 					threadCount.decrementAndGet();
 				}
 			});

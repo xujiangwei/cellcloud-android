@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,21 +29,29 @@ package net.cellcloud.talk.dialect;
 import net.cellcloud.core.Cellet;
 import net.cellcloud.talk.Primitive;
 
-/** 原语方言。
+/**
+ * 原语方言。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public abstract class Dialect {
 
+	/** 方言名。 */
 	private String name;
+	/** 追踪器。 */
 	protected String tracker;
+	/** 标签。 */
 	protected String tag;
+	/** Cellet 标识。 */
 	protected String celletIdentifier;
+	/** Cellet 实例引用。 */
 	protected Cellet cellet;
 
 	/**
 	 * 构造函数。
-	 * @param name
+	 * 
+	 * @param name 指定方言名。
 	 */
 	public Dialect(String name) {
 		this.name = name;
@@ -52,67 +60,95 @@ public abstract class Dialect {
 
 	/**
 	 * 构造函数。
-	 * @param name
-	 * @param tracker
+	 * 
+	 * @param name 指定方言名。
+	 * @param tracker 指定追踪器。
 	 */
 	public Dialect(String name, String tracker) {
 		this.name = name;
 		this.tracker = tracker;
 	}
 
-	/** 返回方言名。
+	/**
+	 * 获得方言名。
+	 * 
+	 * @return 返回方言名。
 	 */
 	public final String getName() {
 		return this.name;
 	}
 
-	/** 返回方言追踪名。
+	/**
+	 * 获得方言追踪名。
+	 * 
+	 * @return 返回方言追踪名。
 	 */
 	public final String getTracker() {
 		return this.tracker;
 	}
 
-	/** 设置源标签。
+	/**
+	 * 设置源标签。
+	 * 
+	 * @param tag 指定源标签。
 	 */
-	public final void setOwnerTag(final String tag) {
+	public final void setOwnerTag(String tag) {
 		this.tag = tag;
 	}
 
-	/** 返回源标签。
+	/**
+	 * 获得源标签。
+	 * 
+	 * @return 返回源标签。
 	 */
 	public final String getOwnerTag() {
 		return this.tag;
 	}
 
-	/** 设置 Cellet 标识。
+	/**
+	 * 设置 Cellet 标识。
+	 * 
+	 * @param identifier 指定 Cellet 标识。
 	 */
-	public final void setCelletIdentifier(final String identifier) {
+	public final void setCelletIdentifier(String identifier) {
 		this.celletIdentifier = identifier;
 	}
 
-	/** 返回 Cellet 标识。
+	/**
+	 * 获得 Cellet 标识。
+	 * 
+	 * @return 返回 Cellet 标识。
 	 */
 	public final String getCelletIdentifier() {
 		return this.celletIdentifier;
 	}
 
-	/** 设置 Cellet 。
+	/**
+	 * 设置 Cellet 。
+	 * 
+	 * @param cellet 指定 Cellet 实例引用。
 	 */
 	public final void setCellet(Cellet cellet) {
 		this.cellet = cellet;
 	}
 
-	/** 返回 Cellet 。
+	/**
+	 * 获得 Cellet 实例引用。
+	 * 
+	 * @return 返回 Cellet 实例引用。
 	 */
 	public final Cellet getCellet() {
 		return this.cellet;
 	}
 
-	/** 翻译原语为方言。
+	/**
+	 * 将原语重构为方言。
 	 */
 	abstract public Primitive reconstruct();
 
-	/** 从原语构建方言。
+	/**
+	 * 从原语构建方言。
 	 */
 	abstract public void construct(Primitive primitive);
+
 }

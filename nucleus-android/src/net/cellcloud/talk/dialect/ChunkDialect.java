@@ -85,7 +85,7 @@ public class ChunkDialect extends Dialect {
 	/**
 	 * 构造函数。
 	 * 
-	 * @param tracker
+	 * @param tracker 指定追踪器。
 	 */
 	public ChunkDialect(String tracker) {
 		super(ChunkDialect.DIALECT_NAME, tracker);
@@ -94,12 +94,12 @@ public class ChunkDialect extends Dialect {
 	/**
 	 * 构造函数。
 	 * 
-	 * @param sign
-	 * @param totalLength
-	 * @param chunkIndex
-	 * @param chunkNum
-	 * @param data
-	 * @param length
+	 * @param sign 指定整块的记号。
+	 * @param totalLength 指定整块的总长度。
+	 * @param chunkIndex 指定当前块索引。
+	 * @param chunkNum 指定总块数量。
+	 * @param data 指定当前块数据。
+	 * @param length 指定当前块的数据长度。
 	 */
 	public ChunkDialect(String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
 		super(ChunkDialect.DIALECT_NAME);
@@ -112,6 +112,17 @@ public class ChunkDialect extends Dialect {
 		this.length = length;
 	}
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param tracker 指定追踪器。
+	 * @param sign 指定整块的记号。
+	 * @param totalLength 指定整块的总长度。
+	 * @param chunkIndex 指定当前块索引。
+	 * @param chunkNum 指定总块数量。
+	 * @param data 指定当前块数据。
+	 * @param length 指定当前块的数据长度。
+	 */
 	public ChunkDialect(String tracker, String sign, long totalLength, int chunkIndex, int chunkNum, byte[] data, int length) {
 		super(ChunkDialect.DIALECT_NAME, tracker);
 		this.sign = sign;
@@ -124,41 +135,45 @@ public class ChunkDialect extends Dialect {
 	}
 
 	/**
-	 * 返回区块记号。
+	 * 获得整个数据区块记号。
 	 * 
-	 * @return
+	 * @return 返回区块记号。
 	 */
 	public String getSign() {
 		return this.sign;
 	}
 
 	/**
-	 * 返回总长度。
-	 * @return
+	 * 获得整个数据块的数据总长度。
+	 * 
+	 * @return 返回数据块数据总长度。
 	 */
 	public long getTotalLength() {
 		return this.totalLength;
 	}
 
 	/**
-	 * 返回区块索引。
-	 * @return
+	 * 获得该区块索引。
+	 * 
+	 * @return 返回该区块索引。
 	 */
 	public int getChunkIndex() {
 		return this.chunkIndex;
 	}
 
 	/**
-	 * 返回区块数量。
-	 * @return
+	 * 获得区块总数量。
+	 * 
+	 * @return 返回区块总数量。
 	 */
 	public int getChunkNum() {
 		return this.chunkNum;
 	}
 
 	/**
-	 * 返回当前区块数据长度。
-	 * @return
+	 * 获得该区块数据长度。
+	 * 
+	 * @return 返回该区块数据长度。
 	 */
 	public int getLength() {
 		return this.length;
@@ -166,19 +181,36 @@ public class ChunkDialect extends Dialect {
 
 	/**
 	 * 设置监听器。
-	 * @param listener
+	 * 
+	 * @param listener 指定监听器。
 	 */
 	public void setListener(ChunkListener listener) {
 		this.listener = listener;
 	}
 
+	/**
+	 * 设置发送数据速率。
+	 * 
+	 * @param speed 指定以 KB/S 为单位的传输数据速率。
+	 */
 	public void setSpeed(int speed) {
 		this.speedInKB = speed;
 	}
+
+	/**
+	 * 获得发送数据的速率。
+	 * 
+	 * @return 返回以 KB/S 为单位的发送数据的速率。
+	 */
 	public int getSpeed() {
 		return this.speedInKB;
 	}
 
+	/**
+	 * 触发正在处理数据回调。
+	 * 
+	 * @param target 发送的目标，Cellet 的标识或者客户端的内核标签。
+	 */
 	protected void fireProgress(String target) {
 		if (null != this.listener) {
 			this.listener.onProgress(target, this);
@@ -188,6 +220,11 @@ public class ChunkDialect extends Dialect {
 		}
 	}
 
+	/**
+	 * 触发数据处理完成回调。
+	 * 
+	 * @param target 发送的目标，Cellet 的标识或者客户端的内核标签。
+	 */
 	protected void fireCompleted(String target) {
 		if (null != this.listener) {
 			this.listener.onCompleted(target, this);
@@ -195,6 +232,11 @@ public class ChunkDialect extends Dialect {
 		}
 	}
 
+	/**
+	 * 触发数据处理失败回调。
+	 * 
+	 * @param target 发送的目标，Cellet 的标识或者客户端的内核标签。
+	 */
 	protected void fireFailed(String target) {
 		if (null != this.listener) {
 			this.listener.onFailed(target, this);
@@ -202,6 +244,9 @@ public class ChunkDialect extends Dialect {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Primitive reconstruct() {
 		Primitive primitive = new Primitive(this);
@@ -216,6 +261,9 @@ public class ChunkDialect extends Dialect {
 		return primitive;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void construct(Primitive primitive) {
 		List<SubjectStuff> list = primitive.subjects();
@@ -240,20 +288,43 @@ public class ChunkDialect extends Dialect {
 		return false;
 	}
 
+	/**
+	 * 此块所属记号的区块是否全部接收完毕。
+	 * 
+	 * @return 如果整个区块数据接收完毕返回 <code>true</code> 。
+	 */
 	public boolean hasCompleted() {
 		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
 		return fact.checkCompleted(this.sign);
 	}
 
+	/**
+	 * 此区块是否是最后一个区块。
+	 * 
+	 * @return 如果是最后一个区块返回 <code>true</code> 。
+	 */
 	protected boolean isLast() {
 		return (this.chunkIndex + 1 == this.chunkNum);
 	}
 
+	/**
+	 * 读取指定块的数据。
+	 * 
+	 * @param index 指定读取区块的索引。
+	 * @param buffer 指定接收读取数据的数组。
+	 * @return 返回读取数据的长度，如果读取失败返回 <code>-1</code> 。
+	 */
 	public int read(int index, byte[] buffer) {
 		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
 		return fact.read(this.sign, index, buffer);
 	}
 
+	/**
+	 * 自动计数方式依次读取区块数据。
+	 * 
+	 * @param buffer 指定接收读取数据的数组。
+	 * @return 返回读取数据的长度，如果读取失败返回 <code>-1</code> 。
+	 */
 	public int read(byte[] buffer) {
 		if (this.readIndex >= this.chunkNum) {
 			return -1;
@@ -265,12 +336,19 @@ public class ChunkDialect extends Dialect {
 		return length;
 	}
 
+	/**
+	 * 重置读数据索引。
+	 */
 	public void resetRead() {
 		this.readIndex = 0;
 	}
 
+	/**
+	 * 清空此区块所属记号的整块数据。
+	 */
 	public void clearAll() {
 		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
 		fact.clear(this.sign);
 	}
+
 }

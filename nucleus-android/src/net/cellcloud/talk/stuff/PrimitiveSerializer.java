@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,9 +44,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** 原语序列化器。
+/**
+ * 原语序列化器。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class PrimitiveSerializer {
 
@@ -120,7 +122,11 @@ public final class PrimitiveSerializer {
 	private PrimitiveSerializer() {
 	}
 
-	/** 将原语写入数据流。
+	/**
+	 * 将原语写入数据流。
+	 * 
+	 * @param stream 输出原语数据的输出流。
+	 * @param primitive 待处理原语。
 	 */
 	public static void write(OutputStream stream, Primitive primitive) {
 		/*
@@ -285,7 +291,11 @@ public final class PrimitiveSerializer {
 		}
 	}
 
-	/** 从数据流中读取原语。
+	/**
+	 * 从数据流中读取原语。
+	 * 
+	 * @param primitive 从数据流中读取到的原语。
+	 * @param stream 待处理的输入流。
 	 */
 	public static void read(Primitive primitive, InputStream stream) {
 		/*
@@ -442,7 +452,8 @@ public final class PrimitiveSerializer {
 		}
 	}
 
-	/** 将数据数组解析为语素，并注入原语。
+	/**
+	 * 将数据数组解析为语素，并注入原语。
 	 */
 	private static void injectStuff(Primitive primitive, byte[] type, byte[] value, byte[] literal) {
 		// 字面义
@@ -486,7 +497,8 @@ public final class PrimitiveSerializer {
 		}
 	}
 
-	/** 进行数据内容转义。
+	/**
+	 * 进行数据内容转义。
 	 */
 	private static int reviseValue(ByteBuffer buf, byte[] input) {
 		int length = 0;
@@ -510,7 +522,8 @@ public final class PrimitiveSerializer {
 		return length;
 	}
 
-	/** 解析字面义。
+	/**
+	 * 解析字面义。
 	 */
 	private static byte[] parseLiteralBase(LiteralBase literal) {
 		if (literal == LiteralBase.STRING) {
@@ -551,7 +564,8 @@ public final class PrimitiveSerializer {
 		}
 	}
 
-	/** 解析字面义。
+	/**
+	 * 解析字面义。
 	 */
 	private static LiteralBase parseLiteralBase(byte[] literal) {
 		if (literal[0] == LITERALBASE_STRING_BYTES[0] && literal[1] == LITERALBASE_STRING_BYTES[1]) {
@@ -592,7 +606,8 @@ public final class PrimitiveSerializer {
 		}
 	}
 
-	/** 反序列化方言
+	/**
+	 * 反序列化方言。
 	 */
 	private static void deserializeDialect(Primitive primitive, final String dialectStr) {
 		String[] sections = dialectStr.split(TOKEN_AT_STR);
@@ -619,6 +634,7 @@ public final class PrimitiveSerializer {
 
 	/**
 	 * 将原语序列化为 JSON 格式。
+	 * 
 	 * @param output
 	 * @param primitive
 	 */
@@ -716,6 +732,7 @@ public final class PrimitiveSerializer {
 
 	/**
 	 * 从 JSON 数据里反序列化原语。
+	 * 
 	 * @param primitive
 	 * @param json
 	 */
@@ -780,6 +797,7 @@ public final class PrimitiveSerializer {
 
 	/**
 	 * 写入语素对应的数值。
+	 * 
 	 * @param output
 	 * @param stuff
 	 * @throws JSONException
@@ -833,6 +851,7 @@ public final class PrimitiveSerializer {
 
 	/**
 	 * 读取语素对应的值。
+	 * 
 	 * @param output
 	 * @param json
 	 * @throws JSONException
@@ -891,4 +910,5 @@ public final class PrimitiveSerializer {
 			Logger.e(PrimitiveSerializer.class, "Don't support XML literal in JSON format.");
 		}
 	}
+
 }

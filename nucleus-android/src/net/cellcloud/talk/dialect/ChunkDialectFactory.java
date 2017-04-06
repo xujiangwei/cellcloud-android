@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2016 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,58 +42,83 @@ import net.cellcloud.common.Logger;
 import net.cellcloud.core.Cellet;
 import net.cellcloud.talk.TalkService;
 
-/** 块数据传输方言工厂。
+/**
+ * 块数据传输方言工厂。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public class ChunkDialectFactory extends DialectFactory {
 
+	/**
+	 * 方言元数据描述。
+	 */
 	private DialectMetaData metaData;
 
+	/** 线程池执行器。 */
 	private ExecutorService executor;
 
-	// 配额定时器
+	/** 配额定时器。 */
 	private Timer quotaTimer;
+	/** 每个清单的默认配额：48 KB。 */
 	private long defaultQuotaPerList = 48L * 1024L;
 
-	// 数据接收缓存，Key: Sign
+	/** 数据接收缓存，键为区块的记号。 */
 	private ConcurrentHashMap<String, Cache> cacheMap;
 
-	// 用于服务器模式下的队列
+	/** 用于服务器模式下的队列。 */
 	private ConcurrentHashMap<String, ChunkList> sListMap;
 
-	// 用于客户端模式下的队列
+	/** 用于客户端模式下的队列。 */
 	private ConcurrentHashMap<String, ChunkList> cListMap;
 
-	// 数据在发送缓存里的超时时间
+	/** 数据在发送缓存里的超时时间。 */
 	private long listTimeout = 10L * 60L * 1000L;
 
+	/** 内存中的缓存大小。 */
 	private AtomicLong cacheMemorySize = new AtomicLong(0);
-	private final long clearThreshold = 100L * 1024L * 1024L;
+	/** 内存缓存清理门限值，单位：字节。当内存缓存大小超过该门限时将执行内存清理操作。 */
+	private final long clearThreshold = 20L * 1024L * 1024L;
+	/** 内存清理操作是否正在进行。 */
 	private AtomicBoolean clearRunning = new AtomicBoolean(false);
+	/** 线程互斥体。 */
 	private Object mutex = new Object();
 
 	private int logCounts = 0;
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param executor 指定线程池执行器。
+	 */
 	public ChunkDialectFactory(ExecutorService executor) {
 		this.metaData = new DialectMetaData(ChunkDialect.DIALECT_NAME, "Chunk Dialect");
 		this.executor = executor;
 		this.cacheMap = new ConcurrentHashMap<String, Cache>();
 		this.quotaTimer = new Timer("ChunkQuotaTimer");
-		// 每 100ms 一次任务
+		// 每 500ms 一次任务
 		this.quotaTimer.schedule(new QuotaTask(), 3000L, 500L);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public DialectMetaData getMetaData() {
 		return this.metaData;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Dialect create(String tracker) {
 		return new ChunkDialect(tracker);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void shutdown() {
 		this.cacheMap.clear();
@@ -115,18 +140,38 @@ public class ChunkDialectFactory extends DialectFactory {
 		this.cacheMemorySize.set(0);
 	}
 
+	/**
+	 * 获得当前内存缓存大小。
+	 * 
+	 * @return 返回当前内存缓存大小。
+	 */
 	public long getCacheMemorySize() {
 		return this.cacheMemorySize.get();
 	}
 
+	/**
+	 * 获得允许的最大内存缓存大小。
+	 * 
+	 * @return 返回允许的最大内存缓存大小。
+	 */
 	public long getMaxCacheMemorySize() {
 		return this.clearThreshold;
 	}
 
+	/**
+	 * 获得当前缓存的区块数量。
+	 * 
+	 * @return 返回当前缓存的区块数量。
+	 */
 	public int getCacheNum() {
 		return this.cacheMap.size();
 	}
 
+	/**
+	 * 获得服务器模式的缓存区块数量。
+	 * 
+	 * @return 返回服务器模式的缓存区块数量。
+	 */
 	public int getSListSize() {
 		if (null == this.sListMap) {
 			return 0;
@@ -135,6 +180,11 @@ public class ChunkDialectFactory extends DialectFactory {
 		return this.sListMap.size();
 	}
 
+	/**
+	 * 获得客户端模式的缓存区块数量。
+	 * 
+	 * @return 返回客户端模式的缓存区块数量。
+	 */
 	public int getCListSize() {
 		if (null == this.cListMap) {
 			return 0;
@@ -143,6 +193,9 @@ public class ChunkDialectFactory extends DialectFactory {
 		return this.cListMap.size();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onTalk(String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
@@ -166,6 +219,9 @@ public class ChunkDialectFactory extends DialectFactory {
 		return false;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onDialogue(final String identifier, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
@@ -175,6 +231,9 @@ public class ChunkDialectFactory extends DialectFactory {
 		return true;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onTalk(Cellet cellet, String targetTag, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
@@ -198,6 +257,9 @@ public class ChunkDialectFactory extends DialectFactory {
 		return false;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected boolean onDialogue(final Cellet cellet, final String sourceTag, Dialect dialect) {
 		ChunkDialect chunk = (ChunkDialect) dialect;
@@ -207,6 +269,12 @@ public class ChunkDialectFactory extends DialectFactory {
 		return true;
 	}
 
+	/**
+	 * 写入数据到缓存区。
+	 * 
+	 * @param chunk 指定待写入数据的区块。
+	 * @return 如果指定标记区块全部成功写入缓存区返回 <code>true</code> 。
+	 */
 	private synchronized boolean write(ChunkDialect chunk) {
 		if (chunk.getChunkIndex() == 0) {
 			this.clear(chunk.getSign());
@@ -260,6 +328,14 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 	}
 
+	/**
+	 * 读取指定标记区块在指定索引位置的数据。
+	 * 
+	 * @param sign 指定区块的标记。
+	 * @param index 指定区块的索引。
+	 * @param out 指定输出的数据。
+	 * @return 返回读取的数据长度。
+	 */
 	protected int read(String sign, int index, byte[] out) {
 		if (index < 0) {
 			return -1;
@@ -282,6 +358,12 @@ public class ChunkDialectFactory extends DialectFactory {
 		return -1;
 	}
 
+	/**
+	 * 检查指定记号的区块是否接收完成。
+	 * 
+	 * @param sign 指定待检查的区块记号。
+	 * @return 如果已经接收了整个区块返回 <code>true</code> 。
+	 */
 	protected boolean checkCompleted(String sign) {
 		if (null == sign) {
 			return false;
@@ -295,6 +377,11 @@ public class ChunkDialectFactory extends DialectFactory {
 		return false;
 	}
 
+	/**
+	 * 从内存中清空指定记号的所有区块。
+	 * 
+	 * @param sign 指定待清空的记号。
+	 */
 	protected void clear(String sign) {
 		Cache cache = this.cacheMap.remove(sign);
 		if (null != cache) {
@@ -306,6 +393,15 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 	}
 
+	/**
+	 * 更新指定映射里相关的区块数据。
+	 * 
+	 * @param listMap 指定待更新映射。
+	 * @param mapKey 指定操作的映射的键。
+	 * @param target 区块目标。
+	 * @param chunk 区块数据。
+	 * @param cellet 源 Cellet 。
+	 */
 	private void updateListMap(ConcurrentHashMap<String, ChunkList> listMap, String mapKey, String target, ChunkDialect chunk, Cellet cellet) {
 		ChunkList list = listMap.get(mapKey);
 		if (null != list) {
@@ -328,7 +424,14 @@ public class ChunkDialectFactory extends DialectFactory {
 		}
 	}
 
-	private void checkAndClearList(final ConcurrentHashMap<String, ChunkList> listMap, final List<String> deleteList, long timeout) {
+	/**
+	 * 检查并清理列表。
+	 * 
+	 * @param listMap 指定列表映射。
+	 * @param deleteList 用于存储待删除记号的列表。
+	 * @param timeout 列表的超时时间。
+	 */
+	private void checkAndClearList(ConcurrentHashMap<String, ChunkList> listMap, List<String> deleteList, long timeout) {
 		long time = System.currentTimeMillis();
 
 		Iterator<Map.Entry<String, ChunkList>> iter = listMap.entrySet().iterator();
@@ -361,6 +464,12 @@ public class ChunkDialectFactory extends DialectFactory {
 		private long timestamp;
 		private long dataSize;
 
+		/**
+		 * 构造函数。
+		 * 
+		 * @param sign
+		 * @param capacity
+		 */
 		private Cache(String sign, int capacity) {
 			this.sign = sign;
 			this.dataQueue = new ArrayList<ChunkDialect>(capacity);
@@ -370,6 +479,11 @@ public class ChunkDialectFactory extends DialectFactory {
 			this.dataSize = 0;
 		}
 
+		/**
+		 * 添加区块数据。
+		 * 
+		 * @param dialect
+		 */
 		public void offer(ChunkDialect dialect) {
 			synchronized (this.dataQueue) {
 				if (this.dataQueue.contains(dialect)) {
@@ -390,6 +504,12 @@ public class ChunkDialectFactory extends DialectFactory {
 			this.timestamp = System.currentTimeMillis();
 		}
 
+		/**
+		 * 获得指定索引处的区块。
+		 * 
+		 * @param index
+		 * @return
+		 */
 		public ChunkDialect get(int index) {
 			synchronized (this.dataQueue) {
 				if (index >= this.dataQueue.size()) {
@@ -400,6 +520,11 @@ public class ChunkDialectFactory extends DialectFactory {
 			}
 		}
 
+		/**
+		 * 通过遍历校验长度方式判断是否存储了所有区块。
+		 * 
+		 * @return
+		 */
 		public boolean checkCompleted() {
 			synchronized (this.dataQueue) {
 				if (this.dataQueue.isEmpty()) {
@@ -416,6 +541,11 @@ public class ChunkDialectFactory extends DialectFactory {
 			return true;
 		}
 
+		/**
+		 * 清空该缓存。
+		 * 
+		 * @return
+		 */
 		public long clear() {
 			long size = this.dataSize;
 			synchronized (this.dataQueue) {
@@ -425,11 +555,20 @@ public class ChunkDialectFactory extends DialectFactory {
 			return size;
 		}
 
+		/**
+		 * 返回时间戳。
+		 * 
+		 * @return
+		 */
 		public long getTimestamp() {
 			return this.timestamp;
 		}
+
 	}
 
+	/**
+	 * 缓存区块的链表。
+	 */
 	private class ChunkList implements Runnable {
 		private Cellet cellet = null;
 		private long timestamp;
@@ -548,7 +687,6 @@ public class ChunkDialectFactory extends DialectFactory {
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
-//						this.run();
 						executor.execute(this);
 					}
 				}
