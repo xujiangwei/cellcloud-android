@@ -27,6 +27,7 @@ THE SOFTWARE.
 package net.cellcloud.common;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.cellcloud.util.Utils;
 
@@ -46,6 +47,9 @@ public class Session {
 
 	protected byte[] cache;
 	protected int cacheCursor;
+
+	/** 属性映射，用于存储会话的属性。 */
+	private ConcurrentHashMap<String, Object> attributes;
 
 	public Session(MessageService service, InetSocketAddress address) {
 		this.id = Math.abs(Utils.randomLong());
@@ -171,6 +175,47 @@ public class Session {
 		else {
 			this.cache = new byte[newSize];
 		}
+	}
+
+	/**
+	 * 添加属性。
+	 * 
+	 * @param name 指定属性名。
+	 * @param value 指定属性值。
+	 */
+	public void addAttribute(String name, Object value) {
+		if (null == this.attributes) {
+			this.attributes = new ConcurrentHashMap<String, Object>();
+		}
+
+		this.attributes.put(name, value);
+	}
+
+	/**
+	 * 移除属性。
+	 * 
+	 * @param name 指定需删除属性的属性名。
+	 */
+	public Object removeAttribute(String name) {
+		if (null == this.attributes) {
+			return null;
+		}
+
+		return this.attributes.remove(name);
+	}
+
+	/**
+	 * 获取指定的属性值。
+	 * 
+	 * @param name 指定属性名。
+	 * @return 返回查找到的属性值。如果没有找到返回 <code>null</code> 。
+	 */
+	public Object getAttribute(String name) {
+		if (null == this.attributes) {
+			return null;
+		}
+
+		return this.attributes.get(name);
 	}
 
 }

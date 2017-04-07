@@ -256,6 +256,10 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		while (iter.hasNext()) {
 			NonblockingAcceptorSession nas = iter.next();
 			if (nas.getId().longValue() == session.getId().longValue()) {
+				if (null == nas.socket) {
+					break;
+				}
+
 				try {
 					nas.socket.close();
 				} catch (IOException e) {

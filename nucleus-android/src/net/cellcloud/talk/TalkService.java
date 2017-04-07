@@ -425,25 +425,35 @@ public final class TalkService implements Service, SpeakerDelegate {
 		Message message = null;
 
 		synchronized (context) {
-			if (context.getTracker().hasCellet(cellet)) {
-				// 对方言进行是否劫持处理
-				if (null != this.callbackListener && primitive.isDialectal()) {
-					boolean ret = this.callbackListener.doTalk(cellet, targetTag, primitive.getDialect());
-					if (!ret) {
-						// 劫持会话
-						return true;
-					}
-				}
+			for (Session session : context.getSessions()) {
+				// 返回 tracker
+				TalkTracker tracker = context.getTracker(session);
 
-				Session session = context.getLastSession();
-				if (null != session) {
-					message = this.packetDialogue(cellet, primitive, false);
+				if (tracker.hasCellet(cellet)) {
+					// 对方言进行是否劫持处理
+					if (null != this.callbackListener && primitive.isDialectal()) {
+						boolean ret = this.callbackListener.doTalk(cellet, targetTag, primitive.getDialect());
+						if (!ret) {
+							// 劫持会话
+							return true;
+						}
+					}
+
+					// 检查是否加密连接
+					TalkCapacity cap = tracker.getCapacity();
+					if (null != cap && cap.secure && !session.isSecure()) {
+						session.activeSecretKey((byte[]) session.getAttribute("key"));
+					}
+
+					// 打包
+					message = this.packetDialogue(cellet, primitive, session);
+
 					if (null != message) {
 						session.write(message);
 					}
-				}
-				else {
-					Logger.w(this.getClass(), "Can NOT find valid session in context - tag: " + targetTag);
+					else {
+						Logger.e(this.getClass(), "Packet error");
+					}
 				}
 			}
 		}
@@ -860,20 +870,36 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null != tag) {
 			TalkSessionContext ctx = this.tagContexts.get(tag);
 			if (null != ctx) {
-				TalkTracker tracker = ctx.getTracker();
+				if (!this.executor.isShutdown()) {
+					// 关闭 Socket
+					this.executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							acceptor.close(session);
+						}
+					});
+				}
 
+				// 先取出 tracker
+				TalkTracker tracker = ctx.getTracker(session);
+
+				// 从上下文移除 Session
 				ctx.removeSession(session);
 
 				if (ctx.numSessions() == 0) {
-					for (Cellet cellet : tracker.getCelletList()) {
-						cellet.quitted(tag);
-					}
-
 					Logger.i(this.getClass(), "Clear session: " + tag);
 
 					// 清理上下文记录
 					this.tagContexts.remove(tag);
 					this.tagList.remove(tag);
+				}
+
+				// 进行回调
+				if (null != tracker) {
+					for (Cellet cellet : tracker.getCelletList()) {
+						// quitted
+						cellet.quitted(tag);
+					}
 				}
 			}
 
@@ -881,8 +907,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.sessionTagMap.remove(session.getId());
 		}
 		else {
-			//
-			Logger.i(this.getClass(), "Can NOT find tag with session: " + session.getAddress().getAddress().getHostAddress());
+			Logger.d(this.getClass(), "Can NOT find tag with session: " + session.getAddress().getHostString());
 		}
 
 		// 清理未授权表
@@ -972,13 +997,18 @@ public final class TalkService implements Service, SpeakerDelegate {
 		TalkTracker tracker = null;
 
 		if (null != cellet) {
-			tracker = ctx.getTracker();
-			if (!tracker.hasCellet(cellet)) {
-				tracker.addCellet(cellet);
-			}
+//			TalkCapacity capacity = null;
+			synchronized (ctx) {
+				tracker = ctx.getTracker(session);
+//				capacity = tracker.getCapacity();
 
-			// 回调 contacted
-			cellet.contacted(tag);
+				if (null != tracker && !tracker.hasCellet(cellet)) {
+					tracker.addCellet(cellet);
+				}
+
+				// 回调 contacted
+				cellet.contacted(tag);
+			}
 		}
 
 		return tracker;
@@ -997,9 +1027,14 @@ public final class TalkService implements Service, SpeakerDelegate {
 			return null;
 		}
 
-		// TODO 能力记录
-		TalkTracker tracker = ctx.getTracker();
-		tracker.setCapacity(capacity);
+		// 协商终端能力
+		TalkTracker tracker = ctx.getTracker(session);
+		if (null != tracker) {
+			tracker.setCapacity(capacity);
+		}
+		else {
+			Logger.e(this.getClass(), "Can not find talk tracker for session: " + session.getAddress().getHostString());
+		}
 
 		return capacity;
 	}
@@ -1017,7 +1052,12 @@ public final class TalkService implements Service, SpeakerDelegate {
 		if (null != ctx) {
 			ctx.dialogueTickTime = this.getTickTime();
 
-			TalkTracker tracker = ctx.getTracker();
+			TalkTracker tracker = ctx.getTracker(session);
+			if (null == tracker) {
+				// 没有找到对应的追踪器
+				return;
+			}
+
 			Cellet cellet = tracker.getCellet(targetIdentifier);
 			if (null != cellet) {
 				primitive.setCelletIdentifier(cellet.getFeature().getIdentifier());
@@ -1246,10 +1286,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * @param jsonFormat 指定是否使用 JSON 格式。
 	 * @return 返回生成的消息对象。
 	 */
-	private Message packetDialogue(Cellet cellet, Primitive primitive, boolean jsonFormat) {
+	private Message packetDialogue(Cellet cellet, Primitive primitive, Session session) {
 		Message message = null;
 
-		if (jsonFormat) {
+		if (null == session) {
 			try {
 				JSONObject primJson = new JSONObject();
 				PrimitiveSerializer.write(primJson, primitive);

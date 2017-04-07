@@ -37,28 +37,46 @@ import net.cellcloud.util.TimeReceiver.TimeListener;
 /**
  * Talk Service 守护线程。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
  * 
  */
 public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
+	/** 每次执行任务的时间戳。 */
 	private long tickTime = 0;
 
+	/** 最近一次执行心跳的时间戳。 */
 	private long lastHeartbeatTime = 0L;
+	/** 心跳周期。 */
 	private long speakerHeartbeatInterval= 7L * 60L * 1000L;
 
+	/** 是否使用轮询。 */
 	private boolean polling;
 
+	/** 轮询使用的定时器。 */
 	private Timer timer;
 
+	/**
+	 * 构造函数。
+	 * 
+	 * @param polling 是否启用轮询。
+	 */
 	protected TalkServiceDaemon(boolean polling) {
 		this.polling = polling;
 	}
 
+	/**
+	 * 获得 Tick 时间戳。
+	 * 
+	 * @return 返回 Tick 时间戳。
+	 */
 	public long tickTime() {
 		return this.tickTime;
 	}
 
+	/**
+	 * 将任务置为睡眠状态。
+	 */
 	public void sleep() {
 		if (this.polling) {
 			synchronized (this) {
@@ -75,6 +93,9 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		}
 	}
 
+	/**
+	 * 将任务从睡眠状态唤醒。
+	 */
 	public void wakeup() {
 		if (this.polling) {
 			synchronized (this) {
@@ -96,6 +117,9 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		}
 	}
 
+	/**
+	 * 停止任务执行。
+	 */
 	public void stop() {
 		synchronized (this) {
 			if (null != this.timer) {
@@ -117,6 +141,9 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		this.tick();
 	}
 
+	/**
+	 * Tick 执行。
+	 */
 	private void tick() {
 		// 当前时间
 		this.tickTime = System.currentTimeMillis();

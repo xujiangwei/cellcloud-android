@@ -249,6 +249,8 @@ public abstract class Stuff {
 
 	/**
 	 * 按照浮点数形式返回值。
+	 * 
+	 * @return 返回浮点数数据。
 	 */
 	public float getValueAsFloat() {
 		return ByteUtils.toFloat(this.value);
@@ -256,6 +258,8 @@ public abstract class Stuff {
 
 	/**
 	 * 按照双精浮点数形式返回值。
+	 * 
+	 * @return 返回双精浮点数数据。
 	 */
 	public double getValueAsDouble() {
 		return ByteUtils.toDouble(this.value);
@@ -263,6 +267,8 @@ public abstract class Stuff {
 
 	/**
 	 * 按照布尔值形式返回值。
+	 * 
+	 * @return 返回布尔值数据。
 	 */
 	public boolean getValueAsBool() {
 		return ByteUtils.toBoolean(this.value);
@@ -271,6 +277,7 @@ public abstract class Stuff {
 	/**
 	 * 按照 JSON 格式返回值。
 	 * 
+	 * @return 返回 JSON 对象数据。
 	 * @throws JSONException 
 	 */
 	public JSONObject getValueAsJSON() throws JSONException {
@@ -279,6 +286,8 @@ public abstract class Stuff {
 
 	/**
 	 * 按照 XML 格式返回值。
+	 * 
+	 * @return 返回 XML 文档数据。
 	 * 
 	 * @throws ParserConfigurationException
 	 * @throws SAXException
@@ -297,59 +306,93 @@ public abstract class Stuff {
 	}
 
 	/**
-	 * 返回数值字面义。
+	 * 获得语素值字面义。
+	 * 
+	 * @return 返回数值字面义。
 	 */
 	public LiteralBase getLiteralBase() {
 		return this.literalBase;
 	}
 
 	/**
+	 * 设置语义为二进制的数据。
 	 * 
-	 * 
-	 * @param value
+	 * @param value 指定语义为二进制的数据。
 	 */
 	protected void setValue(byte[] value) {
 		this.value = value;
 	}
-	/** @private
+
+	/**
+	 * 设置语义为字符串的数据。
+	 * 
+	 * @param value 指定语义为字符串的数据。
 	 */
 	protected void setValue(String value) {
 		this.value = value.getBytes(Charset.forName("UTF-8"));
 	}
-	/** @private
+
+	/**
+	 * 设置语义为整数的数据。
+	 * 
+	 * @param value 指定语义为整数的数据。
 	 */
 	protected void setValue(int value) {
 		this.value = ByteUtils.toBytes(value);
 	}
-	/** @private
+
+	/**
+	 * 设置语义为长整数的数据。
+	 * 
+	 * @param value 指定语义为长整数的数据。
 	 */
 	protected void setValue(long value) {
 		this.value = ByteUtils.toBytes(value);
 	}
-	/** @private
+
+	/**
+	 * 设置语义为布尔值的数据。
+	 * 
+	 * @param value 指定语义为布尔值的数据。
 	 */
 	protected void setValue(boolean value) {
 		this.value = ByteUtils.toBytes(value);
 	}
-	/** @private
+
+	/**
+	 * 设置语义为浮点数的数据。
+	 * 
+	 * @param value 指定语义为浮点数的数据。
 	 */
 	protected void setValue(float value) {
 		this.value = ByteUtils.toBytes(value);
 	}
-	/** @private
+
+	/**
+	 * 设置语义为双精浮点数的数据。
+	 * 
+	 * @param value 指定语义为双精浮点数的数据。
 	 */
 	protected void setValue(double value) {
 		this.value = ByteUtils.toBytes(value);
 	}
-	/** @private
+
+	/**
+	 * 设置语义为 JSON 类型的数据。
+	 * 
+	 * @param value 指定语义为 JSON 类型的数据。
 	 */
 	protected void setValue(JSONObject json) {
 		this.value = json.toString().getBytes(Charset.forName("UTF-8"));
 	}
 
-	/** @private
+	/**
+	 * 设置字面义。
+	 * 
+	 * @param value 指定字面义。
 	 */
 	protected void setLiteralBase(LiteralBase literalBase) {
 		this.literalBase = literalBase;
 	}
+
 }

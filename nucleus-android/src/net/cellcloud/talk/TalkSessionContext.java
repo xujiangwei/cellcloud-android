@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2015 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,32 +26,64 @@ THE SOFTWARE.
 
 package net.cellcloud.talk;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.cellcloud.common.Session;
 import net.cellcloud.core.Endpoint;
 import net.cellcloud.core.Role;
 
-/** Talk 会话上下文。
+/**
+ * Talk 会话上下文。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class TalkSessionContext {
 
+	/**
+	 * 存储当前上下文包含的所有 {@link Session} 列表。
+	 */
 	private LinkedList<Session> sessions;
-	private ConcurrentHashMap<Long, Long> sessionHeartbeats;
 
+	/**
+	 * {@link Session} 对应的心跳时间戳。
+	 */
+	private ConcurrentHashMap<Long, AtomicLong> sessionHeartbeats;
+
+	/**
+	 * {@link Session} 对应的对话追踪器。
+	 */
+	private ConcurrentHashMap<Long, TalkTracker> sessionTrackers;
+
+	/**
+	 * 存储 {@link TalkTracker} 的列表。
+	 */
+	private ArrayList<TalkTracker> trackerList;
+
+	/**
+	 * 上下文对应的内核标签。
+	 */
 	private String tag;
 
+	/**
+	 * 上下文关联的终端描述。
+	 */
 	private Endpoint endpoint;
 
-	private TalkTracker tracker;
-
+	/**
+	 * 对话事件发生的时间戳。
+	 */
 	protected long dialogueTickTime = 0;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
+	 * 
+	 * @param tag 内核标签。
+	 * @param session 网络 Session 。
 	 */
 	public TalkSessionContext(String tag, Session session) {
 		this.tag = tag;
@@ -59,44 +91,71 @@ public final class TalkSessionContext {
 		this.sessions = new LinkedList<Session>();
 		this.sessions.add(session);
 
-		this.sessionHeartbeats = new ConcurrentHashMap<Long, Long>();
-		this.sessionHeartbeats.put(session.getId(), System.currentTimeMillis());
+		this.sessionHeartbeats = new ConcurrentHashMap<Long, AtomicLong>();
+		this.sessionHeartbeats.put(session.getId(), new AtomicLong(System.currentTimeMillis()));
 
-		this.endpoint = new Endpoint(tag, Role.CONSUMER, session.getAddress());
-		this.tracker = new TalkTracker();
+		this.sessionTrackers = new ConcurrentHashMap<Long, TalkTracker>();
+		this.trackerList = new ArrayList<TalkTracker>();
+
+		TalkTracker tracker = new TalkTracker();
+		this.sessionTrackers.put(session.getId(), tracker);
+		this.trackerList.add(tracker);
+
+		this.endpoint = new Endpoint(tag, Role.CONSUMER,
+				session.getAddress().getHostString(), session.getAddress().getPort());
 	}
 
-	/** 返回上下文对应的 Session 。
-	 */
-	public Session getLastSession() {
-		synchronized (this.sessions) {
-			if (this.sessions.isEmpty()) {
-				return null;
-			}
-
-			return this.sessions.getLast();
-		}
-	}
-
-	/** 返回 Session 会话列表。
-	 * @return
+	/**
+	 * 获得所有 Session 列表。
+	 * 
+	 * @return 返回 Session 列表。
 	 */
 	public List<Session> getSessions() {
-		synchronized (this.sessions) {
-			return this.sessions;
-		}
+		return this.sessions;
 	}
 
+	/**
+	 * 获得指定 Session 的心跳时间戳。
+	 * 
+	 * @param session 指定网络 Session 。
+	 * @return 返回 Session 的心跳时间戳。
+	 */
 	public long getSessionHeartbeat(Session session) {
 		synchronized (this.sessions) {
-			Long v = this.sessionHeartbeats.get(session.getId());
+			AtomicLong v = this.sessionHeartbeats.get(session.getId());
 			if (null == v) {
 				return 0;
 			}
-			return v.longValue();
+			return v.get();
 		}
 	}
 
+	/**
+	 * 获得指定 Session 的追踪器。
+	 * 
+	 * @param session 指定网络 Session 。
+	 * @return 返回 Session 的追踪器。
+	 */
+	public TalkTracker getTracker(Session session) {
+		synchronized (this.sessions) {
+			return this.sessionTrackers.get(session.getId());
+		}
+	}
+
+	/**
+	 * 获得所有追踪器列表。
+	 * 
+	 * @return 返回所有追踪器列表。
+	 */
+	public List<TalkTracker> getTrackers() {
+		return this.trackerList;
+	}
+
+	/**
+	 * 添加 Session 到上下文里。
+	 * 
+	 * @param session 待添加的新的网络 Session 。
+	 */
 	public void addSession(Session session) {
 		synchronized (this.sessions) {
 			if (this.sessions.contains(session)) {
@@ -104,60 +163,80 @@ public final class TalkSessionContext {
 			}
 
 			this.sessions.add(session);
-			this.sessionHeartbeats.put(session.getId(), System.currentTimeMillis());
+			this.sessionHeartbeats.put(session.getId(), new AtomicLong(System.currentTimeMillis()));
+
+			TalkTracker tracker = new TalkTracker();
+			this.trackerList.add(tracker);
+			this.sessionTrackers.put(session.getId(), tracker);
 		}
 	}
 
+	/**
+	 * 从上下文里移除 Session 。
+	 * 
+	 * @param session 待移除的网络 Session 。
+	 */
 	public void removeSession(Session session) {
 		synchronized (this.sessions) {
 			this.sessions.remove(session);
 			this.sessionHeartbeats.remove(session.getId());
+			TalkTracker tracker = this.sessionTrackers.remove(session.getId());
+			if (null != tracker) {
+				this.trackerList.remove(tracker);
+			}
 		}
 	}
 
+	/**
+	 * 获得当前上下文里的 Session 数量。
+	 * 
+	 * @return 返回当前上下文里的 Session 数量。
+	 */
 	public int numSessions() {
 		synchronized (this.sessions) {
 			return this.sessions.size();
 		}
 	}
 
+	/**
+	 * 更新 {@link Session} 的心跳时间戳。
+	 * 
+	 * @param session 指定需更新的 Session 。
+	 * @param time 指定新的时间戳。
+	 */
 	public void updateSessionHeartbeat(Session session, long time) {
 		synchronized (this.sessions) {
 			if (this.sessions.isEmpty()) {
 				return;
 			}
 
-			// 先删除
-			this.sessionHeartbeats.remove(session.getId());
-
-			// 更新
-			this.sessionHeartbeats.put(session.getId(), time);
-
-			// 将心跳的 Session 放到队尾
-			this.sessions.remove(session);
-			this.sessions.offer(session);
+			// 更新值
+			AtomicLong value = this.sessionHeartbeats.get(session.getId());
+			if (null == value) {
+				this.sessionHeartbeats.put(session.getId(), new AtomicLong(time));
+			}
+			else {
+				value.set(time);
+			}
 		}
 	}
 
 	/**
-	 * 返回标签。
-	 * @return
+	 * 获得对应的内核标签。
+	 * 
+	 * @return 返回该上下文的内核标签。
 	 */
 	public String getTag() {
 		return this.tag;
 	}
 
-	/** 返回终端。
+	/**
+	 * 获得对应的终端信息描述。
+	 * 
+	 * @return 返回终端信息。
 	 */
 	public Endpoint getEndpoint() {
 		return this.endpoint;
 	}
 
-	/**
-	 * 返回追踪器。
-	 * @return
-	 */
-	public TalkTracker getTracker() {
-		return this.tracker;
-	}
 }

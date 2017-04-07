@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 This source file is part of Cell Cloud.
 
-Copyright (c) 2009-2013 Cell Cloud Team (www.cellcloud.net)
+Copyright (c) 2009-2017 Cell Cloud Team (www.cellcloud.net)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,9 +41,11 @@ import net.cellcloud.talk.command.ServerDialogueCommand;
 import net.cellcloud.talk.command.ServerHeartbeatCommand;
 import net.cellcloud.talk.command.ServerRequestCommand;
 
-/** Talk 服务句柄。
+/**
+ * Talk 接收器处理句柄。
  * 
- * @author Jiangwei Xu
+ * @author Ambrose Xu
+ * 
  */
 public final class TalkAcceptorHandler implements MessageHandler {
 
@@ -51,7 +53,8 @@ public final class TalkAcceptorHandler implements MessageHandler {
 	private Queue<ServerDialogueCommand> dialogueCmdQueue;
 	private Queue<ServerHeartbeatCommand> heartbeatCmdQueue;
 
-	/** 构造函数。
+	/**
+	 * 构造函数。
 	 */
 	protected TalkAcceptorHandler(TalkService talkService) {
 		this.talkService = talkService;
@@ -206,4 +209,5 @@ public final class TalkAcceptorHandler implements MessageHandler {
 			this.heartbeatCmdQueue.offer(cmd);
 		}
 	}
+
 }

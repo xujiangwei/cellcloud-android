@@ -206,7 +206,7 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			this.speaker.recordTag(Utils.bytes2String(rtag));
 
 			// 请求进行协商
-			this.speaker.requestConsult();
+			this.speaker.respondConsult();
 		}
 		else if (TalkDefinition.TPT_INTERROGATE[2] == tag[2]
 			&& TalkDefinition.TPT_INTERROGATE[3] == tag[3]) {
