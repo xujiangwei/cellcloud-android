@@ -165,12 +165,14 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 				for (int i = 0; i < service.speakers.size(); ++i) {
 					final Speaker speaker = service.speakers.get(i);
-					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= 360000L) {
+					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= 900000L) {
 						Thread thread = new Thread() {
 							@Override
 							public void run() {
-								speaker.fireFailed(new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
-										speaker.getAddress().getHostString(), speaker.getAddress().getPort()));
+								TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
+										speaker.getAddress().getHostString(), speaker.getAddress().getPort());
+								failure.setSourceCelletIdentifiers(speaker.getIdentifiers());
+								speaker.fireFailed(failure);
 							}
 						};
 						thread.start();
@@ -192,7 +194,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					}
 
 					// 判断是否达到最大重试次数
-					if (speaker.retryCounts >= speaker.capacity.retry) {
+					if (speaker.retryCount >= speaker.capacity.retry) {
 						if (!speaker.retryEnd) {
 							speaker.retryEnd = true;
 							speaker.fireRetryEnd();
@@ -203,7 +205,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					if (this.tickTime - speaker.retryTimestamp >= speaker.capacity.retryDelay) {
 						// 重连
 						speaker.retryTimestamp = this.tickTime;
-						speaker.retryCounts++;
+						speaker.retryCount++;
 						// 执行 call
 						if (speaker.call(null)) {
 							StringBuilder buf = new StringBuilder();

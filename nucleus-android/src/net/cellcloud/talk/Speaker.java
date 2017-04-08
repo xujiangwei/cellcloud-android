@@ -90,7 +90,7 @@ public class Speaker implements Speakable {
 	/** 上一次重连的时间戳。 */
 	protected long retryTimestamp = 0;
 	/** 重连次数。 */
-	protected int retryCounts = 0;
+	protected int retryCount = 0;
 	/** 是否已经达到最大重连次数，重连结束。 */
 	protected boolean retryEnd = false;
 
@@ -260,6 +260,7 @@ public class Speaker implements Speakable {
 					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NETWORK_NOT_AVAILABLE, Speaker.class,
 							address.getHostString(), address.getPort());
 					failure.setSourceDescription("Connector failed");
+					failure.setSourceCelletIdentifiers(identifierList);
 					delegate.onFailed(Speaker.this, failure);
 				}
 			}
@@ -405,7 +406,7 @@ public class Speaker implements Speakable {
 	 */
 	protected void reset() {
 		this.retryTimestamp = 0;
-		this.retryCounts = 0;
+		this.retryCount = 0;
 		this.retryEnd = false;
 	}
 
