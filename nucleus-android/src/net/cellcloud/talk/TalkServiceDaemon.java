@@ -47,8 +47,14 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 	/** 最近一次执行心跳的时间戳。 */
 	private long lastHeartbeatTime = 0L;
+
+	/** 默认心跳周期。 */
+	private final long defaultHeartbeatInterval = 7L * 60L * 1000L;
+	/** 空闲时的心跳周期。 */
+	private final long idleHeartbeatInterval = 2L * 60L * 1000L;
+
 	/** 心跳周期。 */
-	private long speakerHeartbeatInterval= 7L * 60L * 1000L;
+	private long heartbeatInterval = defaultHeartbeatInterval;
 
 	/** 是否使用轮询。 */
 	private boolean polling;
@@ -91,6 +97,21 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 				}
 			}
 		}
+
+		synchronized (this) {
+			TalkService service = TalkService.getInstance();
+			if (null != service.speakers) {
+				for (Speaker speaker : service.speakers) {
+					if (speaker.heartbeat()) {
+						Logger.i(TalkServiceDaemon.class,
+								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+					}
+				}
+			}
+		}
+
+		// 修改心跳间隔
+		this.heartbeatInterval = this.idleHeartbeatInterval;
 	}
 
 	/**
@@ -115,6 +136,9 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 				}
 			}
 		}
+
+		// 修改心跳间隔
+		this.heartbeatInterval = this.defaultHeartbeatInterval;
 	}
 
 	/**
@@ -151,7 +175,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		TalkService service = TalkService.getInstance();
 
 		// 执行心跳逻辑
-		if (this.tickTime - this.lastHeartbeatTime >= this.speakerHeartbeatInterval) {
+		if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval) {
 			// 更新最近心跳时间
 			this.lastHeartbeatTime = this.tickTime;
 
@@ -163,9 +187,13 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					}
 				}
 
+				// 超时时间
+				long timeout = this.heartbeatInterval + 5000L;
+
+				// 逐一判断是否超时
 				for (int i = 0; i < service.speakers.size(); ++i) {
 					final Speaker speaker = service.speakers.get(i);
-					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= 900000L) {
+					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= timeout) {
 						Thread thread = new Thread() {
 							@Override
 							public void run() {
