@@ -794,11 +794,29 @@ public final class TalkService implements Service, SpeakerDelegate {
 					}
 
 					long d = speaker.heartbeatTime - time;
-					if (d >= 0 && d < millis) {
+					if (d >= 0 && d <= millis) {
 						ret = true;
 					}
 					else {
-						ret = false;
+						if (d < 0) {
+							if (!speaker.heartbeat()) {
+								return false;
+							}
+
+							synchronized (speaker) {
+								try {
+									speaker.wait(millis + 1000L);
+								} catch (InterruptedException e) {
+									// Nothing
+								}
+							}
+
+							d = speaker.heartbeatTime - time;
+							return (d >= 0);
+						}
+						else {
+							ret = true;
+						}
 					}
 				}
 			}

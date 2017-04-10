@@ -302,6 +302,7 @@ public class Speaker implements Speakable {
 			this.blockingConnector = null;
 		}
 
+		this.heartbeatTime = 0L;
 		this.lost = false;
 		this.authenticated = false;
 		this.identifierList.clear();
