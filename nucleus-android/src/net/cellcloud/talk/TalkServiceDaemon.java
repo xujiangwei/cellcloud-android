@@ -29,6 +29,7 @@ package net.cellcloud.talk;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.cellcloud.common.LogLevel;
 import net.cellcloud.common.Logger;
@@ -54,7 +55,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	private final long idleHeartbeatInterval = 2L * 60L * 1000L;
 
 	/** 心跳周期。 */
-	private long heartbeatInterval = defaultHeartbeatInterval;
+	private AtomicLong heartbeatInterval = new AtomicLong(defaultHeartbeatInterval);
 
 	/** 是否使用轮询。 */
 	private boolean polling;
@@ -98,20 +99,25 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 			}
 		}
 
-		synchronized (this) {
+		synchronized (this.heartbeatInterval) {
 			TalkService service = TalkService.getInstance();
 			if (null != service.speakers) {
+				long time = System.currentTimeMillis();
+
 				for (Speaker speaker : service.speakers) {
-					if (speaker.heartbeat()) {
-						Logger.i(TalkServiceDaemon.class,
+					if (time - speaker.heartbeatTime > this.idleHeartbeatInterval) {
+						// 大于 idleHeartbeatInterval 进行心跳
+						if (speaker.heartbeat()) {
+							Logger.i(TalkServiceDaemon.class,
 								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+						}
 					}
 				}
 			}
-		}
 
-		// 修改心跳间隔
-		this.heartbeatInterval = this.idleHeartbeatInterval;
+			// 修改心跳间隔
+			this.heartbeatInterval.set(this.idleHeartbeatInterval);
+		}
 	}
 
 	/**
@@ -137,8 +143,10 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 			}
 		}
 
-		// 修改心跳间隔
-		this.heartbeatInterval = this.defaultHeartbeatInterval;
+		synchronized (this.heartbeatInterval) {
+			// 修改心跳间隔
+			this.heartbeatInterval.set(this.defaultHeartbeatInterval);
+		}
 	}
 
 	/**
@@ -175,38 +183,40 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 		TalkService service = TalkService.getInstance();
 
 		// 执行心跳逻辑
-		if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval) {
+		if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval.get()) {
 			// 更新最近心跳时间
 			this.lastHeartbeatTime = this.tickTime;
 
-			if (null != service.speakers) {
-				for (Speaker speaker : service.speakers) {
-					if (speaker.heartbeat()) {
-						Logger.i(TalkServiceDaemon.class,
-								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+			synchronized (this.heartbeatInterval) {
+				if (null != service.speakers) {
+					for (Speaker speaker : service.speakers) {
+						if (speaker.heartbeat()) {
+							Logger.i(TalkServiceDaemon.class,
+									"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
+						}
+					}
+
+					// 超时时间
+					long timeout = this.heartbeatInterval.get() + 5000L;
+
+					// 逐一判断是否超时
+					for (int i = 0; i < service.speakers.size(); ++i) {
+						final Speaker speaker = service.speakers.get(i);
+						if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= timeout) {
+							Thread thread = new Thread() {
+								@Override
+								public void run() {
+									TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
+											speaker.getAddress().getHostString(), speaker.getAddress().getPort());
+									failure.setSourceCelletIdentifiers(speaker.getIdentifiers());
+									speaker.fireFailed(failure);
+								}
+							};
+							thread.start();
+						}
 					}
 				}
-
-				// 超时时间
-				long timeout = this.heartbeatInterval + 5000L;
-
-				// 逐一判断是否超时
-				for (int i = 0; i < service.speakers.size(); ++i) {
-					final Speaker speaker = service.speakers.get(i);
-					if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= timeout) {
-						Thread thread = new Thread() {
-							@Override
-							public void run() {
-								TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.TALK_LOST, this.getClass(),
-										speaker.getAddress().getHostString(), speaker.getAddress().getPort());
-								failure.setSourceCelletIdentifiers(speaker.getIdentifiers());
-								speaker.fireFailed(failure);
-							}
-						};
-						thread.start();
-					}
-				}
-			}
+			} // synchronized
 		}
 
 		// 检查丢失连接的 Speaker
