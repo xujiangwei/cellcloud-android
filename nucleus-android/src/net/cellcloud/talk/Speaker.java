@@ -368,10 +368,10 @@ public class Speaker implements Speakable {
 	 */
 	protected void sleep() {
 		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(6000);
+			this.nonblockingConnector.resetInterval(5000);
 		}
 		else if (null != this.blockingConnector) {
-			this.blockingConnector.resetInterval(6000);
+			this.blockingConnector.resetInterval(5000);
 		}
 	}
 

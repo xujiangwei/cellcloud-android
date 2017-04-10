@@ -103,14 +103,24 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 			TalkService service = TalkService.getInstance();
 			if (null != service.speakers) {
 				long time = System.currentTimeMillis();
+				boolean heartbeat = false;
 
 				for (Speaker speaker : service.speakers) {
-					if (time - speaker.heartbeatTime > this.idleHeartbeatInterval) {
+					if (time - speaker.heartbeatTime >= this.idleHeartbeatInterval) {
 						// 大于 idleHeartbeatInterval 进行心跳
 						if (speaker.heartbeat()) {
+							heartbeat = true;
 							Logger.i(TalkServiceDaemon.class,
 								"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
 						}
+					}
+				}
+
+				if (heartbeat) {
+					try {
+						Thread.sleep(2000L);
+					} catch (InterruptedException e) {
+						// Nothing
 					}
 				}
 			}
@@ -182,12 +192,12 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 		TalkService service = TalkService.getInstance();
 
-		// 执行心跳逻辑
-		if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval.get()) {
-			// 更新最近心跳时间
-			this.lastHeartbeatTime = this.tickTime;
+		synchronized (this.heartbeatInterval) {
+			// 执行心跳逻辑
+			if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval.get()) {
+				// 更新最近心跳时间
+				this.lastHeartbeatTime = this.tickTime;
 
-			synchronized (this.heartbeatInterval) {
 				if (null != service.speakers) {
 					for (Speaker speaker : service.speakers) {
 						if (speaker.heartbeat()) {
@@ -216,7 +226,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						}
 					}
 				}
-			} // synchronized
+			}
 		}
 
 		// 检查丢失连接的 Speaker

@@ -41,7 +41,7 @@ public final class Version {
 	public static final int MINOR = 6;
 
 	/** 修订号。 */
-	public static final int REVISION = 7;
+	public static final int REVISION = 8;
 
 	/** 版本名。 */
 	public static final String NAME = "Xi";

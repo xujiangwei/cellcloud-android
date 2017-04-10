@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.LogLevel;
@@ -122,6 +123,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/** 对话事件委派。 */
 	private TalkDelegate delegate;
 
+	/** 有序的状态任务切换任务。 */
+	private LinkedList<Runnable> orderedTasks;
+	private AtomicBoolean taskRunning;
+
 	/**
 	 * 构造函数。
 	 * 
@@ -152,6 +157,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 			this.delegate = DialectEnumerator.getInstance();
 
 			this.receiver = new TimeReceiver();
+			this.orderedTasks = new LinkedList<Runnable>();
+			this.taskRunning = new AtomicBoolean(false);
 		}
 		else {
 			throw new SingletonException(TalkService.class.getName());
@@ -313,14 +320,43 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * 进入睡眠模式。
 	 */
 	public void sleep() {
-		if (null != this.speakers) {
-			for (Speaker s : this.speakers) {
-				s.sleep();
-			}
+		if (null == this.daemon) {
+			return;
 		}
 
-		if (null != this.daemon) {
-			this.daemon.sleep();
+		synchronized (this.orderedTasks) {
+			this.orderedTasks.add(new Runnable() {
+				@Override
+				public void run() {
+					if (null != speakers) {
+						for (Speaker s : speakers) {
+							s.sleep();
+						}
+					}
+
+					if (null != daemon) {
+						daemon.sleep();
+					}
+				}
+			});
+		}
+
+		if (!this.taskRunning.get()) {
+			this.taskRunning.set(true);
+
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					synchronized (orderedTasks) {
+						while (!orderedTasks.isEmpty()) {
+							Runnable task = orderedTasks.removeFirst();
+							task.run();
+						}
+					}
+
+					taskRunning.set(false);
+				}
+			});
 		}
 	}
 
@@ -328,14 +364,43 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * 从睡眠模式唤醒。
 	 */
 	public void wakeup() {
-		if (null != this.daemon) {
-			this.daemon.wakeup();
+		if (null == this.daemon) {
+			return;
 		}
 
-		if (null != this.speakers) {
-			for (Speaker s : this.speakers) {
-				s.wakeup();
-			}
+		synchronized (this.orderedTasks) {
+			this.orderedTasks.add(new Runnable() {
+				@Override
+				public void run() {
+					if (null != speakers) {
+						for (Speaker s : speakers) {
+							s.wakeup();
+						}
+					}
+
+					if (null != daemon) {
+						daemon.wakeup();
+					}
+				}
+			});
+		}
+
+		if (!this.taskRunning.get()) {
+			this.taskRunning.set(true);
+
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					synchronized (orderedTasks) {
+						while (!orderedTasks.isEmpty()) {
+							Runnable task = orderedTasks.removeFirst();
+							task.run();
+						}
+					}
+
+					taskRunning.set(false);
+				}
+			});
 		}
 	}
 
