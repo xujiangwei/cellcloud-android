@@ -52,7 +52,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	/** 默认心跳周期。 */
 	private final long defaultHeartbeatInterval = 7L * 60L * 1000L;
 	/** 空闲时的心跳周期。 */
-	private final long idleHeartbeatInterval = 2L * 60L * 1000L;
+	private final long idleHeartbeatInterval = 3L * 60L * 1000L;
 
 	/** 心跳周期。 */
 	private AtomicLong heartbeatInterval = new AtomicLong(defaultHeartbeatInterval);
@@ -99,8 +99,9 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 			}
 		}
 
+		TalkService service = TalkService.getInstance();
+
 		synchronized (this.heartbeatInterval) {
-			TalkService service = TalkService.getInstance();
 			if (null != service.speakers) {
 				long time = System.currentTimeMillis();
 				boolean heartbeat = false;
@@ -175,7 +176,12 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 	@Override
 	public void onTimeTick() {
 		// Tick 进行心跳
-		this.tick();
+		(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				tick();
+			}
+		})).start();
 	}
 
 	@Override
@@ -194,7 +200,7 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 
 		synchronized (this.heartbeatInterval) {
 			// 执行心跳逻辑
-			if (this.tickTime - this.lastHeartbeatTime >= this.heartbeatInterval.get()) {
+			if (this.tickTime - this.lastHeartbeatTime >= (this.heartbeatInterval.get() - 60000L)) {
 				// 更新最近心跳时间
 				this.lastHeartbeatTime = this.tickTime;
 
@@ -206,13 +212,19 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 						}
 					}
 
+					try {
+						Thread.sleep(5000L);
+					} catch (InterruptedException e) {
+						// Nothing
+					}
+
 					// 超时时间
-					long timeout = this.heartbeatInterval.get() + 5000L;
+					long timeout = this.heartbeatInterval.get();
 
 					// 逐一判断是否超时
 					for (int i = 0; i < service.speakers.size(); ++i) {
 						final Speaker speaker = service.speakers.get(i);
-						if (speaker.heartbeatTime > 0L && this.tickTime - speaker.heartbeatTime >= timeout) {
+						if (speaker.heartbeatTime > 0L && Math.abs(speaker.heartbeatTime - this.tickTime) >= timeout) {
 							Thread thread = new Thread() {
 								@Override
 								public void run() {

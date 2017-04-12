@@ -68,8 +68,10 @@ public class ChunkDialect extends Dialect {
 	 */
 	protected boolean infectant = false;
 
+	/** 事件监听器。 */
 	private ChunkListener listener;
 
+	/** 顺序读操作的索引。 */
 	private int readIndex = 0;
 
 	/** 数据传输速率。 */

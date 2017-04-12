@@ -547,7 +547,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/**
 	 * 向指定的 Cellet 发起会话请求。
 	 * 
-	 * @param identifiers identifiers 指定要进行会话的 Cellet 标识名列表。
+	 * @param identifiers 指定要进行会话的 Cellet 标识名列表。
 	 * @param address 指定服务器地址及端口。
 	 * @return 返回是否成功发起请求。
 	 */
