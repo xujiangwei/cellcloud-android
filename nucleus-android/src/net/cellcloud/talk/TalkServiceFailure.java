@@ -180,13 +180,8 @@ public final class TalkServiceFailure {
 	 * @param celletIdentifiers 指定 Cellet 标识列表。
 	 */
 	public void setSourceCelletIdentifiers(List<String> celletIdentifiers) {
-		for (String identifier : celletIdentifiers) {
-			if (this.sourceCelletIdentifiers.contains(identifier)) {
-				continue;
-			}
-
-			this.sourceCelletIdentifiers.add(identifier);
-		}
+		this.sourceCelletIdentifiers.clear();
+		this.sourceCelletIdentifiers.addAll(celletIdentifiers);
 	}
 
 }
