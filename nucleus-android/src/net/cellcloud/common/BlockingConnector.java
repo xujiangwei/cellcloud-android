@@ -594,8 +594,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 					// Nothing;
 				}
 
-				Thread.yield();
-
 				continue;
 			}
 
@@ -689,17 +687,205 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		final byte[] headMark = this.getHeadMark();
 		final byte[] tailMark = this.getTailMark();
 
-		// 当数据小于标签长度时直接缓存
-		/*
-		if (data.length < headMark.length) {
-			if (this.session.cacheCursor + data.length > this.session.getCacheSize()) {
-				// 重置 cache 大小
-				this.session.resetCacheSize(this.session.cacheCursor + data.length);
+		byte[] real = data;
+		if (this.session.cacheCursor > 0) {
+			real = new byte[this.session.cacheCursor + data.length];
+			System.arraycopy(this.session.cache, 0, real, 0, this.session.cacheCursor);
+			System.arraycopy(data, 0, real, this.session.cacheCursor, data.length);
+			// 重置缓存
+			this.session.resetCache();
+		}
+
+		int index = 0;
+		final int len = real.length;
+		int headPos = -1;
+		int tailPos = -1;
+		int ret = -1;
+
+		ret = compareBytes(headMark, 0, real, index, headMark.length);
+		if (0 == ret) {
+			// 有头标签
+			index += headMark.length;
+			// 记录数据位置头
+			headPos = index;
+			// 判断是否有尾标签，依次计数
+			ret = -1;
+			while (index < len) {
+				if (real[index] == tailMark[0]) {
+					ret = compareBytes(tailMark, 0, real, index, tailMark.length);
+					if (0 == ret) {
+						// 找到尾标签
+						tailPos = index;
+						break;
+					}
+					else if (1 == ret) {
+						// 越界
+						break;
+					}
+					else {
+						// 未找到尾标签
+						++index;
+					}
+				}
+				else {
+					++index;
+				}
 			}
-			System.arraycopy(data, 0, this.session.cache, this.session.cacheCursor, data.length);
-			this.session.cacheCursor += data.length;
-			return;
-		}*/
+
+			if (headPos > 0 && tailPos > 0) {
+				byte[] outBytes = new byte[tailPos - headPos];
+				System.arraycopy(real, headPos, outBytes, 0, tailPos - headPos);
+				out.add(outBytes);
+
+				int newLen = len - tailPos - tailMark.length;
+				if (newLen > 0) {
+					byte[] newBytes = new byte[newLen];
+					System.arraycopy(real, tailPos + tailMark.length, newBytes, 0, newLen);
+
+					// 递归
+					extract(out, newBytes);
+				}
+			}
+			else {
+				// 没有尾标签，仅进行缓存
+				if (len + this.session.cacheCursor > this.session.getCacheSize()) {
+					// 缓存扩容
+					this.session.resetCacheSize(len + this.session.cacheCursor);
+				}
+
+				System.arraycopy(real, 0, this.session.cache, this.session.cacheCursor, len);
+				this.session.cacheCursor += len;
+			}
+		}
+		else if (-1 == ret){
+			// 没有头标签
+			// 尝试查找
+			ret = -1;
+			while (index < len) {
+				if (real[index] == headMark[0]) {
+					ret = compareBytes(headMark, 0, real, index, headMark.length);
+					if (0 == ret) {
+						// 找到头标签
+						headPos = index;
+						break;
+					}
+					else if (1 == ret) {
+						// 越界
+						break;
+					}
+					else {
+						// 未找到头标签
+						++index;
+					}
+				}
+				else {
+					++index;
+				}
+			}
+
+			if (headPos > 0) {
+				// 找到头标签
+				byte[] newBytes = new byte[len - headPos];
+				System.arraycopy(real, headPos, newBytes, 0, newBytes.length);
+
+				// 递归
+				extract(out, newBytes);
+			}
+			else {
+				// 没有找到头标签，尝试判断结束位置
+				byte backwardOne = real[len - 1];
+				byte backwardTwo = real[len - 2];
+				byte backwardThree = real[len - 3];
+				int pos = -1;
+				int cplen = 0;
+				if (headMark[0] == backwardOne) {
+					pos = len - 1;
+					cplen = 1;
+				}
+				else if (headMark[0] == backwardTwo && headMark[1] == backwardOne) {
+					pos = len - 2;
+					cplen = 2;
+				}
+				else if (headMark[0] == backwardThree && headMark[1] == backwardTwo && headMark[2] == backwardOne) {
+					pos = len - 3;
+					cplen = 3;
+				}
+
+				if (pos >= 0) {
+					// 有可能是数据头，进行缓存
+					if (cplen + this.session.cacheCursor > this.session.getCacheSize()) {
+						// 缓存扩容
+						this.session.resetCacheSize(cplen + this.session.cacheCursor);
+					}
+
+					System.arraycopy(real, pos, this.session.cache, this.session.cacheCursor, cplen);
+					this.session.cacheCursor += cplen;
+				}
+			}
+
+			/*
+			// 尝试找到头标签
+			byte[] markBuf = new byte[headMark.length];
+			int searchIndex = 0;
+			int searchCounts = 0;
+			do {
+				// 判断数据是否越界
+				if (searchIndex + headMark.length > len) {
+					// 越界，删除索引之前的所有数据
+					byte[] newReal = new byte[len - searchIndex];
+					System.arraycopy(real, searchIndex, newReal, 0, newReal.length);
+
+					if (this.session.cacheCursor + newReal.length > this.session.getCacheSize()) {
+						// 重置 cache 大小
+						this.session.resetCacheSize(this.session.cacheCursor + newReal.length);
+					}
+					System.arraycopy(newReal, 0, this.session.cache, this.session.cacheCursor, newReal.length);
+					this.session.cacheCursor += newReal.length;
+					// 退出循环
+					break;
+				}
+
+				// 复制数据到待测试缓存
+				System.arraycopy(real, searchIndex, markBuf, 0, headMark.length);
+
+				for (int i = 0; i < markBuf.length; ++i) {
+					if (markBuf[i] == headMark[i]) {
+						++searchCounts;
+					}
+					else {
+						break;
+					}
+				}
+
+				if (searchCounts == headMark.length) {
+					// 找到 head mark
+					byte[] newReal = new byte[len - searchIndex];
+					System.arraycopy(real, searchIndex, newReal, 0, newReal.length);
+					extract(out, newReal);
+					return;
+				}
+
+				// 更新索引
+				++searchIndex;
+
+				// 重置计数
+				searchCounts = 0;
+			} while (searchIndex < len);
+			*/
+		}
+		else {
+			// 数据越界，直接缓存
+			if (this.session.cacheCursor + real.length > this.session.getCacheSize()) {
+				// 重置 cache 大小
+				this.session.resetCacheSize(this.session.cacheCursor + real.length);
+			}
+			System.arraycopy(real, 0, this.session.cache, this.session.cacheCursor, real.length);
+			this.session.cacheCursor += real.length;
+		}
+	}
+	/*private void extract(final LinkedList<byte[]> out, final byte[] data) {
+		final byte[] headMark = this.getHeadMark();
+		final byte[] tailMark = this.getTailMark();
 
 		byte[] real = data;
 		if (this.session.cacheCursor > 0) {
@@ -834,7 +1020,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 //		byte[] newBytes = new byte[len - headMark.length];
 //		System.arraycopy(real, headMark.length, newBytes, 0, newBytes.length);
 //		extract(out, newBytes);
-	}
+	}*/
 
 	/**
 	 * 比较两个字节数组内容。

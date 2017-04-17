@@ -289,7 +289,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		int count = 0;
 		while (this.running) {
 			try {
-				Thread.sleep(100);
+				Thread.sleep(100L);
 			} catch (InterruptedException e) {
 				Logger.log(NonblockingConnector.class, e, LogLevel.DEBUG);
 			}

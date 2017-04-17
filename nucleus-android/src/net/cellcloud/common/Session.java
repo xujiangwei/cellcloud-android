@@ -157,23 +157,38 @@ public class Session {
 	}
 
 	protected int getCacheSize() {
-		return this.cache.length;
+		synchronized (this) {
+			return this.cache.length;
+		}
+	}
+
+	protected void resetCache() {
+		synchronized (this) {
+			if (this.cache.length > 2048) {
+				this.cache = null;
+				this.cache = new byte[2048];
+			}
+
+			this.cacheCursor = 0;
+		}
 	}
 
 	protected void resetCacheSize(int newSize) {
-		if (newSize <= this.cache.length) {
-			return;
-		}
+		synchronized (this) {
+			if (newSize <= this.cache.length) {
+				return;
+			}
 
-		if (this.cacheCursor > 0) {
-			byte[] cur = new byte[this.cacheCursor];
-			System.arraycopy(this.cache, 0, cur, 0, this.cacheCursor);
-			this.cache = new byte[newSize];
-			System.arraycopy(cur, 0, this.cache, 0, this.cacheCursor);
-			cur = null;
-		}
-		else {
-			this.cache = new byte[newSize];
+			if (this.cacheCursor > 0) {
+				byte[] cur = new byte[this.cacheCursor];
+				System.arraycopy(this.cache, 0, cur, 0, this.cacheCursor);
+				this.cache = new byte[newSize];
+				System.arraycopy(cur, 0, this.cache, 0, this.cacheCursor);
+				cur = null;
+			}
+			else {
+				this.cache = new byte[newSize];
+			}
 		}
 	}
 
