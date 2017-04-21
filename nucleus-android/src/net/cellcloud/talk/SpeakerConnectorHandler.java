@@ -97,7 +97,7 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			Packet packet = Packet.unpack(message.get());
 			if (null != packet) {
 				// 处理数据包
-				process(session, packet);
+				this.process(session, packet);
 			}
 		} catch (NumberFormatException e) {
 			Logger.log(this.getClass(), e, LogLevel.WARNING);

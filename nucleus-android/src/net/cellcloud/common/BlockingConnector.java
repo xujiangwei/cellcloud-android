@@ -139,8 +139,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.socket.setTcpNoDelay(true);
 			this.socket.setKeepAlive(true);
 			this.socket.setSoTimeout(this.soTimeout);
-			//this.socket.setSendBufferSize(this.block);
-			//this.socket.setReceiveBufferSize(this.block);
+			this.socket.setSendBufferSize(this.block);
+			this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
@@ -562,18 +562,19 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 					if (length > 0) {
 						if (total + length > bytes.capacity()) {
 							// 数据超过容量，进行扩容
-							int newCapacity = this.estimateCapacity(bytes.capacity(), total + length, Math.round(this.block * 0.5f));
+							int newCapacity = this.estimateCapacity(bytes.capacity(), total + length, 1024);
 							ByteBuffer newBytes = ByteBuffer.allocate(newCapacity);
 							// 替换
 							if (bytes.position() != 0) {
 								bytes.flip();
 							}
 							newBytes.put(bytes);
-							bytes.clear();
+//							bytes.clear();
 							bytes = null;
 							// 新缓存
 							bytes = newBytes;
 						}
+
 						// 写入
 						bytes.put(buf, 0, length);
 						total += length;
@@ -641,27 +642,32 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
-			LinkedList<byte[]> out = new LinkedList<byte[]>();
+			LinkedList<byte[]> output = new LinkedList<byte[]>();
 			// 数据递归提取
-			this.extract(out, data);
+			this.extract(output, data);
 
-			if (!out.isEmpty()) {
-				for (byte[] bytes : out) {
-					Message message = new Message(bytes);
+			if (!output.isEmpty()) {
+				for (byte[] bytes : output) {
+					final Message message = new Message(bytes);
 
 					byte[] skey = this.session.getSecretKey();
 					if (null != skey) {
 						this.decryptMessage(message, skey);
 					}
 
-					if (null != this.handler) {
-						this.handler.messageReceived(this.session, message);
-					}
+					this.executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							if (null != handler) {
+								handler.messageReceived(session, message);
+							}
+						}
+					});
 				}
 
-				out.clear();
+				output.clear();
 			}
-			out = null;
+			output = null;
 		}
 		else {
 			Message message = new Message(data);
@@ -683,7 +689,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @param out 输出的数据列表。
 	 * @param data 源数据。
 	 */
-	private void extract(final LinkedList<byte[]> out, final byte[] data) {
+	private void extract(final LinkedList<byte[]> output, final byte[] data) {
 		final byte[] headMark = this.getHeadMark();
 		final byte[] tailMark = this.getTailMark();
 
@@ -734,8 +740,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 			if (headPos > 0 && tailPos > 0) {
 				byte[] outBytes = new byte[tailPos - headPos];
-				System.arraycopy(real, headPos, outBytes, 0, tailPos - headPos);
-				out.add(outBytes);
+				System.arraycopy(real, headPos, outBytes, 0, outBytes.length);
+				output.add(outBytes);
 
 				int newLen = len - tailPos - tailMark.length;
 				if (newLen > 0) {
@@ -743,7 +749,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 					System.arraycopy(real, tailPos + tailMark.length, newBytes, 0, newLen);
 
 					// 递归
-					extract(out, newBytes);
+					extract(output, newBytes);
 				}
 			}
 			else {
@@ -789,7 +795,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				System.arraycopy(real, headPos, newBytes, 0, newBytes.length);
 
 				// 递归
-				extract(out, newBytes);
+				extract(output, newBytes);
 			}
 			else {
 				// 没有找到头标签，尝试判断结束位置

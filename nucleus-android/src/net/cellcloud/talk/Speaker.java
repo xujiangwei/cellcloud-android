@@ -45,6 +45,7 @@ import net.cellcloud.common.NonblockingConnector;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.core.Nucleus;
+import net.cellcloud.util.CachedQueueExecutor;
 import net.cellcloud.util.Utils;
 
 /**
@@ -115,12 +116,12 @@ public class Speaker implements Speakable {
 	 * @param block 指定缓存区大小。
 	 * @param executor 指定线程执行器。
 	 */
-	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, ExecutorService executor) {
+	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
-		this.executor = executor;
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
 		this.identifierList = new Vector<String>(2);
 	}
 
@@ -133,13 +134,13 @@ public class Speaker implements Speakable {
 	 * @param capacity 指定协商能力。
 	 * @param executor 指定线程执行器。
 	 */
-	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, TalkCapacity capacity, ExecutorService executor) {
+	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, TalkCapacity capacity) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
 		this.capacity = capacity;
-		this.executor = executor;
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
 		this.identifierList = new Vector<String>(2);
 	}
 

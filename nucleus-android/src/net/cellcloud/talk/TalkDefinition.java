@@ -57,9 +57,6 @@ public final class TalkDefinition {
 	/** 快速握手。 */
 	public static final byte[] TPT_QUICK = {'C', 'T', 'Q', 'K'};
 
-	/** 代理访问。 */
-	public static final byte[] TPT_PROXY = {'C', 'T', 'P', 'X'};
-
 
 	/** 成功状态码。 */
 	public static final byte[] SC_SUCCESS = {'0', '0', '0', '0'};
@@ -75,12 +72,7 @@ public final class TalkDefinition {
 	 * @return 如果是 INTERROGATE 包返回 <code>true</code> 。
 	 */
 	public static boolean isInterrogate(byte[] ptg) {
-		if (ptg[2] == TPT_INTERROGATE[2] && ptg[3] == TPT_INTERROGATE[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_INTERROGATE[2] && ptg[3] == TPT_INTERROGATE[3]);
 	}
 
 	/**
@@ -90,12 +82,7 @@ public final class TalkDefinition {
 	 * @return 如果是 CHECK 包返回 <code>true</code> 。
 	 */
 	public static boolean isCheck(byte[] ptg) {
-		if (ptg[2] == TPT_CHECK[2] && ptg[3] == TPT_CHECK[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_CHECK[2] && ptg[3] == TPT_CHECK[3]);
 	}
 
 	/**
@@ -105,12 +92,7 @@ public final class TalkDefinition {
 	 * @return 如果是 REQUEST 包返回 <code>true</code> 。
 	 */
 	public static boolean isRequest(byte[] ptg) {
-		if (ptg[2] == TPT_REQUEST[2] && ptg[3] == TPT_REQUEST[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_REQUEST[2] && ptg[3] == TPT_REQUEST[3]);
 	}
 
 	/**
@@ -120,12 +102,7 @@ public final class TalkDefinition {
 	 * @return 如果是 CONSULT 包返回 <code>true</code> 。
 	 */
 	public static boolean isConsult(byte[] ptg) {
-		if (ptg[2] == TPT_CONSULT[2] && ptg[3] == TPT_CONSULT[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_CONSULT[2] && ptg[3] == TPT_CONSULT[3]);
 	}
 
 	/**
@@ -135,12 +112,7 @@ public final class TalkDefinition {
 	 * @return 如果是 QUICK 包返回 <code>true</code> 。
 	 */
 	public static boolean isQuick(byte[] ptg) {
-		if (ptg[2] == TPT_QUICK[2] && ptg[3] == TPT_QUICK[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_QUICK[2] && ptg[3] == TPT_QUICK[3]);
 	}
 
 	/**
@@ -150,12 +122,7 @@ public final class TalkDefinition {
 	 * @return 如果是 DIALOGUE 包返回 <code>true</code> 。
 	 */
 	public static boolean isDialogue(byte[] ptg) {
-		if (ptg[2] == TPT_DIALOGUE[2] && ptg[3] == TPT_DIALOGUE[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_DIALOGUE[2] && ptg[3] == TPT_DIALOGUE[3]);
 	}
 
 	/**
@@ -165,12 +132,7 @@ public final class TalkDefinition {
 	 * @return 如果是 HEARTBEAT 包返回 <code>true</code> 。
 	 */
 	public static boolean isHeartbeat(byte[] ptg) {
-		if (ptg[2] == TPT_HEARTBEAT[2] && ptg[3] == TPT_HEARTBEAT[3]) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (ptg[2] == TPT_HEARTBEAT[2] && ptg[3] == TPT_HEARTBEAT[3]);
 	}
 
 }

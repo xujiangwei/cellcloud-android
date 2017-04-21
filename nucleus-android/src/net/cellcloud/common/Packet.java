@@ -385,7 +385,8 @@ public final class Packet {
 	 * @return
 	 * @throws NumberFormatException
 	 */
-	public static Packet unpack(byte[] data) throws NumberFormatException {
+	public static Packet unpack(byte[] data)
+			throws NumberFormatException, ArrayIndexOutOfBoundsException {
 		byte flag = data[0];
 		if (flag == 2) {
 			int totalSize = data.length;
