@@ -85,7 +85,7 @@ public class Speaker implements Speakable {
 	/** 是否已经验证成功，成功与服务器握手。 */
 	private boolean authenticated = false;
 	/** 状态。 */
-	private volatile int state = SpeakerState.HANGUP;
+	protected volatile int state = SpeakerState.HANGUP;
 
 	/** 是否需要重新连接。 */
 	private boolean lost = false;
@@ -242,6 +242,7 @@ public class Speaker implements Speakable {
 		// 设置状态
 		this.authenticated = false;
 		this.lost = false;
+		this.heartbeatTime = 0L;
 
 		(new Thread(new Runnable() {
 			@Override
@@ -541,11 +542,12 @@ public class Speaker implements Speakable {
 					connector.getSession().deactiveSecretKey();
 				}
 
+				// 更新心跳
+				heartbeatTime = System.currentTimeMillis();
+
 				for (String cid : identifierList) {
 					delegate.onContacted(Speaker.this, cid);
 				}
-
-				heartbeatTime = System.currentTimeMillis();
 
 				(new Thread(new Runnable() {
 					@Override
@@ -600,6 +602,7 @@ public class Speaker implements Speakable {
 			this.state = SpeakerState.HANGUP;
 			this.delegate.onFailed(this, failure);
 			this.lost = true;
+			this.heartbeatTime = 0L;
 		}
 	}
 

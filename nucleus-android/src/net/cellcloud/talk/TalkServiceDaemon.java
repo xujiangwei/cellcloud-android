@@ -204,18 +204,25 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 				// 更新最近心跳时间
 				this.lastHeartbeatTime = this.tickTime;
 
+				// 是否执行心跳
+				boolean heartbeat = false;
+
 				if (null != service.speakers) {
 					for (Speaker speaker : service.speakers) {
 						if (speaker.heartbeat()) {
+							heartbeat = true;
+
 							Logger.i(TalkServiceDaemon.class,
 									"Talk service heartbeat to " + speaker.getAddress().getAddress().getHostAddress() + ":" + speaker.getAddress().getPort());
 						}
 					}
 
-					try {
-						Thread.sleep(5000L);
-					} catch (InterruptedException e) {
-						// Nothing
+					if (heartbeat) {
+						try {
+							Thread.sleep(5000L);
+						} catch (InterruptedException e) {
+							// Nothing
+						}
 					}
 
 					// 超时时间
@@ -224,6 +231,12 @@ public final class TalkServiceDaemon extends TimerTask implements TimeListener {
 					// 逐一判断是否超时
 					for (int i = 0; i < service.speakers.size(); ++i) {
 						final Speaker speaker = service.speakers.get(i);
+
+						if (speaker.state != SpeakerState.CALLED) {
+							// 不是已连接的 Speaker 不进行处理
+							continue;
+						}
+
 						if (speaker.heartbeatTime > 0L && Math.abs(speaker.heartbeatTime - this.tickTime) >= timeout) {
 							Thread thread = new Thread() {
 								@Override

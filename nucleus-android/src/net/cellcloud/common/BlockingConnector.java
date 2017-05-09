@@ -711,7 +711,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		ret = compareBytes(headMark, 0, real, index, headMark.length);
 		if (0 == ret) {
 			// 有头标签
-			index += headMark.length;
+			index = headMark.length;
 			// 记录数据位置头
 			headPos = index;
 			// 判断是否有尾标签，依次计数
