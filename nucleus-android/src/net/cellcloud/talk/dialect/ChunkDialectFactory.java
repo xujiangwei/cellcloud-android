@@ -175,6 +175,24 @@ public class ChunkDialectFactory extends DialectFactory {
 	}
 
 	/**
+	 * 设置每个 Chunk 列表的数据发送配额。单位：字节。
+	 * 
+	 * @param quota 指定以字节为单位的每秒流量配额。
+	 */
+	public void setQuotaPerList(long quota) {
+		this.defaultQuotaPerList = quota;
+	}
+
+	/**
+	 * 获取每个 Chunk 列表的数据发送配额。单位：字节。
+	 * 
+	 * @return 返回以字节为单位的每秒流量配额。
+	 */
+	public long getQuotaPerList() {
+		return this.defaultQuotaPerList;
+	}
+
+	/**
 	 * 获得服务器模式的缓存区块数量。
 	 * 
 	 * @return 返回服务器模式的缓存区块数量。
@@ -833,6 +851,7 @@ public class ChunkDialectFactory extends DialectFactory {
 				}
 
 				time = Long.MAX_VALUE;
+				selected = null;
 			}
 
 			clearRunning.set(false);
