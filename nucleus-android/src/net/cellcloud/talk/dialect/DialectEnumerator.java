@@ -114,6 +114,24 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 	}
 
 	/**
+	 * 休眠所有方言工厂。
+	 */
+	public void sleepAll() {
+		for (DialectFactory fact : this.factories.values()) {
+			fact.sleep();
+		}
+	}
+
+	/**
+	 * 唤醒所有方言工厂。
+	 */
+	public void wakeupAll() {
+		for (DialectFactory fact : this.factories.values()) {
+			fact.wakeup();
+		}
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override

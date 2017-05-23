@@ -62,6 +62,8 @@ public class ChunkDialectFactory extends DialectFactory {
 	private Timer quotaTimer;
 	/** 每个清单的默认配额：48 KB。 */
 	private long defaultQuotaPerList = 48L * 1024L;
+	/** 配额定时器工作时间戳。 */
+	private long quotaTimestamp;
 
 	/** 数据接收缓存，键为区块的记号。 */
 	private ConcurrentHashMap<String, Cache> cacheMap;
@@ -94,8 +96,8 @@ public class ChunkDialectFactory extends DialectFactory {
 		this.executor = executor;
 		this.cacheMap = new ConcurrentHashMap<String, Cache>();
 		this.quotaTimer = new Timer("ChunkQuotaTimer");
-		// 每 500ms 一次任务
-		this.quotaTimer.schedule(new QuotaTask(), 3000L, 500L);
+		this.quotaTimer.schedule(new QuotaTask(), 3000L, 1000L);
+		this.quotaTimestamp = System.currentTimeMillis();
 	}
 
 	/**
@@ -139,6 +141,34 @@ public class ChunkDialectFactory extends DialectFactory {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void sleep() {
+		// Nothing
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void wakeup() {
+		if (System.currentTimeMillis() - this.quotaTimestamp >= 2000L) {
+			try {
+				this.quotaTimer.cancel();
+				this.quotaTimer.purge();
+			} catch (Exception e) {
+				// Nothing
+			}
+
+			this.quotaTimer = null;
+			this.quotaTimer = new Timer("ChunkQuotaTimer");
+			this.quotaTimer.schedule(new QuotaTask(), 3000L, 1000L);
+			this.quotaTimestamp = System.currentTimeMillis();
+		}
+	}
+
+	/**
 	 * 获得当前内存缓存大小。
 	 * 
 	 * @return 返回当前内存缓存大小。
@@ -175,21 +205,21 @@ public class ChunkDialectFactory extends DialectFactory {
 	}
 
 	/**
-	 * 设置每个 Chunk 列表的数据发送配额。单位：字节。
+	 * 设置每个 Chunk 列表的数据发送配额。单位：KB。
 	 * 
-	 * @param quota 指定以字节为单位的每秒流量配额。
+	 * @param quota 指定以 KB 为单位的每秒流量配额。
 	 */
-	public void setQuotaPerList(long quota) {
-		this.defaultQuotaPerList = quota;
+	public void setQuotaPerList(int quota) {
+		this.defaultQuotaPerList = quota * 1024L;
 	}
 
 	/**
-	 * 获取每个 Chunk 列表的数据发送配额。单位：字节。
+	 * 获取每个 Chunk 列表的数据发送配额。单位：KB。
 	 * 
-	 * @return 返回以字节为单位的每秒流量配额。
+	 * @return 返回以 KB 为单位的每秒流量配额。
 	 */
-	public long getQuotaPerList() {
-		return this.defaultQuotaPerList;
+	public int getQuotaPerList() {
+		return (int)(this.defaultQuotaPerList / 1024L);
 	}
 
 	/**
@@ -317,6 +347,29 @@ public class ChunkDialectFactory extends DialectFactory {
 		this.write(chunk);
 
 		return true;
+	}
+
+	/**
+	 * 取消正在发送的 Chunk 。
+	 * 
+	 * @param sign 指定 Chunk 的记号。
+	 */
+	public List<ChunkDialect> cancel(String sign) {
+		ChunkList list = null;
+
+		if (null != this.cListMap) {
+			list = this.cListMap.remove(sign);
+		}
+
+		if (null == list && null != this.sListMap) {
+			list = this.sListMap.remove(sign);
+		}
+
+		if (null == list) {
+			return null;
+		}
+
+		return list.list;
 	}
 
 	/**
@@ -764,6 +817,8 @@ public class ChunkDialectFactory extends DialectFactory {
 
 		@Override
 		public void run() {
+			quotaTimestamp = System.currentTimeMillis();
+
 			if (null != cListMap) {
 				Iterator<ChunkList> iter = cListMap.values().iterator();
 				while (iter.hasNext()) {

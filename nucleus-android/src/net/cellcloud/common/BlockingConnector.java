@@ -49,6 +49,16 @@ import android.content.Context;
  */
 public class BlockingConnector extends MessageService implements MessageConnector {
 
+	/**
+	 * 数据发送队列优先级定义。
+	 */
+	public enum BlockingConnectorQueuePriority {
+		/** 高优先级队列。 */
+		High,
+		/** 低优先级队列。 */
+		Low
+	}
+
 	/** 缓冲块大小。 */
 	private int block = 65536;
 	/** 单次写数据大小限制（字节），默认 16 KB 。 */
@@ -82,12 +92,16 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 	/** 线程池执行器。 */
 	private ExecutorService executor;
-	/** 当前是否正在写入数据。 */
-	private AtomicBoolean writing;
-	/** 数据写队列。 */
-	private LinkedList<Message> messageQueue;
+	/** 当前高优先级队列是否正在写数据。 */
+	private AtomicBoolean writingHP;
+	/** 当前低优先级队列是否正在写数据。 */
+	private AtomicBoolean writingLP;
+	/** 高优先级数据写队列。 */
+	private LinkedList<Message> messageQueueHP;
+	/** 低优先级数据写队列。 */
+	private LinkedList<Message> messageQueueLP;
 	/** 写数据间隔。 */
-	private long writingInterval = 17L;
+	private long writingInterval = 10L;
 
 	/**
 	 * 构造函数。
@@ -98,8 +112,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	public BlockingConnector(Context androidContext, ExecutorService executor) {
 		this.androidContext = androidContext;
 		this.executor = executor;
-		this.writing = new AtomicBoolean(false);
-		this.messageQueue = new LinkedList<Message>();
+		this.writingHP = new AtomicBoolean(false);
+		this.messageQueueHP = new LinkedList<Message>();
+		this.writingLP = new AtomicBoolean(false);
+		this.messageQueueLP = new LinkedList<Message>();
 	}
 
 	/**
@@ -242,9 +258,15 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		this.spinning = false;
 
-		synchronized (this.messageQueue) {
-			this.messageQueue.clear();
+		synchronized (this.messageQueueHP) {
+			this.messageQueueHP.clear();
 		}
+		synchronized (this.messageQueueLP) {
+			this.messageQueueLP.clear();
+		}
+
+		this.writingHP.set(false);
+		this.writingLP.set(false);
 
 		if (null != this.socket) {
 			try {
@@ -316,6 +338,30 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	@Override
 	public void write(Session session, Message message) {
+		this.write(session, message, this.messageQueueHP, this.writingHP);
+	}
+
+	/**
+	 * 写入数据到 Socket 。可指定消息使用的队列。
+	 * 
+	 * @param message 指定待写入的消息。
+	 * @param queuePriority 指定使用的队列。
+	 */
+	public void write(Message message, BlockingConnectorQueuePriority queuePriority) {
+		if (null == this.session) {
+			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+			return;
+		}
+
+		if (queuePriority == BlockingConnectorQueuePriority.High) {
+			this.write(this.session, message, this.messageQueueHP, this.writingHP);
+		}
+		else {
+			this.write(this.session, message, this.messageQueueLP, this.writingLP);
+		}
+	}
+
+	private void write(Session session, Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
 		if (null == this.socket) {
 			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 			return;
@@ -337,17 +383,17 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.encryptMessage(message, skey);
 		}
 
-		synchronized (this.messageQueue) {
-			this.messageQueue.add(message);
+		synchronized (messageQueue) {
+			messageQueue.add(message);
 		}
 
-		if (!this.writing.get()) {
-			this.writing.set(true);
+		if (!writing.get()) {
+			writing.set(true);
 
 			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					flushMessage();
+					flushMessage(messageQueue, writing);
 				}
 			});
 		}
@@ -357,25 +403,27 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 将队列里消息写入到 Socket 。
 	 * 该方法会尝试启动数据管理线程将队列的所有消息依次写入 Socket 。
 	 */
-	private void flushMessage() {
+	private void flushMessage(final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
 		if (null == this.socket) {
-			this.writing.set(false);
+			writing.set(false);
 			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 			return;
 		}
 
-		while (null != this.socket && this.writing.get()) {
+		while (null != this.socket && writing.get()) {
 			Message message = null;
-			synchronized (this.messageQueue) {
-				if (this.messageQueue.isEmpty()) {
-					this.writing.set(false);
+
+			synchronized (messageQueue) {
+				if (messageQueue.isEmpty()) {
+					writing.set(false);
 					break;
 				}
 
-				message = this.messageQueue.removeFirst();
-			}
+				message = messageQueue.removeFirst();
+			} // #synchronized
 
 			if (null == message) {
+				writing.set(false);
 				continue;
 			}
 
@@ -413,16 +461,17 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 			} catch (Exception e) {
 				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.ERROR);
 			}
 		}
 
-		if (!this.messageQueue.isEmpty()) {
-			this.writing.set(true);
-			this.executor.execute(new Runnable() {
+		if (!messageQueue.isEmpty()) {
+			writing.set(true);
+			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					flushMessage();
+					flushMessage(messageQueue, writing);
 				}
 			});
 		}
@@ -477,9 +526,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.socket = null;
 		}
 
-		synchronized (this.messageQueue) {
-			this.messageQueue.clear();
+		synchronized (this.messageQueueHP) {
+			this.messageQueueHP.clear();
 		}
+		synchronized (this.messageQueueLP) {
+			this.messageQueueLP.clear();
+		}
+		this.writingHP.set(false);
+		this.writingLP.set(false);
 	}
 	/**
 	 * 回调 {@link MessageHandler#errorOccurred(int, Session)} 。

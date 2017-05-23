@@ -291,6 +291,14 @@ public class ChunkDialect extends Dialect {
 	}
 
 	/**
+	 * 取消发送当前记号的所有区块。
+	 */
+	public List<ChunkDialect> cancel() {
+		ChunkDialectFactory fact = (ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME);
+		return fact.cancel(this.sign);
+	}
+
+	/**
 	 * 此块所属记号的区块是否全部接收完毕。
 	 * 
 	 * @return 如果整个区块数据接收完毕返回 <code>true</code> 。

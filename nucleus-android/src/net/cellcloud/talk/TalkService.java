@@ -337,6 +337,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 					if (null != daemon) {
 						daemon.sleep();
 					}
+
+					DialectEnumerator.getInstance().sleepAll();
 				}
 			});
 		}
@@ -381,6 +383,8 @@ public final class TalkService implements Service, SpeakerDelegate {
 					if (null != daemon) {
 						daemon.wakeup();
 					}
+
+					DialectEnumerator.getInstance().wakeupAll();
 				}
 			});
 		}

@@ -105,6 +105,22 @@ public final class ActionDialectFactory extends DialectFactory {
 	 * {@inheritDoc}
 	 */
 	@Override
+	public void sleep() {
+		// Nothing
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void wakeup() {
+		// Nothing
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	protected boolean onTalk(String identifier, Dialect dialect) {
 		return true;
 	}

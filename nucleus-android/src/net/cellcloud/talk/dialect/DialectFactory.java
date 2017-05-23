@@ -54,6 +54,16 @@ public abstract class DialectFactory {
 	abstract public void shutdown();
 
 	/**
+	 * 休眠工厂。
+	 */
+	abstract public void sleep();
+
+	/**
+	 * 唤醒工厂。
+	 */
+	abstract public void wakeup();
+
+	/**
 	 * 当发送方言时此方法被回调。
 	 * 
 	 * @param identifier 目标 Cellet 标识。

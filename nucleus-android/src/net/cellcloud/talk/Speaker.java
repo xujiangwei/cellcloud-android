@@ -45,6 +45,7 @@ import net.cellcloud.common.NonblockingConnector;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.core.Nucleus;
+import net.cellcloud.talk.dialect.ChunkDialect;
 import net.cellcloud.util.CachedQueueExecutor;
 import net.cellcloud.util.Utils;
 
@@ -121,7 +122,7 @@ public class Speaker implements Speakable {
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
-		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
 		this.identifierList = new Vector<String>(2);
 	}
 
@@ -140,7 +141,7 @@ public class Speaker implements Speakable {
 		this.delegate = delegate;
 		this.block = block;
 		this.capacity = capacity;
-		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(2);
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
 		this.identifierList = new Vector<String>(2);
 	}
 
@@ -325,7 +326,7 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public synchronized boolean speak(String identifier, Primitive primitive) {
-		MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
+		MessageConnector connector = (null != this.blockingConnector) ? this.blockingConnector : this.nonblockingConnector;
 		if (null == connector
 			|| !connector.isConnected()
 			|| this.state != SpeakerState.CALLED) {
@@ -344,11 +345,16 @@ public class Speaker implements Speakable {
 		// 发送数据
 		byte[] data = Packet.pack(packet);
 		Message message = new Message(data);
-		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.write(message);
+		if (null != this.blockingConnector) {
+			if (primitive.isDialectal() && primitive.getDialect().getName().equals(ChunkDialect.DIALECT_NAME)) {
+				this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.Low);
+			}
+			else {
+				this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.High);
+			}
 		}
 		else {
-			this.blockingConnector.write(message);
+			this.nonblockingConnector.write(message);
 		}
 
 		return true;
