@@ -73,6 +73,8 @@ public class Primitive {
 	/** 关联的 Cellet 。 */
 	private Cellet cellet;
 
+	public int version = 3;
+
 	/**
 	 * 构造函数。
 	 */

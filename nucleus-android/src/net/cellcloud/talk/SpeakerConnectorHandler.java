@@ -103,6 +103,8 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			Logger.log(this.getClass(), e, LogLevel.WARNING);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			Logger.log(this.getClass(), e, LogLevel.WARNING);
+		} catch (Exception e) {
+			Logger.log(this.getClass(), e, LogLevel.WARNING);
 		}
 	}
 
