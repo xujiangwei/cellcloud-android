@@ -132,7 +132,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	@Override
 	public boolean connect(final InetSocketAddress address) {
-		if (null != this.socket || this.running) {
+		if (null != this.socket || this.running || null == address) {
 			return false;
 		}
 
@@ -159,6 +159,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.socket.setReceiveBufferSize(this.block);
 		} catch (SocketException e) {
 			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
+		} catch (Exception e) {
+			Logger.log(BlockingConnector.class, e, LogLevel.WARNING);
 		}
 
 		this.session = new Session(this, address);
@@ -173,6 +175,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				} catch (IOException e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+					running = false;
+					socket = null;
+					return;
+				} catch (Exception e) {
+					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 					running = false;
 					socket = null;
 					return;
