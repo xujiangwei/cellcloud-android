@@ -80,7 +80,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/** 线程是否自悬。 */
 	private boolean spinning = false;
 	/** 线程是否正在运行。 */
-	private boolean running = false;
+	private AtomicBoolean running = new AtomicBoolean(false);
 	/** 主动关闭标识。 */
 	private boolean activeClose = false;
 
@@ -131,8 +131,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean connect(final InetSocketAddress address) {
-		if (null != this.socket || this.running || null == address) {
+	public synchronized boolean connect(final InetSocketAddress address) {
+		if (null != this.socket || this.running.get() || null == address) {
 			return false;
 		}
 
@@ -168,19 +168,25 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		this.handleThread = new Thread() {
 			@Override
 			public void run() {
-				running = true;
+				running.set(true);
 
 				try {
-					socket.connect(address, (int)connTimeout);
+					if (null != socket) {
+						socket.connect(address, (int)connTimeout);
+					}
+					else {
+						running.set(false);
+						return;
+					}
 				} catch (IOException e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
 					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
-					running = false;
+					running.set(false);
 					socket = null;
 					return;
 				} catch (Exception e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
-					running = false;
+					running.set(false);
 					socket = null;
 					return;
 				}
@@ -207,7 +213,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 				fireSessionDestroyed();
 
-				running = false;
+				running.set(false);
 			}
 		};
 
@@ -260,7 +266,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void disconnect() {
+	public synchronized void disconnect() {
 		this.activeClose = true;
 
 		this.spinning = false;
@@ -291,7 +297,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	@Override
 	public boolean isConnected() {
-		return (null != this.socket && this.socket.isConnected());
+		return (null != this.socket && this.socket.isConnected() && this.running.get());
 	}
 
 	/**
@@ -417,7 +423,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			return;
 		}
 
-		while (null != this.socket && writing.get()) {
+		while (this.isConnected() && writing.get()) {
 			Message message = null;
 
 			synchronized (messageQueue) {
