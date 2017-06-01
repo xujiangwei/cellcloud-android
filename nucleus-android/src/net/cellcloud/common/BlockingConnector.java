@@ -34,7 +34,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -103,6 +106,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/** 写数据间隔。 */
 	private long writingInterval = 10L;
 
+	/** 接收数据清单。 */
+	private Vector<byte[]> receivedList;
+
 	/**
 	 * 构造函数。
 	 * 
@@ -116,6 +122,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		this.messageQueueHP = new LinkedList<Message>();
 		this.writingLP = new AtomicBoolean(false);
 		this.messageQueueLP = new LinkedList<Message>();
+		this.receivedList = new Vector<byte[]>();
 	}
 
 	/**
@@ -214,6 +221,17 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				fireSessionDestroyed();
 
 				running.set(false);
+
+				receivedList.clear();
+
+				synchronized (messageQueueHP) {
+					messageQueueHP.clear();
+				}
+				synchronized (messageQueueLP) {
+					messageQueueLP.clear();
+				}
+				writingHP.set(false);
+				writingLP.set(false);
 			}
 		};
 
@@ -280,6 +298,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		this.writingHP.set(false);
 		this.writingLP.set(false);
+
+		this.receivedList.clear();
 
 		if (null != this.socket) {
 			try {
@@ -709,29 +729,30 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
 		if (this.existDataMark()) {
-			final LinkedList<byte[]> output = new LinkedList<byte[]>();
-
 			// 数据递归提取
-			this.extract(output, data);
+			this.extract(this.receivedList, data);
 
-			if (!output.isEmpty()) {
+			if (!this.receivedList.isEmpty()) {
 				this.executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						for (byte[] bytes : output) {
-							Message message = new Message(bytes);
+						synchronized (receivedList) {
+							Iterator<byte[]> iter = receivedList.iterator();
+							while (iter.hasNext()) {
+								Message message = new Message(iter.next());
 
-							byte[] skey = session.getSecretKey();
-							if (null != skey) {
-								decryptMessage(message, skey);
-							}
+								byte[] skey = session.getSecretKey();
+								if (null != skey) {
+									decryptMessage(message, skey);
+								}
 
-							if (null != handler) {
-								handler.messageReceived(session, message);
+								if (null != handler) {
+									handler.messageReceived(session, message);
+								}
+
+								iter.remove();
 							}
 						}
-
-						output.clear();
 					}
 				});
 			}
@@ -747,8 +768,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					if (null != handler) {
-						handler.messageReceived(session, message);
+					synchronized (receivedList) {
+						if (null != handler) {
+							handler.messageReceived(session, message);
+						}
 					}
 				}
 			});
@@ -761,7 +784,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @param out 输出的数据列表。
 	 * @param data 源数据。
 	 */
-	private void extract(final LinkedList<byte[]> output, final byte[] data) {
+	private void extract(final List<byte[]> output, final byte[] data) {
 		final byte[] headMark = this.getHeadMark();
 		final byte[] tailMark = this.getTailMark();
 

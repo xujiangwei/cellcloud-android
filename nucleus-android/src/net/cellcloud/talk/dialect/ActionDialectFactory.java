@@ -94,11 +94,6 @@ public final class ActionDialectFactory extends DialectFactory {
 			this.dialects.clear();
 			this.delegates.clear();
 		}
-
-		if (null != this.executor) {
-			this.executor.shutdown();
-			this.executor = null;
-		}
 	}
 
 	/**
@@ -173,17 +168,19 @@ public final class ActionDialectFactory extends DialectFactory {
 					while (!dialects.isEmpty()) {
 						ActionDelegate adg = null;
 						ActionDialect adl = null;
+
 						synchronized (metaData) {
 							if (dialects.isEmpty()) {
 								break;
 							}
+
 							adg = delegates.removeFirst();
 							adl = dialects.removeFirst();
-						}
 
-						// Do action
-						if (null != adg) {
-							adg.doAction(adl);
+							// Do action
+							if (null != adg) {
+								adg.doAction(adl);
+							}
 						}
 					}
 
