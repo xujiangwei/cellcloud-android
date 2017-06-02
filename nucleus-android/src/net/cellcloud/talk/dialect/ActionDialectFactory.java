@@ -26,7 +26,10 @@ THE SOFTWARE.
 
 package net.cellcloud.talk.dialect;
 
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,10 +53,12 @@ public final class ActionDialectFactory extends DialectFactory {
 	/** 线程数量计数。 */
 	private AtomicInteger threadCount;
 
-	/** 待处理的方言列表。 */
-	private LinkedList<ActionDialect> dialects;
-	/** 待处理方言对应的委派列表。 */
-	private LinkedList<ActionDelegate> delegates;
+	/** 待处理的方言和委派列表列表。 */
+	private LinkedList<Pair> pairList;
+
+	/** 特定的动作处理队列。 */
+	private ConcurrentHashMap<String, Vector<Pair>> specificQueueMap;
+	private AtomicInteger specificSize;
 
 	/**
 	 * 构造函数。
@@ -65,8 +70,9 @@ public final class ActionDialectFactory extends DialectFactory {
 		this.executor = executor;
 		this.maxThreadNum = 2;
 		this.threadCount = new AtomicInteger(0);
-		this.dialects = new LinkedList<ActionDialect>();
-		this.delegates = new LinkedList<ActionDelegate>();
+		this.pairList = new LinkedList<Pair>();
+		this.specificQueueMap = new ConcurrentHashMap<String, Vector<Pair>>();
+		this.specificSize = new AtomicInteger(0);
 	}
 
 	/**
@@ -91,9 +97,11 @@ public final class ActionDialectFactory extends DialectFactory {
 	@Override
 	public void shutdown() {
 		synchronized (this.metaData) {
-			this.dialects.clear();
-			this.delegates.clear();
+			this.pairList.clear();
 		}
+
+		this.specificQueueMap.clear();
+		this.specificSize.set(0);
 	}
 
 	/**
@@ -110,6 +118,28 @@ public final class ActionDialectFactory extends DialectFactory {
 	@Override
 	public void wakeup() {
 		// Nothing
+	}
+
+	/**
+	 * 启用指定动作名的顺序队列。
+	 * 
+	 * @param action
+	 */
+	public void openOrderedQueue(String action) {
+		if (this.specificQueueMap.containsKey(action)) {
+			return;
+		}
+
+		this.specificQueueMap.put(action.toString(), new Vector<Pair>());
+	}
+
+	/**
+	 * 停用指定动作名的顺序队列。
+	 * 
+	 * @param action
+	 */
+	public void closeOrderedQueue(String action) {
+		this.specificQueueMap.remove(action);
 	}
 
 	/**
@@ -151,9 +181,16 @@ public final class ActionDialectFactory extends DialectFactory {
 	 * @param delegate 指定动作的委派。
 	 */
 	protected void doAction(ActionDialect dialect, ActionDelegate delegate) {
-		synchronized (this.metaData) {
-			this.dialects.add(dialect);
-			this.delegates.add(delegate);
+		String action = dialect.getAction();
+		if (this.specificQueueMap.containsKey(action)) {
+			Vector<Pair> queue = this.specificQueueMap.get(action);
+			queue.add(new Pair(dialect, delegate));
+			this.specificSize.incrementAndGet();
+		}
+		else {
+			synchronized (this.metaData) {
+				this.pairList.add(new Pair(dialect, delegate));
+			}
 		}
 
 		if (this.threadCount.get() < this.maxThreadNum) {
@@ -165,21 +202,52 @@ public final class ActionDialectFactory extends DialectFactory {
 			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					while (!dialects.isEmpty()) {
-						ActionDelegate adg = null;
-						ActionDialect adl = null;
+					ActionDelegate adg = null;
+					ActionDialect adl = null;
+					Iterator<Vector<Pair>> iter = null;
 
+					while (!pairList.isEmpty() || 0 != specificSize.get()) {
 						synchronized (metaData) {
-							if (dialects.isEmpty()) {
-								break;
+							if (!pairList.isEmpty()) {
+								Pair pair = pairList.removeFirst();
+								adg = pair.delegate;
+								adl = pair.dialect;
 							}
+						}
 
-							adg = delegates.removeFirst();
-							adl = dialects.removeFirst();
+						// Do action
+						if (null != adg) {
+							adg.doAction(adl);
+						}
 
-							// Do action
-							if (null != adg) {
-								adg.doAction(adl);
+						// reset
+						adg = null;
+						adl = null;
+
+						if (0 == specificSize.get()) {
+							// 特定队列无数据
+							continue;
+						}
+
+						iter = specificQueueMap.values().iterator();
+						while (iter.hasNext()) {
+							Vector<Pair> list = iter.next();
+							synchronized (list) {
+								if (!list.isEmpty()) {
+									Pair pair = list.remove(0);
+									specificSize.decrementAndGet();
+									adg = pair.delegate;
+									adl = pair.dialect;
+								}
+
+								// Do action
+								if (null != adg) {
+									adg.doAction(adl);
+								}
+
+								// reset
+								adg = null;
+								adl = null;
 							}
 						}
 					}
@@ -188,6 +256,19 @@ public final class ActionDialectFactory extends DialectFactory {
 					threadCount.decrementAndGet();
 				}
 			});
+		}
+	}
+
+	/**
+	 * 数据对。
+	 */
+	private class Pair {
+		private ActionDialect dialect;
+		private ActionDelegate delegate;
+
+		public Pair(ActionDialect dialect, ActionDelegate delegate) {
+			this.dialect = dialect;
+			this.delegate = delegate;
 		}
 	}
 
