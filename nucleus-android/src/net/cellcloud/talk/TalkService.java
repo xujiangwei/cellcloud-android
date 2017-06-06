@@ -324,6 +324,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 			return;
 		}
 
+		if (Logger.isDebugLevel()) {
+			Logger.d(this.getClass(), "Sleep");
+		}
+
 		synchronized (this.orderedTasks) {
 			this.orderedTasks.add(new Runnable() {
 				@Override
@@ -368,6 +372,10 @@ public final class TalkService implements Service, SpeakerDelegate {
 	public void wakeup() {
 		if (null == this.daemon) {
 			return;
+		}
+
+		if (Logger.isDebugLevel()) {
+			Logger.d(this.getClass(), "Wakeup");
 		}
 
 		synchronized (this.orderedTasks) {

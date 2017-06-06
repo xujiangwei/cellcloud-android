@@ -70,7 +70,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/** Socket 超时时间。 */
 	private int soTimeout = 3000;
 	/** 连接超时时间。 */
-	private long connTimeout = 15000L;
+	private long connTimeout = 10000L;
 
 	/** 两次阻塞操作之间的时间间隔。 */
 	private long interval = 1000L;
@@ -208,9 +208,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 				try {
 					loopDispatch();
-				} catch (SocketException e) {
-					spinning = false;
-					Logger.i(BlockingConnector.class, "Socket closed");
 				} catch (Exception e) {
 					spinning = false;
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
@@ -267,8 +264,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			duration += 10L;
 			if (duration >= this.connTimeout) {
 				Logger.w(this.getClass(), "Connect " + address.toString() + " timeout.");
-				fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
 				this.disconnect();
+				fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
 				return false;
 			}
 		}
@@ -491,11 +488,13 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				// sleep
 				Thread.sleep(this.writingInterval);
 			} catch (IOException e) {
+				writing.set(false);
+				Logger.log(this.getClass(), e, LogLevel.WARNING);
 				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 			} catch (Exception e) {
-				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.ERROR);
+				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
 			}
 		}
 
@@ -521,6 +520,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 
 		this.interval = value;
+
+		if (Logger.isDebugLevel()) {
+			Logger.d(this.getClass(), "Reset interval : " + value);
+		}
 	}
 
 	/**
@@ -588,14 +591,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @throws SocketException
 	 * @throws Exception
 	 */
-	private void loopDispatch() throws SocketException, Exception {
+	private void loopDispatch() throws Exception {
 		// 自旋
 		this.spinning = true;
 		final long time = System.currentTimeMillis();
 
 		Socket socket = this.socket;
-
-		InputStream inputStream = socket.getInputStream();
 
 		while (this.spinning) {
 			if (null == this.socket) {
@@ -637,6 +638,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			int length = -1;
 			int total = 0;
 			try {
+				InputStream inputStream = socket.getInputStream();
 				length = inputStream.read(buf);
 				if (length > 0) {
 					// 写入
@@ -669,6 +671,13 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				}
 			} catch (SocketTimeoutException e) {
 				// Nothing
+			} catch (SocketException e) {
+				spinning = false;
+				Logger.i(BlockingConnector.class, "Socket closed");
+				break;
+			} catch (Exception e) {
+				spinning = false;
+				break;
 			}
 
 			if (total == 0) {

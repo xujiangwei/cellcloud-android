@@ -122,7 +122,7 @@ public class Speaker implements Speakable {
 		this.address = address;
 		this.delegate = delegate;
 		this.block = block;
-		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(6);
 		this.identifierList = new Vector<String>(2);
 	}
 
@@ -292,7 +292,7 @@ public class Speaker implements Speakable {
 				session.deactiveSecretKey();
 			}
 
-			this.nonblockingConnector.resetInterval(500);
+			this.nonblockingConnector.resetInterval(200);
 			this.nonblockingConnector.disconnect();
 			this.nonblockingConnector = null;
 		}
@@ -378,10 +378,10 @@ public class Speaker implements Speakable {
 	 */
 	protected void sleep() {
 		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(5000);
+			this.nonblockingConnector.resetInterval(1000);
 		}
 		else if (null != this.blockingConnector) {
-			this.blockingConnector.resetInterval(5000);
+			this.blockingConnector.resetInterval(1000);
 		}
 	}
 
@@ -390,10 +390,10 @@ public class Speaker implements Speakable {
 	 */
 	protected void wakeup() {
 		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(1000);
+			this.nonblockingConnector.resetInterval(200);
 		}
 		else if (null != this.blockingConnector) {
-			this.blockingConnector.resetInterval(1000);
+			this.blockingConnector.resetInterval(200);
 		}
 	}
 
