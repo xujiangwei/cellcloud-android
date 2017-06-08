@@ -379,7 +379,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	public void write(Message message, BlockingConnectorQueuePriority queuePriority) {
 		if (null == this.session) {
-			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+				}
+			});
 			return;
 		}
 
@@ -392,19 +397,36 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	}
 
 	private void write(Session session, Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
-		if (null == this.socket) {
-			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
-			return;
-		}
+		synchronized (this) {
+			if (null == this.socket) {
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+					}
+				});
+				return;
+			}
 
-		if (this.socket.isClosed() || !this.socket.isConnected()) {
-			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
-			return;
-		}
+			if (this.socket.isClosed() || !this.socket.isConnected()) {
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+					}
+				});
+				return;
+			}
 
-		if (message.length() > this.writeLimit) {
-			this.fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS);
-			return;
+			if (message.length() > this.writeLimit) {
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS);
+					}
+				});
+				return;
+			}
 		}
 
 		// 判断是否进行加密
@@ -434,7 +456,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 该方法会尝试启动数据管理线程将队列的所有消息依次写入 Socket 。
 	 */
 	private void flushMessage(final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
-		if (null == this.socket) {
+		if (null == this.socket || this.socket.isClosed()) {
 			writing.set(false);
 			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 			return;
