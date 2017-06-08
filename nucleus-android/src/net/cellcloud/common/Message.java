@@ -36,6 +36,8 @@ public class Message {
 
 	private byte[] data;
 
+	private Object context;
+
 	/**
 	 * 构造函数。
 	 * 
@@ -70,6 +72,24 @@ public class Message {
 	 */
 	public int length() {
 		return this.data.length;
+	}
+
+	/**
+	 * 设置消息的自定义上下文对象。
+	 * 
+	 * @param context 指定上下文对象。
+	 */
+	public void setContext(Object context) {
+		this.context = context;
+	}
+
+	/**
+	 * 获得消息的自定义上下文对象。
+	 * 
+	 * @return 返回消息的自定义上下文对象。
+	 */
+	public Object getContext() {
+		return this.context;
 	}
 
 }

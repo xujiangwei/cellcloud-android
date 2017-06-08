@@ -113,7 +113,12 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 	 */
 	@Override
 	public void messageSent(Session session, Message message) {
-		// Nothing
+		Object context = message.getContext();
+
+		if (null != context && context instanceof Primitive) {
+			this.speaker.doTalked((Primitive) context);
+			message.setContext(null);
+		}
 	}
 
 	/**

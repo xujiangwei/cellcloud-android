@@ -404,6 +404,11 @@ public class AirNFCActivity extends Activity implements TalkListener {
 	}
 
 	@Override
+	public void talked(String identifier, final Primitive primitive) {
+		Logger.i(AirNFCActivity.class, "talked @" + identifier);
+	}
+
+	@Override
 	public void contacted(final String identifier, String tag) {
 		Logger.i(AirNFCActivity.class, "contacted @" + identifier);
 

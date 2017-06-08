@@ -378,7 +378,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @param queuePriority 指定使用的队列。
 	 */
 	public boolean write(Message message, BlockingConnectorQueuePriority queuePriority) {
-		if (null == this.session || !this.spinning) {
+		if (null == this.session || !this.isConnected()) {
 			Thread thread = new Thread() {
 				@Override
 				public void run() {
@@ -412,7 +412,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				return false;
 			}
 
-			if (this.socket.isClosed() || !this.socket.isConnected()) {
+			if (this.socket.isClosed() || !this.socket.isConnected()
+				|| this.socket.isInputShutdown() || this.socket.isOutputShutdown()) {
 				Thread thread = new Thread() {
 					@Override
 					public void run() {
@@ -679,6 +680,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			}
 
 			if (!socket.isConnected()) {
+				if (System.currentTimeMillis() - time > this.connTimeout + this.connTimeout) {
+					Logger.d(this.getClass(), "socket connected is false");
+					this.spinning = false;
+					break;
+				}
+
 				try {
 					Thread.sleep(100L);
 				} catch (Exception e) {

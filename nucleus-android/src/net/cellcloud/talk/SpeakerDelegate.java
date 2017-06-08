@@ -44,6 +44,14 @@ public interface SpeakerDelegate {
 	public void onDialogue(Speakable speaker, String celletIdentifier, Primitive primitive);
 
 	/**
+	 * 
+	 * @param speaker
+	 * @param celletIdentifier
+	 * @param primitive
+	 */
+	public void onTalked(Speakable speaker, String celletIdentifier, Primitive primitive);
+
+	/**
 	 * 当对话者与 Cellet 建立起连接时此函数被调用。
 	 * 
 	 * @param speaker 建立服务连接的对话者实例。

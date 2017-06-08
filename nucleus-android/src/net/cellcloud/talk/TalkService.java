@@ -875,7 +875,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		if (null != this.listeners) {
 			synchronized (this.listeners) {
-				for (int i = 0; i < this.listeners.size(); ++i) {
+				for (int i = 0, size = this.listeners.size(); i < size; ++i) {
 					this.listeners.get(i).dialogue(identifier, primitive);
 				}
 			}
@@ -890,6 +890,20 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * {@inheritDoc}
 	 */
 	@Override
+	public void onTalked(Speakable speaker, String identifier, Primitive primitive) {
+		if (null != this.listeners) {
+			synchronized (this.listeners) {
+				for (int i = 0, size = this.listeners.size(); i < size; ++i) {
+					this.listeners.get(i).talked(identifier, primitive);
+				}
+			}
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void onContacted(Speakable speaker, String identifier) {
 		if (null == this.listeners) {
 			return;
@@ -897,7 +911,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (int i = 0; i < this.listeners.size(); ++i) {
+			for (int i = 0, size = this.listeners.size(); i < size; ++i) {
 				this.listeners.get(i).contacted(identifier, tag);
 			}
 		}
@@ -914,7 +928,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (int i = 0; i < this.listeners.size(); ++i) {
+			for (int i = 0, size = this.listeners.size(); i < size; ++i) {
 				this.listeners.get(i).quitted(identifier, tag);
 			}
 		}
@@ -931,7 +945,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		String tag = speaker.getRemoteTag();
 		synchronized (this.listeners) {
-			for (int i = 0; i < this.listeners.size(); ++i) {
+			for (int i = 0, size = this.listeners.size(); i < size; ++i) {
 				this.listeners.get(i).failed(tag, failure);
 			}
 		}

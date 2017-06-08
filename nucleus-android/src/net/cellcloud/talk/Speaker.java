@@ -333,6 +333,9 @@ public class Speaker implements Speakable {
 			return false;
 		}
 
+		// 设置对应的 Cellet Identifier
+		primitive.setCelletIdentifier(identifier);
+
 		// 序列化原语
 		ByteArrayOutputStream stream = primitive.write();
 
@@ -345,6 +348,8 @@ public class Speaker implements Speakable {
 		// 发送数据
 		byte[] data = Packet.pack(packet);
 		Message message = new Message(data);
+		message.setContext(primitive);
+
 		if (null != this.blockingConnector) {
 			if (primitive.isDialectal() && primitive.getDialect().getName().equals(ChunkDialect.DIALECT_NAME)) {
 				return this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.Low);
@@ -819,6 +824,15 @@ public class Speaker implements Speakable {
 		primitive.read(stream);
 
 		this.fireDialogue(celletIdentifier, primitive);
+	}
+
+	/**
+	 * 执行发送原语被成功写入 socket 缓存。
+	 * 
+	 * @param primitive 被成功写入缓存的原语数据。
+	 */
+	protected void doTalked(Primitive primitive) {
+		this.delegate.onTalked(this, primitive.getCelletIdentifier(), primitive);
 	}
 
 	/**

@@ -405,6 +405,11 @@ public class MainActivity extends Activity implements TalkListener {
 	}
 
 	@Override
+	public void talked(String identifier, final Primitive primitive) {
+		Logger.i(MainActivity.class, "talked @" + identifier);
+	}
+
+	@Override
 	public void contacted(final String identifier, String tag) {
 		Logger.i(MainActivity.class, "contacted @" + identifier);
 

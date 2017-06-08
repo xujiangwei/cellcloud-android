@@ -43,6 +43,14 @@ public interface TalkListener {
 	public void dialogue(String identifier, Primitive primitive);
 
 	/**
+	 * 当发送数据被写入网络缓存时该函数被调用。
+	 * 
+	 * @param identifier 该数据发送的目标 Cellet 的标识。
+	 * @param primitive 发送的原语数据。
+	 */
+	public void talked(String identifier, Primitive primitive);
+
+	/**
 	 * 当终端成功与指定的 Cellet 建立连接时该函数被调用。
 	 * 
 	 * @param identifier 建立连接的 Cellet 的标识。
