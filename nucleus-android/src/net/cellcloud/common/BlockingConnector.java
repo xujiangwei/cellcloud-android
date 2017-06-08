@@ -68,7 +68,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	private final int writeLimit = 16384;
 
 	/** Socket 超时时间。 */
-	private int soTimeout = 3000;
+	private int soTimeout = 1000;
 	/** 连接超时时间。 */
 	private long connTimeout = 10000L;
 
@@ -314,7 +314,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	@Override
 	public boolean isConnected() {
-		return (null != this.socket && this.socket.isConnected() && this.running.get());
+		return (null != this.socket && this.socket.isConnected() && this.running.get() && this.spinning);
 	}
 
 	/**
@@ -354,21 +354,21 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 
 	 * @param message 指定消息。
 	 */
-	public void write(Message message) {
+	public boolean write(Message message) {
 		if (null == this.session) {
 			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
-			return;
+			return false;
 		}
 
-		this.write(this.session, message);
+		return this.write(this.session, message);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void write(Session session, Message message) {
-		this.write(session, message, this.messageQueueHP, this.writingHP);
+	public boolean write(Session session, Message message) {
+		return this.write(session, message, this.messageQueueHP, this.writingHP);
 	}
 
 	/**
@@ -377,55 +377,63 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @param message 指定待写入的消息。
 	 * @param queuePriority 指定使用的队列。
 	 */
-	public void write(Message message, BlockingConnectorQueuePriority queuePriority) {
-		if (null == this.session) {
-			this.executor.execute(new Runnable() {
+	public boolean write(Message message, BlockingConnectorQueuePriority queuePriority) {
+		if (null == this.session || !this.spinning) {
+			Thread thread = new Thread() {
 				@Override
 				public void run() {
 					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
 				}
-			});
-			return;
+			};
+			thread.setName("ErrorOccurred");
+			thread.start();
+			return false;
 		}
 
 		if (queuePriority == BlockingConnectorQueuePriority.High) {
-			this.write(this.session, message, this.messageQueueHP, this.writingHP);
+			return this.write(this.session, message, this.messageQueueHP, this.writingHP);
 		}
 		else {
-			this.write(this.session, message, this.messageQueueLP, this.writingLP);
+			return this.write(this.session, message, this.messageQueueLP, this.writingLP);
 		}
 	}
 
-	private void write(Session session, Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
+	private boolean write(Session session, Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
 		synchronized (this) {
 			if (null == this.socket) {
-				this.executor.execute(new Runnable() {
+				Thread thread = new Thread() {
 					@Override
 					public void run() {
 						fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
 					}
-				});
-				return;
+				};
+				thread.setName("ErrorOccurred");
+				thread.start();
+				return false;
 			}
 
 			if (this.socket.isClosed() || !this.socket.isConnected()) {
-				this.executor.execute(new Runnable() {
+				Thread thread = new Thread() {
 					@Override
 					public void run() {
 						fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
 					}
-				});
-				return;
+				};
+				thread.setName("ErrorOccurred");
+				thread.start();
+				return false;
 			}
 
 			if (message.length() > this.writeLimit) {
-				this.executor.execute(new Runnable() {
+				Thread thread = new Thread() {
 					@Override
 					public void run() {
 						fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS);
 					}
-				});
-				return;
+				};
+				thread.setName("ErrorOccurred");
+				thread.start();
+				return false;
 			}
 		}
 
@@ -449,6 +457,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				}
 			});
 		}
+
+		return true;
 	}
 
 	/**
@@ -456,9 +466,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 该方法会尝试启动数据管理线程将队列的所有消息依次写入 Socket 。
 	 */
 	private void flushMessage(final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
-		if (null == this.socket || this.socket.isClosed()) {
+		if (!this.isConnected() /*null == this.socket || this.socket.isClosed() || !this.spinning*/) {
 			writing.set(false);
-			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+				}
+			});
 			return;
 		}
 
@@ -512,17 +527,29 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			} catch (IOException e) {
 				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.WARNING);
-				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+					}
+				});
 			} catch (Exception e) {
 				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.ERROR);
-				this.fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+					}
+				});
 			}
 		}
 
 		if (!messageQueue.isEmpty()) {
 			writing.set(true);
-			executor.execute(new Runnable() {
+			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
 					flushMessage(messageQueue, writing);
@@ -581,6 +608,11 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 
 		if (null != this.socket) {
+			try {
+				this.socket.close();
+			} catch (Exception e) {
+				Logger.d(this.getClass(), "Process 'session destroyed' exception");
+			}
 			this.socket = null;
 		}
 
@@ -620,6 +652,9 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		Socket socket = this.socket;
 
+		ByteBuffer bytes = ByteBuffer.allocate(this.block);
+		byte[] buf = new byte[8192];
+
 		while (this.spinning) {
 			if (null == this.socket) {
 				this.spinning = false;
@@ -653,8 +688,8 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				continue;
 			}
 
-			ByteBuffer bytes = ByteBuffer.allocate(this.block);
-			byte[] buf = new byte[8192];
+			// 清空缓存
+			bytes.clear();
 
 			// 读取数据
 			int length = -1;
@@ -680,7 +715,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 								bytes.flip();
 							}
 							newBytes.put(bytes);
-//							bytes.clear();
 							bytes = null;
 							// 新缓存
 							bytes = newBytes;
@@ -704,9 +738,6 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 			if (total == 0) {
 				// 超时未读取到数据
-				bytes = null;
-				buf = null;
-
 				try {
 					Thread.sleep(this.interval);
 				} catch (Exception e) {
@@ -724,13 +755,15 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 			this.process(data);
 
-			bytes.clear();
-			bytes = null;
 			data = null;
-			buf = null;
+			bytes.clear();
 		}
 
 		this.spinning = false;
+
+		bytes.clear();
+		bytes = null;
+		buf = null;
 
 		Logger.i(this.getClass(), "Quit loop dispatch");
 	}

@@ -201,23 +201,23 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void write(Session session, Message message) {
+	public boolean write(Session session, Message message) {
 		if (null == this.session) {
-			return;
+			return false;
 		}
 
 		if (session.getId().longValue() != this.session.getId().longValue()) {
 			if (null != this.handler) {
 				this.handler.errorOccurred(MessageErrorCode.STATE_ERROR, session);
 			}
-			return;
+			return false;
 		}
 
 		if (null == this.socket) {
 			if (null != this.handler) {
 				this.handler.errorOccurred(MessageErrorCode.WRITE_FAILED, session);
 			}
-			return;
+			return false;
 		}
 
 		synchronized (this.writeQueue) {
@@ -288,6 +288,8 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 			};
 			this.writeThread.start();
 		}
+
+		return true;
 	}
 
 	/**

@@ -357,23 +357,25 @@ public class NonblockingConnector extends MessageService implements MessageConne
 		return this.session;
 	}
 
-	public void write(Message message) {
-		this.write(null, message);
+	public boolean write(Message message) {
+		return this.write(null, message);
 	}
 
 	@Override
-	public void write(Session session, Message message) {
+	public boolean write(Session session, Message message) {
 		if (null == this.channel || false == this.channel.isConnected()) {
 			this.fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
-			return;
+			return false;
 		}
 
 		if (message.length() > this.writeLimit) {
 			this.fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS);
-			return;
+			return false;
 		}
 
 		this.messages.add(message);
+
+		return true;
 	}
 
 	/**

@@ -271,15 +271,17 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 	}
 
 	@Override
-	public void write(Session session, Message message) {
+	public boolean write(Session session, Message message) {
 		Iterator<NonblockingAcceptorSession> iter = this.sessions.values().iterator();
 		while (iter.hasNext()) {
 			NonblockingAcceptorSession nas = iter.next();
 			if (nas.getId().longValue() == session.getId().longValue()) {
 				nas.messages.add(message);
-				break;
+				return true;
 			}
 		}
+
+		return false;
 	}
 
 	/**

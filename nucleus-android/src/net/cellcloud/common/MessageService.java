@@ -149,6 +149,6 @@ public abstract class MessageService {
 	 * @param session
 	 * @param message
 	 */
-	public abstract void write(Session session, Message message);
+	public abstract boolean write(Session session, Message message);
 
 }

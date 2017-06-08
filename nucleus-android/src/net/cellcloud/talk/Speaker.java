@@ -347,17 +347,15 @@ public class Speaker implements Speakable {
 		Message message = new Message(data);
 		if (null != this.blockingConnector) {
 			if (primitive.isDialectal() && primitive.getDialect().getName().equals(ChunkDialect.DIALECT_NAME)) {
-				this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.Low);
+				return this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.Low);
 			}
 			else {
-				this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.High);
+				return this.blockingConnector.write(message, BlockingConnector.BlockingConnectorQueuePriority.High);
 			}
 		}
 		else {
-			this.nonblockingConnector.write(message);
+			return this.nonblockingConnector.write(message);
 		}
-
-		return true;
 	}
 
 	/**
@@ -437,19 +435,18 @@ public class Speaker implements Speakable {
 	 * @return 数据成功写入发送队列返回 <code>true</code> 。
 	 */
 	protected boolean heartbeat() {
-		MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
+		MessageConnector connector = (null != this.blockingConnector) ? this.blockingConnector : this.nonblockingConnector;
 		if (this.authenticated && !this.lost && connector.isConnected()) {
 			Packet packet = new Packet(TalkDefinition.TPT_HEARTBEAT, 9, 2, 0);
 			byte[] data = Packet.pack(packet);
 			Message message = new Message(data);
 
-			if (null != this.nonblockingConnector) {
-				this.nonblockingConnector.write(message);
+			if (null != this.blockingConnector) {
+				return this.blockingConnector.write(message);
 			}
 			else {
-				this.blockingConnector.write(message);
+				return this.nonblockingConnector.write(message);
 			}
-			return true;
 		}
 		else {
 			return false;
