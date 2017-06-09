@@ -427,7 +427,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	}
 	private void fireErrorOccurred(int errorCode) {
 		if (null != this.handler) {
-			this.handler.errorOccurred(errorCode, this.session);
+			this.handler.errorOccurred(errorCode, this.session, null);
 		}
 	}
 

@@ -449,7 +449,7 @@ public class NonblockingAcceptor extends MessageService implements MessageAccept
 		}
 
 		if (null != this.handler) {
-			this.handler.errorOccurred(errorCode, session);
+			this.handler.errorOccurred(errorCode, session, null);
 		}
 	}
 

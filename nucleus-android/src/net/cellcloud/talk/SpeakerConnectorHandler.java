@@ -114,7 +114,6 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 	@Override
 	public void messageSent(Session session, Message message) {
 		Object context = message.getContext();
-
 		if (null != context && context instanceof Primitive) {
 			this.speaker.doTalked((Primitive) context);
 			message.setContext(null);
@@ -125,7 +124,7 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void errorOccurred(int errorCode, Session session) {
+	public void errorOccurred(int errorCode, Session session, Message message) {
 		if (Logger.isDebugLevel()) {
 			Logger.d(SpeakerConnectorHandler.class, "errorOccurred : " + errorCode);
 		}
@@ -150,6 +149,12 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.INCORRECT_DATA
 					, this.getClass(), this.speaker.getAddress().getHostString(), this.speaker.getAddress().getPort());
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
+			if (null != message) {
+				Object ctx = message.getContext();
+				if (null != ctx && ctx instanceof Primitive) {
+					failure.setSourcePrimitive((Primitive) ctx);
+				}
+			}
 			this.speaker.fireFailed(failure);
 		}
 		else {
@@ -158,6 +163,12 @@ public final class SpeakerConnectorHandler implements MessageHandler {
 					, this.getClass(), this.speaker.getAddress().getHostString(), this.speaker.getAddress().getPort());
 			failure.setSourceDescription("Network is not available, error : " + errorCode);
 			failure.setSourceCelletIdentifiers(this.speaker.getIdentifiers());
+			if (null != message) {
+				Object ctx = message.getContext();
+				if (null != ctx && ctx instanceof Primitive) {
+					failure.setSourcePrimitive((Primitive) ctx);
+				}
+			}
 			this.speaker.fireFailed(failure);
 		}
 	}

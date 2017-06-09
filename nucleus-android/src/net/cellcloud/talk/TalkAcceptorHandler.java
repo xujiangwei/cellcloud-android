@@ -102,7 +102,7 @@ public final class TalkAcceptorHandler implements MessageHandler {
 	}
 
 	@Override
-	public void errorOccurred(int errorCode, Session session) {
+	public void errorOccurred(int errorCode, Session session, Message message) {
 		// Nothing
 	}
 

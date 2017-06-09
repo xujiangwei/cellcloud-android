@@ -151,7 +151,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 		// 判断是否有网络连接
 		if (!Utils.isNetworkConnected(this.androidContext)) {
-			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK);
+			this.fireErrorOccurred(MessageErrorCode.NO_NETWORK, null);
 			return false;
 		}
 
@@ -187,7 +187,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 					}
 				} catch (IOException e) {
 					Logger.log(BlockingConnector.class, e, LogLevel.ERROR);
-					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED, null);
 					running.set(false);
 					socket = null;
 					return;
@@ -265,7 +265,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			if (duration >= this.connTimeout) {
 				Logger.w(this.getClass(), "Connect " + address.toString() + " timeout.");
 				this.disconnect();
-				fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT);
+				fireErrorOccurred(MessageErrorCode.CONNECT_TIMEOUT, null);
 				return false;
 			}
 		}
@@ -301,7 +301,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		if (null != this.socket) {
 			try {
 				this.socket.close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				Logger.log(BlockingConnector.class, e, LogLevel.DEBUG);
 			}
 
@@ -354,9 +354,15 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 
 	 * @param message 指定消息。
 	 */
-	public boolean write(Message message) {
-		if (null == this.session) {
-			this.fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+	public boolean write(final Message message) {
+		if (!this.isConnected()) {
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED, message);
+				}
+			});
+
 			return false;
 		}
 
@@ -377,12 +383,12 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * @param message 指定待写入的消息。
 	 * @param queuePriority 指定使用的队列。
 	 */
-	public boolean write(Message message, BlockingConnectorQueuePriority queuePriority) {
+	public boolean write(final Message message, BlockingConnectorQueuePriority queuePriority) {
 		if (null == this.session || !this.isConnected()) {
 			Thread thread = new Thread() {
 				@Override
 				public void run() {
-					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+					fireErrorOccurred(MessageErrorCode.SOCKET_FAILED, message);
 				}
 			};
 			thread.setName("ErrorOccurred");
@@ -398,13 +404,13 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 		}
 	}
 
-	private boolean write(Session session, Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
+	private boolean write(Session session, final Message message, final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
 		synchronized (this) {
 			if (null == this.socket) {
 				Thread thread = new Thread() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+						fireErrorOccurred(MessageErrorCode.CONNECT_FAILED, message);
 					}
 				};
 				thread.setName("ErrorOccurred");
@@ -417,7 +423,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				Thread thread = new Thread() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.SOCKET_FAILED);
+						fireErrorOccurred(MessageErrorCode.SOCKET_FAILED, message);
 					}
 				};
 				thread.setName("ErrorOccurred");
@@ -429,7 +435,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				Thread thread = new Thread() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS);
+						fireErrorOccurred(MessageErrorCode.WRITE_OUTOFBOUNDS, message);
 					}
 				};
 				thread.setName("ErrorOccurred");
@@ -467,19 +473,21 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 * 该方法会尝试启动数据管理线程将队列的所有消息依次写入 Socket 。
 	 */
 	private void flushMessage(final LinkedList<Message> messageQueue, final AtomicBoolean writing) {
-		if (!this.isConnected() /*null == this.socket || this.socket.isClosed() || !this.spinning*/) {
+		if (!this.isConnected()) {
 			writing.set(false);
 			this.executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					fireErrorOccurred(MessageErrorCode.CONNECT_FAILED);
+					fireErrorOccurred(MessageErrorCode.CONNECT_FAILED, null);
 				}
 			});
 			return;
 		}
 
+		Message message = null;
+
 		while (this.isConnected() && writing.get()) {
-			Message message = null;
+			message = null;
 
 			synchronized (messageQueue) {
 				if (messageQueue.isEmpty()) {
@@ -525,24 +533,40 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 
 				// sleep
 				Thread.sleep(this.writingInterval);
+			} catch (SocketException e) {
+				writing.set(false);
+				Logger.log(this.getClass(), e, LogLevel.INFO);
+
+				final Message srcMessage = message;
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED, srcMessage);
+
+						// 关闭连接
+						disconnect();
+					}
+				});
 			} catch (IOException e) {
 				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.WARNING);
 
+				final Message srcMessage = message;
 				this.executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED, srcMessage);
 					}
 				});
 			} catch (Exception e) {
 				writing.set(false);
 				Logger.log(this.getClass(), e, LogLevel.ERROR);
 
+				final Message srcMessage = message;
 				this.executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.WRITE_FAILED);
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED, srcMessage);
 					}
 				});
 			}
@@ -629,14 +653,14 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	/**
 	 * 回调 {@link MessageHandler#errorOccurred(int, Session)} 。
 	 */
-	private void fireErrorOccurred(int errorCode) {
+	private void fireErrorOccurred(int errorCode, Message message) {
 		if (this.activeClose) {
 			// 主动关闭时，不回调错误
 			return;
 		}
 
 		if (null != this.handler) {
-			this.handler.errorOccurred(errorCode, this.session);
+			this.handler.errorOccurred(errorCode, this.session, message);
 		}
 	}
 

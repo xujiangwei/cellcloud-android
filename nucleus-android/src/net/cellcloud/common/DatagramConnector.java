@@ -106,7 +106,7 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 
 				if (null == socket) {
 					if (null != handler) {
-						handler.errorOccurred(MessageErrorCode.SOCKET_FAILED, null);
+						handler.errorOccurred(MessageErrorCode.SOCKET_FAILED, null, null);
 					}
 					return;
 				}
@@ -201,21 +201,21 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean write(Session session, Message message) {
+	public boolean write(Session session, final Message message) {
 		if (null == this.session) {
 			return false;
 		}
 
 		if (session.getId().longValue() != this.session.getId().longValue()) {
 			if (null != this.handler) {
-				this.handler.errorOccurred(MessageErrorCode.STATE_ERROR, session);
+				this.handler.errorOccurred(MessageErrorCode.STATE_ERROR, session, message);
 			}
 			return false;
 		}
 
 		if (null == this.socket) {
 			if (null != this.handler) {
-				this.handler.errorOccurred(MessageErrorCode.WRITE_FAILED, session);
+				this.handler.errorOccurred(MessageErrorCode.WRITE_FAILED, session, message);
 			}
 			return false;
 		}
@@ -273,12 +273,12 @@ public class DatagramConnector extends MessageService implements MessageConnecto
 						} catch (SocketException e) {
 							Logger.log(this.getClass(), e, LogLevel.ERROR);
 							if (null != handler) {
-								handler.errorOccurred(MessageErrorCode.SOCKET_FAILED, DatagramConnector.this.session);
+								handler.errorOccurred(MessageErrorCode.SOCKET_FAILED, DatagramConnector.this.session, message);
 							}
 						} catch (IOException e) {
 							Logger.log(this.getClass(), e, LogLevel.ERROR);
 							if (null != handler) {
-								handler.errorOccurred(MessageErrorCode.WRITE_FAILED, DatagramConnector.this.session);
+								handler.errorOccurred(MessageErrorCode.WRITE_FAILED, DatagramConnector.this.session, message);
 							}
 						}
 					} while (!writeQueue.isEmpty() || counts > 0);

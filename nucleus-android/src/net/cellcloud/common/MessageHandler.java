@@ -84,6 +84,6 @@ public interface MessageHandler {
 	 * @param errorCode 错误码 {@link MessageErrorCode} 。
 	 * @param session 发生错误的会话。
 	 */
-	public void errorOccurred(int errorCode, Session session);
+	public void errorOccurred(int errorCode, Session session, Message message);
 
 }

@@ -63,6 +63,11 @@ public final class TalkServiceFailure {
 	private Vector<String> sourceCelletIdentifiers = new Vector<String>(2);
 
 	/**
+	 * 故障相关的原语。
+	 */
+	private Primitive sourcePrimitive = null;
+
+	/**
 	 * 故障相关连接的地址。
 	 */
 	private String host;
@@ -182,6 +187,24 @@ public final class TalkServiceFailure {
 	public void setSourceCelletIdentifiers(List<String> celletIdentifiers) {
 		this.sourceCelletIdentifiers.clear();
 		this.sourceCelletIdentifiers.addAll(celletIdentifiers);
+	}
+
+	/**
+	 * 设置与故障相关的原语。
+	 * 
+	 * @param primitive 指定原语。
+	 */
+	public void setSourcePrimitive(Primitive primitive) {
+		this.sourcePrimitive = primitive;
+	}
+
+	/**
+	 * 获得与故障相关的原语。
+	 * 
+	 * @return 返回与故障相关的原语。
+	 */
+	public Primitive getSourcePrimitive() {
+		return this.sourcePrimitive;
 	}
 
 }
