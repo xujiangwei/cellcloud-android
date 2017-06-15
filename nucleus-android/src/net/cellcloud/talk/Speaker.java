@@ -141,7 +141,7 @@ public class Speaker implements Speakable {
 		this.delegate = delegate;
 		this.block = block;
 		this.capacity = capacity;
-		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(4);
+		this.executor = CachedQueueExecutor.newCachedQueueThreadPool(6);
 		this.identifierList = new Vector<String>(2);
 	}
 
@@ -927,17 +927,20 @@ public class Speaker implements Speakable {
 			}
 		}
 		else {
-			// 变更状态
-			this.state = SpeakerState.HANGUP;
+			this.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					ArrayList<String> iderList = new ArrayList<String>(identifierList);
 
-			// 回调事件
-			TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class,
-					this.address.getHostString(), this.address.getPort());
-			failure.setSourceCelletIdentifiers(this.identifierList);
-			this.fireFailed(failure);
+					hangUp();
 
-			MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
-			connector.disconnect();
+					// 回调事件
+					TalkServiceFailure failure = new TalkServiceFailure(TalkFailureCode.NOT_FOUND, Speaker.class,
+							address.getHostString(), address.getPort());
+					failure.setSourceCelletIdentifiers(iderList);
+					fireFailed(failure);
+				}
+			});
 		}
 	}
 

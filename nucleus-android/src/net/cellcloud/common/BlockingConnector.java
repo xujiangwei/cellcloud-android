@@ -544,10 +544,10 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 				this.executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						fireErrorOccurred(MessageErrorCode.WRITE_FAILED, srcMessage);
-
 						// 关闭连接
 						disconnect();
+
+						fireErrorOccurred(MessageErrorCode.WRITE_FAILED, srcMessage);
 					}
 				});
 			} catch (IOException e) {
