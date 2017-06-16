@@ -95,9 +95,15 @@ public class ChunkDialectFactory extends DialectFactory {
 		this.metaData = new DialectMetaData(ChunkDialect.DIALECT_NAME, "Chunk Dialect");
 		this.executor = executor;
 		this.cacheMap = new ConcurrentHashMap<String, Cache>();
-		this.quotaTimer = new Timer("ChunkQuotaTimer");
-		this.quotaTimer.schedule(new QuotaTask(), 3000L, 1000L);
-		this.quotaTimestamp = System.currentTimeMillis();
+	}
+
+	/**
+	 * 设置执行器。
+	 * 
+	 * @param executor
+	 */
+	public void resetExecutor(ExecutorService executor) {
+		this.executor = executor;
 	}
 
 	/**
@@ -114,6 +120,18 @@ public class ChunkDialectFactory extends DialectFactory {
 	@Override
 	public Dialect create(String tracker) {
 		return new ChunkDialect(tracker);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void startup() {
+		if (null == this.quotaTimer) {
+			this.quotaTimer = new Timer("ChunkQuotaTimer");
+			this.quotaTimer.schedule(new QuotaTask(), 3000L, 1000L);
+			this.quotaTimestamp = System.currentTimeMillis();
+		}
 	}
 
 	/**

@@ -49,6 +49,11 @@ public abstract class DialectFactory {
 	abstract public Dialect create(String tracker);
 
 	/**
+	 * 启动工厂。
+	 */
+	abstract public void startup();
+
+	/**
 	 * 关闭工厂。
 	 */
 	abstract public void shutdown();

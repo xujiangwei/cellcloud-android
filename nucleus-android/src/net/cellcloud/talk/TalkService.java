@@ -55,7 +55,9 @@ import net.cellcloud.core.Nucleus;
 import net.cellcloud.core.NucleusContext;
 import net.cellcloud.exception.InvalidException;
 import net.cellcloud.exception.SingletonException;
+import net.cellcloud.talk.dialect.ActionDialect;
 import net.cellcloud.talk.dialect.ActionDialectFactory;
+import net.cellcloud.talk.dialect.ChunkDialect;
 import net.cellcloud.talk.dialect.ChunkDialectFactory;
 import net.cellcloud.talk.dialect.Dialect;
 import net.cellcloud.talk.dialect.DialectEnumerator;
@@ -112,7 +114,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 	/** 时间广播接收器。 */
 	private TimeReceiver receiver;
 	/** 对话守护任务。 */
-	private TalkServiceDaemon daemon;
+	private TalkServiceDaemon daemon = null;
 
 	/** 用户客户端模式下的对话监听器列表。 */
 	private ArrayList<TalkListener> listeners;
@@ -179,6 +181,12 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 */
 	@Override
 	public boolean startup() {
+		if (null == this.executor) {
+			this.executor = Executors.newCachedThreadPool();
+			((ActionDialectFactory) DialectEnumerator.getInstance().getFactory(ActionDialect.DIALECT_NAME)).resetExecutor(this.executor);
+			((ChunkDialectFactory) DialectEnumerator.getInstance().getFactory(ChunkDialect.DIALECT_NAME)).resetExecutor(this.executor);
+		}
+
 		if (null == this.unidentifiedSessions) {
 			this.unidentifiedSessions = new ConcurrentHashMap<Long, Certificate>();
 		}
@@ -231,6 +239,7 @@ public final class TalkService implements Service, SpeakerDelegate {
 
 		if (null != this.executor) {
 			this.executor.shutdown();
+			this.executor = null;
 		}
 	}
 
@@ -271,12 +280,13 @@ public final class TalkService implements Service, SpeakerDelegate {
 	 * 启动任务守护线程。
 	 */
 	public void startDaemon() {
-		if (null != this.daemon) {
-			return;
+		if (null == this.daemon) {
+			this.daemon = new TalkServiceDaemon(false);
+			this.receiver.registerReceiver(Nucleus.getInstance().getAppContext(), this.daemon);
 		}
 
-		this.daemon = new TalkServiceDaemon(false);
-		this.receiver.registerReceiver(Nucleus.getInstance().getAppContext(), this.daemon);
+		// 启动所有方言工厂
+		DialectEnumerator.getInstance().startupAll();
 	}
 
 	/**

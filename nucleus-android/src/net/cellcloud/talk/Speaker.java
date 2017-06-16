@@ -170,8 +170,8 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public synchronized boolean call(List<String> identifiers) {
-		if (SpeakerState.CALLING == this.state) {
-			// 正在 Call 返回 false
+		if (SpeakerState.HANGUP != this.state) {
+			// 不是 Hang up 状态 返回 false
 			return false;
 		}
 

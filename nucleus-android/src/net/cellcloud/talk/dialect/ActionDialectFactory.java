@@ -76,6 +76,15 @@ public final class ActionDialectFactory extends DialectFactory {
 	}
 
 	/**
+	 * 设置执行器。
+	 * 
+	 * @param executor
+	 */
+	public void resetExecutor(ExecutorService executor) {
+		this.executor = executor;
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -89,6 +98,14 @@ public final class ActionDialectFactory extends DialectFactory {
 	@Override
 	public Dialect create(String tracker) {
 		return new ActionDialect(tracker);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void startup() {
+		// Nothing
 	}
 
 	/**

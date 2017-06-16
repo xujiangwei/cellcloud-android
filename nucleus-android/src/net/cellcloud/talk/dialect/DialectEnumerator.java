@@ -105,6 +105,15 @@ public final class DialectEnumerator implements TalkDelegate, CelletCallbackList
 	}
 
 	/**
+	 * 启动所有方言工厂。
+	 */
+	public void startupAll() {
+		for (DialectFactory fact : this.factories.values()) {
+			fact.startup();
+		}
+	}
+
+	/**
 	 * 关闭所有方言工厂。
 	 */
 	public void shutdownAll() {
