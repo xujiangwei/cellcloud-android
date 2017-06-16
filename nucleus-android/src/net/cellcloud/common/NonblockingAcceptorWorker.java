@@ -335,7 +335,7 @@ public final class NonblockingAcceptorWorker extends Thread {
 					ByteBuffer buf = null;
 
 					// 根据是否有数据掩码组装数据包
-					if (this.acceptor.existDataMark()) {
+					if (this.acceptor.hasDataMark()) {
 						byte[] data = message.get();
 						byte[] head = this.acceptor.getHeadMark();
 						byte[] tail = this.acceptor.getTailMark();
@@ -371,7 +371,7 @@ public final class NonblockingAcceptorWorker extends Thread {
 	 */
 	private void parse(NonblockingAcceptorSession session, byte[] data) {
 		// 根据数据标志获取数据
-		if (this.acceptor.existDataMark()) {
+		if (this.acceptor.hasDataMark()) {
 			ArrayList<byte[]> out = new ArrayList<byte[]>(2);
 			// 进行递归提取
 			this.extract(out, session, data);
@@ -399,7 +399,7 @@ public final class NonblockingAcceptorWorker extends Thread {
 	 */
 	protected void parseData(NonblockingAcceptorSession session, byte[] data) {
 		// 根据数据标志获取数据
-		if (this.acceptor.existDataMark()) {
+		if (this.acceptor.hasDataMark()) {
 			byte[] headMark = this.acceptor.getHeadMark();
 			byte[] tailMark = this.acceptor.getTailMark();
 

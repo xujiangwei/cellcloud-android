@@ -509,7 +509,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 			try {
 				OutputStream os = this.socket.getOutputStream();
 
-				if (this.existDataMark()) {
+				if (this.hasDataMark()) {
 					byte[] data = message.get();
 					byte[] head = this.getHeadMark();
 					byte[] tail = this.getTailMark();
@@ -826,7 +826,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 	 */
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
-		if (this.existDataMark()) {
+		if (this.hasDataMark()) {
 			// 数据递归提取
 			this.extract(this.receivedQueue, data);
 
@@ -847,25 +847,7 @@ public class BlockingConnector extends MessageService implements MessageConnecto
 								if (null != handler) {
 									handler.messageReceived(session, message);
 								}
-
-								receivedQueue.remove(bytes);
 							}
-
-							/*Iterator<byte[]> iter = receivedList.iterator();
-							while (iter.hasNext()) {
-								Message message = new Message(iter.next());
-
-								byte[] skey = session.getSecretKey();
-								if (null != skey) {
-									decryptMessage(message, skey);
-								}
-
-								if (null != handler) {
-									handler.messageReceived(session, message);
-								}
-
-								iter.remove();
-							}*/
 						} // #synchronized
 					}
 				});

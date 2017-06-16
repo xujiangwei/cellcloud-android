@@ -638,7 +638,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 					}
 
 					ByteBuffer writeBuffer = null;
-					if (this.existDataMark()) {
+					if (this.hasDataMark()) {
 						byte[] data = message.get();
 						byte[] head = this.getHeadMark();
 						byte[] tail = this.getTailMark();
@@ -672,7 +672,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 
 	private void process(byte[] data) {
 		// 根据数据标志获取数据
-		if (this.existDataMark()) {
+		if (this.hasDataMark()) {
 			LinkedList<byte[]> out = new LinkedList<byte[]>();
 			// 数据递归提取
 			this.extract(out, data);
@@ -714,7 +714,7 @@ public class NonblockingConnector extends MessageService implements MessageConne
 	 */
 	protected void processData(byte[] data) {
 		// 根据数据标志获取数据
-		if (this.existDataMark()) {
+		if (this.hasDataMark()) {
 			byte[] headMark = this.getHeadMark();
 			byte[] tailMark = this.getTailMark();
 

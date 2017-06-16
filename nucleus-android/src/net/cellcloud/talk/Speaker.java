@@ -41,7 +41,6 @@ import net.cellcloud.common.Cryptology;
 import net.cellcloud.common.Logger;
 import net.cellcloud.common.Message;
 import net.cellcloud.common.MessageConnector;
-import net.cellcloud.common.NonblockingConnector;
 import net.cellcloud.common.Packet;
 import net.cellcloud.common.Session;
 import net.cellcloud.core.Nucleus;
@@ -66,8 +65,6 @@ public class Speaker implements Speakable {
 	private SpeakerDelegate delegate;
 	/** 用于建立连接的阻塞连接器。 */
 	private BlockingConnector blockingConnector;
-	/** 用于建立连接的非阻塞连接器。 */
-	private NonblockingConnector nonblockingConnector;
 	/** 数据缓存区大小。 */
 	private int block;
 
@@ -115,7 +112,6 @@ public class Speaker implements Speakable {
 	 * @param address 指定访问地址。
 	 * @param delegate 指定事件委派。
 	 * @param block 指定缓存区大小。
-	 * @param executor 指定线程执行器。
 	 */
 	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
@@ -133,7 +129,6 @@ public class Speaker implements Speakable {
 	 * @param delegate 指定事件委派。
 	 * @param block 指定缓存区大小。
 	 * @param capacity 指定协商能力。
-	 * @param executor 指定线程执行器。
 	 */
 	public Speaker(InetSocketAddress address, SpeakerDelegate delegate, int block, TalkCapacity capacity) {
 		this.nucleusTag = Nucleus.getInstance().getTagAsString().getBytes();
@@ -200,43 +195,20 @@ public class Speaker implements Speakable {
 			return false;
 		}
 
-		if (null != this.capacity && this.capacity.blocking) {
-			if (null == this.blockingConnector) {
-				this.blockingConnector = new BlockingConnector(Nucleus.getInstance().getAppContext(), this.executor);
-				this.blockingConnector.setBlockSize(this.block);
-				this.blockingConnector.setConnectTimeout(this.capacity.connectTimeout);
+		if (null == this.blockingConnector) {
+			this.blockingConnector = new BlockingConnector(Nucleus.getInstance().getAppContext(), this.executor);
+			this.blockingConnector.setBlockSize(this.block);
+			this.blockingConnector.setConnectTimeout(null != this.capacity ? this.capacity.connectTimeout : 10000L);
 
-				byte[] headMark = {0x20, 0x10, 0x11, 0x10};
-				byte[] tailMark = {0x19, 0x78, 0x10, 0x04};
-				this.blockingConnector.defineDataMark(headMark, tailMark);
+			byte[] headMark = {0x20, 0x10, 0x11, 0x10};
+			byte[] tailMark = {0x19, 0x78, 0x10, 0x04};
+			this.blockingConnector.defineDataMark(headMark, tailMark);
 
-				this.blockingConnector.setHandler(new SpeakerConnectorHandler(this));
-			}
-			else {
-				if (this.blockingConnector.isConnected()) {
-					this.blockingConnector.disconnect();
-				}
-			}
+			this.blockingConnector.setHandler(new SpeakerConnectorHandler(this));
 		}
 		else {
-			if (null == this.nonblockingConnector) {
-				this.nonblockingConnector = new NonblockingConnector(Nucleus.getInstance().getAppContext());
-				this.nonblockingConnector.setBlockSize(this.block);
-
-				if (null != this.capacity) {
-					this.nonblockingConnector.setConnectTimeout(this.capacity.connectTimeout);
-				}
-
-				byte[] headMark = {0x20, 0x10, 0x11, 0x10};
-				byte[] tailMark = {0x19, 0x78, 0x10, 0x04};
-				this.nonblockingConnector.defineDataMark(headMark, tailMark);
-
-				this.nonblockingConnector.setHandler(new SpeakerConnectorHandler(this));
-			}
-			else {
-				if (this.nonblockingConnector.isConnected()) {
-					this.nonblockingConnector.disconnect();
-				}
+			if (this.blockingConnector.isConnected()) {
+				this.blockingConnector.disconnect();
 			}
 		}
 
@@ -251,8 +223,7 @@ public class Speaker implements Speakable {
 				retryTimestamp = 0;
 
 				// 进行连接
-				MessageConnector connector = (null != nonblockingConnector) ? nonblockingConnector : blockingConnector;
-				boolean ret = connector.connect(address);
+				boolean ret = blockingConnector.connect(address);
 				if (ret) {
 					// 开始进行调用
 					state = SpeakerState.CALLING;
@@ -286,17 +257,7 @@ public class Speaker implements Speakable {
 			this.contactedTimer = null;
 		}
 
-		if (null != this.nonblockingConnector) {
-			Session session = this.nonblockingConnector.getSession();
-			if (null != session) {
-				session.deactiveSecretKey();
-			}
-
-			this.nonblockingConnector.resetInterval(200);
-			this.nonblockingConnector.disconnect();
-			this.nonblockingConnector = null;
-		}
-		else if (null != this.blockingConnector) {
+		if (null != this.blockingConnector) {
 			Session session = this.blockingConnector.getSession();
 			if (null != session) {
 				session.deactiveSecretKey();
@@ -326,7 +287,7 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public synchronized boolean speak(String identifier, Primitive primitive) {
-		MessageConnector connector = (null != this.blockingConnector) ? this.blockingConnector : this.nonblockingConnector;
+		MessageConnector connector = this.blockingConnector;
 		if (null == connector
 			|| !connector.isConnected()
 			|| this.state != SpeakerState.CALLED) {
@@ -359,7 +320,7 @@ public class Speaker implements Speakable {
 			}
 		}
 		else {
-			return this.nonblockingConnector.write(message);
+			return false;
 		}
 	}
 
@@ -368,22 +329,18 @@ public class Speaker implements Speakable {
 	 */
 	@Override
 	public boolean isCalled() {
-		if (null != this.nonblockingConnector) {
-			return (this.state == SpeakerState.CALLED) && this.nonblockingConnector.isConnected();
+		if (null == this.blockingConnector) {
+			return false;
 		}
-		else {
-			return (this.state == SpeakerState.CALLED) && this.blockingConnector.isConnected();
-		}
+
+		return (this.state == SpeakerState.CALLED) && this.blockingConnector.isConnected();
 	}
 
 	/**
 	 * 进入休眠模式。
 	 */
 	protected void sleep() {
-		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(1000);
-		}
-		else if (null != this.blockingConnector) {
+		if (null != this.blockingConnector) {
 			this.blockingConnector.resetInterval(1000);
 		}
 	}
@@ -392,10 +349,7 @@ public class Speaker implements Speakable {
 	 * 从休眠模式唤醒。
 	 */
 	protected void wakeup() {
-		if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(200);
-		}
-		else if (null != this.blockingConnector) {
+		if (null != this.blockingConnector) {
 			this.blockingConnector.resetInterval(200);
 		}
 	}
@@ -408,9 +362,6 @@ public class Speaker implements Speakable {
 	protected void resetInterval(long interval) {
 		if (null != this.blockingConnector) {
 			this.blockingConnector.resetInterval(interval);
-		}
-		else if (null != this.nonblockingConnector) {
-			this.nonblockingConnector.resetInterval(interval);
 		}
 	}
 
@@ -440,22 +391,17 @@ public class Speaker implements Speakable {
 	 * @return 数据成功写入发送队列返回 <code>true</code> 。
 	 */
 	protected boolean heartbeat() {
-		MessageConnector connector = (null != this.blockingConnector) ? this.blockingConnector : this.nonblockingConnector;
-		if (this.authenticated && !this.lost && connector.isConnected()) {
+		if (null != this.blockingConnector
+				&& this.authenticated
+				&& !this.lost
+				&& this.blockingConnector.isConnected()) {
 			Packet packet = new Packet(TalkDefinition.TPT_HEARTBEAT, 9, 2, 0);
 			byte[] data = Packet.pack(packet);
 			Message message = new Message(data);
+			return this.blockingConnector.write(message);
+		}
 
-			if (null != this.blockingConnector) {
-				return this.blockingConnector.write(message);
-			}
-			else {
-				return this.nonblockingConnector.write(message);
-			}
-		}
-		else {
-			return false;
-		}
+		return false;
 	}
 
 	/**
@@ -525,50 +471,42 @@ public class Speaker implements Speakable {
 	private void fireContacted(String celletIdentifier) {
 		if (null == this.contactedTimer) {
 			this.contactedTimer = new Timer();
-		}
-		else {
-			this.contactedTimer.cancel();
-			this.contactedTimer.purge();
-			this.contactedTimer = null;
-			this.contactedTimer = new Timer();
-		}
-
-		this.contactedTimer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				MessageConnector connector = (null != nonblockingConnector) ? nonblockingConnector : blockingConnector;
-				// 请求成功，激活链路加密
-				if (capacity.secure) {
-					if (!connector.getSession().isSecure()) {
-						boolean ret = connector.getSession().activeSecretKey(secretKey);
-						if (ret) {
-							Logger.i(Speaker.class, "Active secret key for server: " + address.getAddress().getHostAddress() + ":" + address.getPort());
+			this.contactedTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					// 请求成功，激活链路加密
+					if (capacity.secure) {
+						if (!blockingConnector.getSession().isSecure()) {
+							boolean ret = blockingConnector.getSession().activeSecretKey(secretKey);
+							if (ret) {
+								Logger.i(Speaker.class, "Active secret key for server: " + address.getAddress().getHostAddress() + ":" + address.getPort());
+							}
 						}
 					}
-				}
-				else {
-					connector.getSession().deactiveSecretKey();
-				}
-
-				// 更新心跳
-				heartbeatTime = System.currentTimeMillis();
-
-				for (String cid : identifierList) {
-					delegate.onContacted(Speaker.this, cid);
-				}
-
-				(new Thread(new Runnable() {
-					@Override
-					public void run() {
-						if (null != contactedTimer) {
-							contactedTimer.cancel();
-							contactedTimer.purge();
-							contactedTimer = null;
-						}
+					else {
+						blockingConnector.getSession().deactiveSecretKey();
 					}
-				})).start();
-			}
-		}, 50);
+
+					// 更新心跳
+					heartbeatTime = System.currentTimeMillis();
+
+					for (String cid : identifierList) {
+						delegate.onContacted(Speaker.this, cid);
+					}
+
+					(new Thread(new Runnable() {
+						@Override
+						public void run() {
+							if (null != contactedTimer) {
+								contactedTimer.cancel();
+								contactedTimer.purge();
+								contactedTimer = null;
+							}
+						}
+					})).start();
+				}
+			}, 50);
+		}
 	}
 
 	/**
@@ -586,9 +524,8 @@ public class Speaker implements Speakable {
 		this.delegate.onQuitted(this, celletIdentifier);
 
 		// 吊销密钥
-		MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
-		if (null != connector) {
-			Session session = connector.getSession();
+		if (null != this.blockingConnector) {
+			Session session = this.blockingConnector.getSession();
 			if (null != session) {
 				session.deactiveSecretKey();
 			}
@@ -600,17 +537,27 @@ public class Speaker implements Speakable {
 	 * 
 	 * @param failure 指定会话服务错误描述。
 	 */
-	protected void fireFailed(TalkServiceFailure failure) {
+	protected void fireFailed(final TalkServiceFailure failure) {
 		if (failure.getCode() == TalkFailureCode.NOT_FOUND
 			|| failure.getCode() == TalkFailureCode.INCORRECT_DATA
 			|| failure.getCode() == TalkFailureCode.RETRY_END) {
 			this.delegate.onFailed(this, failure);
 		}
 		else {
-			this.state = SpeakerState.HANGUP;
-			this.delegate.onFailed(this, failure);
-			this.lost = true;
-			this.heartbeatTime = 0L;
+			if (this.state != SpeakerState.HANGUP) {
+				this.executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						hangUp();
+						delegate.onFailed(Speaker.this, failure);
+					}
+				});
+			}
+
+//			this.state = SpeakerState.HANGUP;
+//			this.delegate.onFailed(this, failure);
+//			this.lost = true;
+//			this.heartbeatTime = 0L;
 		}
 	}
 
@@ -680,13 +627,7 @@ public class Speaker implements Speakable {
 		byte[] data = Packet.pack(packet);
 		if (null != data) {
 			Message message = new Message(data);
-
-			if (null != this.nonblockingConnector) {
-				this.nonblockingConnector.write(message);
-			}
-			else {
-				this.blockingConnector.write(message);
-			}
+			this.blockingConnector.write(message);
 		}
 	}
 
@@ -800,8 +741,7 @@ public class Speaker implements Speakable {
 			failure.setSourceCelletIdentifiers(this.identifierList);
 			this.fireFailed(failure);
 
-			MessageConnector connector = (null != this.nonblockingConnector) ? this.nonblockingConnector : this.blockingConnector;
-			connector.disconnect();
+			this.blockingConnector.disconnect();
 		}
 	}
 

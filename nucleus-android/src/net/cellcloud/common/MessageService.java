@@ -103,7 +103,7 @@ public abstract class MessageService {
 	 * 
 	 * @return
 	 */
-	public boolean existDataMark() {
+	public boolean hasDataMark() {
 		return (null != this.headMark && null != this.tailMark);
 	}
 
